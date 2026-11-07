@@ -2,7 +2,7 @@ import Link from "next/link";
 import { VideoIcon } from "@/components/icons";
 import { APP_NAME } from "@/lib/constants";
 import { LANDING_CONTAINER } from "./container";
-import { Reveal } from "./Reveal";
+import { FooterWordmark } from "./FooterWordmark";
 import { ScrollLink } from "./ScrollLink";
 
 const linkClass =
@@ -107,17 +107,8 @@ export function LandingFooter() {
         </div>
       </div>
 
-      {/* oversized outlined wordmark, cropped like a printed masthead */}
-      <Reveal className="pointer-events-none -mt-6 select-none">
-        <div
-          aria-hidden="true"
-          className="mx-auto h-[0.6em] w-[86%] max-w-[1560px] overflow-hidden text-center text-[clamp(5rem,21vw,19rem)]"
-        >
-          <span className="block font-extrabold leading-[0.9] tracking-[-0.06em] text-transparent [-webkit-text-stroke:1.5px_#d9d9d9]">
-            {APP_NAME}
-          </span>
-        </div>
-      </Reveal>
+      {/* oversized outlined wordmark that reacts to the cursor */}
+      <FooterWordmark text={APP_NAME} />
     </footer>
   );
 }
