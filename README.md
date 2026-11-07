@@ -68,7 +68,8 @@ Until the hosted links are published, run it locally — see
 
 ## Demo Credentials
 
-Sign-in is handled by Clerk's email + password form on `/sign-in`.
+Sign-in is handled by Clerk's email + password form, embedded in the landing
+page (`/`). `/sign-in` redirects there.
 
 | Field | Value |
 |---|---|
@@ -81,6 +82,29 @@ the product immediately. They are intentionally exposed in this README:
 - Do **not** reuse this password for any real account.
 - Do **not** store real personal data in the demo instance.
 - Anyone can read this repository, so treat the account as shared and disposable.
+
+### Local development demo account
+
+A second demo account can be created in your own Clerk **development** instance
+with the included script (it uses Clerk's Backend API, so nothing about
+authentication is bypassed):
+
+| Field | Value |
+|---|---|
+| **Email** | `demouser@gmail.com` |
+| **Password** | `thisisdemouser` |
+
+```bash
+cd frontend
+# .env.local must contain the FULL Clerk secret key (Dashboard -> API keys):
+#   CLERK_SECRET_KEY=sk_test_...
+npm run demo-user      # idempotent; never prints the key
+```
+
+The script refuses to run with a truncated or placeholder key and tells you so.
+It is valid only for the Clerk instance whose keys are in `frontend/.env.local`.
+Because the backend does not authenticate requests (see *Authentication*), every
+signed-in user sees the same meetings; accounts are not isolated from each other.
 
 ---
 
@@ -171,7 +195,7 @@ the backend contract but are **not** surfaced in the UI are labelled as such.
 | Realtime | Per-meeting WebSocket: join/leave, participant lifecycle, SDP/ICE relay, media state, host actions, reactions, ping/pong | ✅ Implemented |
 | Reactions | Eight-emoji transient reactions rendered over tiles for 4s, relayed to others, never persisted | ✅ Implemented |
 | Meeting room UX | Layout modes (auto / gallery / speaker), fullscreen, keyboard shortcuts (`M` `V` `P` `F`), connection banner, toast notifications | ✅ Implemented |
-| Responsive UI | Sidebar → compact top nav → mobile-friendly layout, breakpoints at 480/560/640/768/860/1024px, `prefers-reduced-motion` support | ✅ Implemented |
+| Responsive UI | Top bar → slide-down mobile menu, mobile-friendly layout, breakpoints at 480/560/640/768/860/1024px, `prefers-reduced-motion` support | ✅ Implemented |
 | Meeting passwords | Optional per-meeting password, hashed with bcrypt, verified on REST join **and** WebSocket join | ✅ Implemented |
 | Screen sharing | Backend accepts `screen_share` state and broadcasts it; **the UI does not expose a share control yet** | ⚠️ Backend contract only |
 | Chat / recording / captions | Not present | ❌ Not implemented |
@@ -373,7 +397,7 @@ presentational.
 | `src/components/common` | Toasts, dialogs, dropdowns, skeletons, empty/error states. |
 | `src/components/dashboard` | Action tiles, join form, schedule form, upcoming/recent cards. |
 | `src/components/meeting` | Room top bar, control bar, participant grid/tiles, participants panel, settings dialog, reactions, popovers. |
-| `src/components/layout` | `AppShell`, `Sidebar`, `TopNav` (responsive chrome). |
+| `src/components/layout` | `AppShell`, `TopNav` (responsive chrome). |
 | `src/hooks` | Session orchestration. `useMeeting` is the hub: REST validation → media → socket → WebRTC → host actions → terminal phases. |
 | `src/lib` | Pure/platform modules: `api-client` (fetch + timeout + error copy), `websocket` (`MeetingSocket` with queue/ping/backoff), `webrtc` (peer config, glare rule), `constants`, `validators`, `utils`, `gridLayout`. |
 | `src/services` | Thin REST wrappers, one function per endpoint. |
@@ -1008,16 +1032,20 @@ build context (`COPY frontend/ ...`); the backend image expects `backend/`.
 
 ## Design / UX
 
-- **Zoom design language:** primary blue `#0b5cff`, white surfaces, light
-  cool-gray page background (`#f5f7fa`), subtle borders, near-black text, muted
-  secondary text, rounded cards/buttons, generous spacing — no gradients or
-  decorative clutter. The meeting room switches to a dark environment so video
-  is the focus.
-- **Design tokens** live in `src/styles/primitives.css` and are consumed by four
-  surface stylesheets (`shell`, `dashboard`, `meeting`, `auth`) plus
-  `globals.css`.
-- **Responsive:** breakpoints at 480 / 560 / 640 / 768 / 860 / 1024px; full
-  sidebar on desktop, a menu toggle + backdrop on smaller screens, control
+- **Meetly design language** (taken from the landing page, documented in
+  [`docs/design-system.md`](docs/design-system.md)): white page, black accent,
+  hairline grey borders (`#e8e8e8`), `#f5f5f5` icon tiles and pills, `#686868`
+  secondary text, rounded-3xl cards, rounded display type (weight 800, tight
+  tracking) and a faint dotted-grid background. The meeting room uses the same
+  light language (grey tiles, black controls, black filled "off" states, red only
+  for leaving and destructive actions).
+- **Design tokens** are CSS variables in `src/app/globals.css` (`:root`),
+  consumed by the surface stylesheets (`primitives`, `shell`, `dashboard`,
+  `meeting`). Change a token and every screen follows.
+- **Navigation:** one sticky top bar (the in-app twin of the landing nav); the
+  old sidebar is gone and its quick actions live in the bar and on the dashboard.
+- **Responsive:** breakpoints at 480 / 560 / 640 / 768 / 860 / 1024px; a
+  text-link top bar on desktop, a slide-down menu on small screens, control
   labels collapsing to icons in the room.
 - **Accessible:** semantic elements, real `<label>`s, `aria-label`/`aria-pressed`
   on icon buttons, `role="toolbar"`/`role="tablist"` regions, an `aria-live`
