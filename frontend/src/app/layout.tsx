@@ -5,13 +5,13 @@ import "@/styles/primitives.css";
 import "@/styles/shell.css";
 import "@/styles/dashboard.css";
 import "@/styles/meeting.css";
-import "@/styles/auth.css";
+import { authLocalization } from "@/lib/clerk-appearance";
 import { ToastProvider } from "@/components/common/ToastProvider";
 
 export const metadata: Metadata = {
   title: {
-    default: "Zoom",
-    template: "%s | Zoom",
+    default: "Meetly",
+    template: "%s | Meetly",
   },
   description:
     "Video meetings made simple - start, schedule and join meetings from your browser.",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0b5cff",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({
@@ -32,7 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ClerkProvider>
+        <ClerkProvider localization={authLocalization}>
           <ToastProvider>{children}</ToastProvider>
         </ClerkProvider>
       </body>

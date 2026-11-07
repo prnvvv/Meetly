@@ -71,4 +71,4 @@ export const REACTION_EMOJIS = [
   "✋",
 ] as const;
 
-export const APP_NAME = "Zoom";
+export const APP_NAME = "Meetly";
