@@ -6,35 +6,13 @@ import { HeroAuth } from "@/components/landing/HeroAuth";
 import { Reveal } from "@/components/landing/Reveal";
 import {
   CalendarIcon,
+  LinkIcon,
+  PlusIcon,
   SparklesIcon,
   UsersIcon,
   VideoIcon,
 } from "@/components/icons";
 import { APP_NAME } from "@/lib/constants";
-
-const FEATURES = [
-  {
-    icon: VideoIcon,
-    title: "HD Meetings",
-    text: "Crystal-clear, low-latency video calls for seamless collaboration.",
-  },
-  {
-    icon: CalendarIcon,
-    title: "Smart Scheduling",
-    text: "Plan, manage, and get reminders for your meetings with ease.",
-  },
-  {
-    icon: UsersIcon,
-    title: "Team Collaboration",
-    text: "Share links, notes, and resources to keep your team in sync.",
-  },
-  {
-    icon: SparklesIcon,
-    title: "AI Meeting Rooms",
-    text: "AI-powered meeting rooms with smart notes, summaries, and action items.",
-    soon: true,
-  },
-];
 
 const HERO_HIGHLIGHTS: { icon: typeof VideoIcon; title: string; hint?: string }[] = [
   { icon: VideoIcon, title: "HD Meetings" },
@@ -48,9 +26,9 @@ const HERO_HIGHLIGHTS: { icon: typeof VideoIcon; title: string; hint?: string }[
 ];
 
 const STEPS = [
-  { n: "01", title: "Create", text: "Start an instant meeting or schedule one for later." },
-  { n: "02", title: "Share", text: "Send the meeting link or ID to anyone you want to invite." },
-  { n: "03", title: "Meet", text: "Join from your browser, no downloads and no fuss." },
+  { n: "01", icon: PlusIcon, title: "Create", text: "Start an instant meeting or schedule one for later." },
+  { n: "02", icon: LinkIcon, title: "Share", text: "Send the meeting link or ID to anyone you want to invite." },
+  { n: "03", icon: VideoIcon, title: "Meet", text: "Join from your browser, no downloads and no fuss." },
 ];
 
 export default function Home() {
@@ -120,7 +98,7 @@ export default function Home() {
 
               {/* Compact capability strip: one row on desktop (labels never wrap),
                   2x2 on phones. */}
-              <ul className="mt-9 grid grid-cols-2 gap-x-4 gap-y-5 sm:flex sm:items-stretch sm:gap-0">
+              <ul id="features" className="mt-9 scroll-mt-28 grid grid-cols-2 gap-x-4 gap-y-5 sm:flex sm:items-stretch sm:gap-0">
                 {HERO_HIGHLIGHTS.map(({ icon: Icon, title, hint }, i) => (
                   <li
                     key={title}
@@ -152,58 +130,51 @@ export default function Home() {
         <CrowdBand className="h-[320px] sm:max-lg:h-[360px] lg:max-[1199px]:h-[400px] min-[1200px]:h-[clamp(240px,calc(100svh-5rem-var(--hero-lead)),400px)]" />
       </section>
 
-      <section id="features" className="scroll-mt-8 bg-white">
-        <div className={`${LANDING_CONTAINER} py-16 md:py-20`}>
-          <Reveal>
-            <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
-              Everything you need to meet
+      {/* How it works: an inverted black band that breaks up the long white
+          scroll; three linked steps with outlined numerals. */}
+      <section id="how-it-works" className="scroll-mt-8 bg-black text-white">
+        <div className={`${LANDING_CONTAINER} py-16 md:py-24`}>
+          <Reveal className="max-w-2xl">
+            <span className="inline-flex h-8 items-center rounded-full border border-white/25 px-4 text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
+              How it works
+            </span>
+            <h2 className="mt-5 text-[clamp(1.875rem,3.2vw,2.75rem)] font-extrabold leading-[1.1] tracking-[-0.03em]">
+              From idea to meeting in three simple steps
             </h2>
+            <p className="mt-4 text-base leading-relaxed text-white/60 sm:text-lg">
+              No downloads, no setup. Start, share and join right from your browser.
+            </p>
           </Reveal>
-          <div className="mt-8 grid gap-5 sm:max-lg:grid-cols-2 lg:grid-cols-4 lg:gap-6">
-            {FEATURES.map(({ icon: Icon, title, text, soon }, i) => (
-              <Reveal key={title} delay={i * 100} className="h-full">
-                <article className="group flex h-full flex-col rounded-2xl border border-neutral-200 bg-white p-7 transition-colors duration-200 hover:border-black xl:p-8">
-                  <span className="grid size-14 place-items-center rounded-xl bg-neutral-100 text-black transition-colors duration-200 group-hover:bg-black group-hover:text-white">
-                    <Icon size={26} />
-                  </span>
-                  <h3 className="mt-6 flex flex-wrap items-center gap-2 text-xl font-extrabold tracking-tight">
-                    {title}
-                    {soon && (
-                      <span className="rounded-full border border-neutral-300 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
-                        Coming soon
-                      </span>
-                    )}
-                  </h3>
-                  <p className="mt-2 text-base leading-relaxed text-neutral-600">{text}</p>
-                </article>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      <section id="how-it-works" className="scroll-mt-8 border-t border-neutral-200 bg-white">
-        <div className={`${LANDING_CONTAINER} py-16 md:py-20`}>
-          <Reveal>
-            <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">How it works</h2>
-          </Reveal>
-          <ol className="mt-8 grid gap-5 md:grid-cols-3 md:gap-12">
-            {STEPS.map((s, i) => (
-              <li key={s.n} className="relative">
-                <Reveal delay={i * 100} className="h-full">
-                  <div className="h-full rounded-2xl border border-black p-7 lg:p-8">
-                    <span className="grid size-10 place-items-center rounded-full bg-black text-sm font-bold text-white">
-                      {s.n}
-                    </span>
-                    <h3 className="mt-6 text-2xl font-extrabold tracking-tight">{s.title}</h3>
-                    <p className="mt-2 text-base leading-relaxed text-neutral-600">{s.text}</p>
+          <ol className="mt-12 grid gap-5 md:mt-14 md:grid-cols-3 md:gap-14">
+            {STEPS.map(({ n, icon: Icon, title, text }, i) => (
+              <li key={n} className="relative">
+                <Reveal delay={i * 120} className="h-full">
+                  <div className="group relative h-full overflow-hidden rounded-3xl border border-white/15 bg-white/[0.03] p-7 transition-colors duration-300 hover:border-white/45 lg:p-8">
+                    <div className="flex items-start justify-between">
+                      <span className="grid size-12 place-items-center rounded-2xl bg-white text-black transition-transform duration-300 group-hover:-rotate-6">
+                        <Icon size={22} />
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="select-none text-[4.5rem] font-extrabold leading-[0.8] tracking-[-0.04em] text-transparent [-webkit-text-stroke:1.5px_rgba(255,255,255,0.28)] transition-[-webkit-text-stroke-color] duration-300 group-hover:[-webkit-text-stroke-color:rgba(255,255,255,0.7)]"
+                      >
+                        {n}
+                      </span>
+                    </div>
+                    <h3 className="mt-8 text-2xl font-extrabold tracking-tight">{title}</h3>
+                    <p className="mt-2 text-base leading-relaxed text-white/65">{text}</p>
                   </div>
                 </Reveal>
+
+                {/* connector to the next step: line ending in an arrowhead */}
                 {i < STEPS.length - 1 && (
                   <span
                     aria-hidden="true"
-                    className="absolute -right-12 top-1/2 hidden h-px w-12 bg-neutral-300 md:block"
-                  />
+                    className="absolute -right-14 top-1/2 hidden h-px w-14 bg-white/30 md:block"
+                  >
+                    <span className="absolute -right-px -top-[3px] size-[7px] rotate-45 border-r border-t border-white/60" />
+                  </span>
                 )}
               </li>
             ))}
