@@ -11,7 +11,7 @@ export type VideoFitMode = "fill" | "fit";
 
 export interface RoomPreferences {
   layout: RoomLayoutMode;
-  /** Mirror the local camera preview (display-only, like Zoom). */
+  /** Mirror the local camera preview (display-only). */
   mirrorSelf: boolean;
   videoFit: VideoFitMode;
 }

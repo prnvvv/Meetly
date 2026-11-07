@@ -29,7 +29,7 @@ interface ParticipantsPanelProps {
   onRemoveParticipant?: (targetId: number) => void;
   onMuteAll?: () => void;
   onEndMeeting?: () => void;
-  /** Local-only pinned tile (Zoom-style spotlight). */
+  /** Local-only pinned tile (spotlight). */
   pinnedId?: number | null;
   onTogglePin?: (participantId: number) => void;
 }

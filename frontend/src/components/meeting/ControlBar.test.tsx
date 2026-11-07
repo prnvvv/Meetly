@@ -114,7 +114,7 @@ describe("ControlBar", () => {
     expect(onToggleParticipants).toHaveBeenCalledTimes(1);
   });
 
-  it("orders controls like Zoom: Audio, Video, Participants, React, More, End", () => {
+  it("orders controls: Audio, Video, Participants, React, More, End", () => {
     renderBar();
     const labels = toolbarLabels();
     const expected = [

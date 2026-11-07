@@ -28,7 +28,7 @@ interface UpcomingMeetingCardProps {
   meeting: Meeting;
 }
 
-/** Zoom-style card for a scheduled meeting with a live "starts in" pill. */
+/** Meetly card for a scheduled meeting with a live "starts in" pill. */
 export function UpcomingMeetingCard({ meeting }: UpcomingMeetingCardProps) {
   const now = useCountdown();
   const { toast } = useToast();
