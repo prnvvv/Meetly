@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   CalendarIcon,
-  PlusIcon,
+  LinkIcon,
   VideoIcon,
 } from "@/components/icons";
 
@@ -17,7 +17,7 @@ const TILES = [
     href: "/join",
     label: "Join Meeting",
     hint: "Enter a meeting ID",
-    icon: PlusIcon,
+    icon: LinkIcon,
     modifier: "action-tile--join",
   },
   {

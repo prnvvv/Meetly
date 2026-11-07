@@ -490,3 +490,12 @@ export function SparklesIcon(props: IconProps) {
     </Icon>
   );
 }
+
+export function InboxIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M3 13.5h4.5l1.6 3h5.8l1.6-3H21" />
+      <path d="M5.6 5h12.8a2 2 0 0 1 1.9 1.4L21 13.5V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4.5l.7-7.1A2 2 0 0 1 5.6 5Z" />
+    </Icon>
+  );
+}
