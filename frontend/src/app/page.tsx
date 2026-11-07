@@ -2,15 +2,13 @@ import { LANDING_CONTAINER } from "@/components/landing/container";
 import { CrowdBand } from "@/components/landing/CrowdBand";
 import { AboutSection } from "@/components/landing/AboutSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { SolutionsSection } from "@/components/landing/SolutionsSection";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { HeroAuth } from "@/components/landing/HeroAuth";
-import { Reveal } from "@/components/landing/Reveal";
 import {
   CalendarIcon,
-  LinkIcon,
-  PlusIcon,
   SparklesIcon,
   UsersIcon,
   VideoIcon,
@@ -26,12 +24,6 @@ const HERO_HIGHLIGHTS: { icon: typeof VideoIcon; title: string; hint?: string }[
     title: "AI Meeting Rooms",
     hint: "AI-powered notes, summaries and action items",
   },
-];
-
-const STEPS = [
-  { n: "01", icon: PlusIcon, title: "Create", text: "Start an instant meeting or schedule one for later." },
-  { n: "02", icon: LinkIcon, title: "Share", text: "Send the meeting link or ID to anyone you want to invite." },
-  { n: "03", icon: VideoIcon, title: "Meet", text: "Join from your browser, no downloads and no fuss." },
 ];
 
 export default function Home() {
@@ -137,57 +129,7 @@ export default function Home() {
 
       <SolutionsSection />
 
-      {/* How it works: an inverted black band that breaks up the long white
-          scroll; three linked steps with outlined numerals. */}
-      <section id="how-it-works" className="scroll-mt-20 bg-black text-white">
-        <div className={`${LANDING_CONTAINER} py-16 md:py-24`}>
-          <Reveal className="max-w-2xl">
-            <span className="inline-flex h-8 items-center rounded-full border border-white/25 px-4 text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
-              How it works
-            </span>
-            <h2 className="mt-5 text-[clamp(1.875rem,3.2vw,2.75rem)] font-extrabold leading-[1.1] tracking-[-0.03em]">
-              From idea to meeting in three simple steps
-            </h2>
-            <p className="mt-4 text-base leading-relaxed text-white/60 sm:text-lg">
-              No downloads, no setup. Start, share and join right from your browser.
-            </p>
-          </Reveal>
-
-          <ol className="mt-12 grid gap-5 md:mt-14 md:grid-cols-3 md:gap-14">
-            {STEPS.map(({ n, icon: Icon, title, text }, i) => (
-              <li key={n} className="relative">
-                <Reveal delay={i * 120} className="h-full">
-                  <div className="group relative h-full overflow-hidden rounded-3xl border border-white/15 bg-white/[0.03] p-7 transition-colors duration-300 hover:border-white/45 lg:p-8">
-                    <div className="flex items-start justify-between">
-                      <span className="grid size-12 place-items-center rounded-2xl bg-white text-black transition-transform duration-300 group-hover:-rotate-6">
-                        <Icon size={22} />
-                      </span>
-                      <span
-                        aria-hidden="true"
-                        className="select-none text-[4.5rem] font-extrabold leading-[0.8] tracking-[-0.04em] text-transparent [-webkit-text-stroke:1.5px_rgba(255,255,255,0.28)] transition-[-webkit-text-stroke-color] duration-300 group-hover:[-webkit-text-stroke-color:rgba(255,255,255,0.7)]"
-                      >
-                        {n}
-                      </span>
-                    </div>
-                    <h3 className="mt-8 text-2xl font-extrabold tracking-tight">{title}</h3>
-                    <p className="mt-2 text-base leading-relaxed text-white/65">{text}</p>
-                  </div>
-                </Reveal>
-
-                {/* connector to the next step: line ending in an arrowhead */}
-                {i < STEPS.length - 1 && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute -right-14 top-1/2 hidden h-px w-14 bg-white/30 md:block"
-                  >
-                    <span className="absolute -right-px -top-[3px] size-[7px] rotate-45 border-r border-t border-white/60" />
-                  </span>
-                )}
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
+      <HowItWorksSection />
 
       <AboutSection />
 

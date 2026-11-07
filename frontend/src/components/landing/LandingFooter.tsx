@@ -10,7 +10,7 @@ const linkClass =
 /** Only links to destinations that exist in the app; nothing placeholder. */
 export function LandingFooter() {
   return (
-    <footer className="border-t border-white/15 bg-black text-white">
+    <footer className="border-t border-white/10 bg-black text-white">
       <div className={`${LANDING_CONTAINER} py-14`}>
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:gap-12">
           <div className="sm:col-span-2 lg:col-span-1">
