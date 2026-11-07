@@ -36,7 +36,7 @@ function connectionLabel(status: MeetingTopBarProps["connection"]): string {
   }
 }
 
-/** Dark Zoom-style meeting header: identity on the left, utilities right. */
+/** Meeting header: identity on the left, utilities on the right. */
 export function MeetingTopBar({
   title,
   meetingId,

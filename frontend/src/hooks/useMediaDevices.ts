@@ -186,7 +186,7 @@ export function supportsSpeakerSelection(): boolean {
  * Local media plus device selection.
  *
  * Nothing is captured until the user acts: `joinAudio()` requests the
- * microphone (Zoom-like "Join Audio") and `setVideoOn(true)` requests the
+ * microphone ("Join Audio") and `setVideoOn(true)` requests the
  * camera. `acquire()` / `refreshDevices()` only enumerate device names.
  * `stop()` releases every track and resets the join flags so a retry
  * starts from the same off-by-default state.
@@ -487,7 +487,7 @@ export function useMediaDevices(): MediaDevicesState {
 
   const setMuted = useCallback((next: boolean) => {
     // Mute is meaningless before the microphone is joined; joining audio is
-    // the only way to bring the mic up (and it starts unmuted, like Zoom).
+    // the only way to bring the mic up (and it starts unmuted).
     if (!audioJoinedRef.current) return;
     mutedRef.current = next;
     streamRef.current?.getAudioTracks().forEach((track) => {

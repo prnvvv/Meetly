@@ -377,7 +377,7 @@ export function useMeeting({
   }, [phase, ws.status, selfId, media.isMuted, media.isVideoOn, send]);
 
   const toggleMute = useCallback(() => {
-    // Zoom-like Join Audio: the first click on the audio control requests
+    // Join Audio: the first click on the audio control requests
     // microphone permission; only afterwards does it mute/unmute.
     if (!media.audioJoined) {
       void joinAudio();
