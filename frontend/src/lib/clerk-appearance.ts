@@ -88,7 +88,8 @@ export const authAppearance = {
   },
   elements: {
     rootBox: "w-full max-w-[400px]",
-    cardBox: "w-full shadow-none! border! border-solid! border-neutral-200! rounded-2xl bg-white overflow-hidden",
+    cardBox:
+      "w-full border! border-solid! border-neutral-200! rounded-2xl bg-white overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_28px_-16px_rgba(0,0,0,0.18)]!",
     card: "shadow-none! bg-transparent",
     formButtonPrimary:
       "bg-black hover:bg-neutral-800 rounded-full normal-case shadow-none",
