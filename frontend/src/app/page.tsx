@@ -1,5 +1,8 @@
 import { LANDING_CONTAINER } from "@/components/landing/container";
 import { CrowdBand } from "@/components/landing/CrowdBand";
+import { AboutSection } from "@/components/landing/AboutSection";
+import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { SolutionsSection } from "@/components/landing/SolutionsSection";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { HeroAuth } from "@/components/landing/HeroAuth";
@@ -98,7 +101,7 @@ export default function Home() {
 
               {/* Compact capability strip: one row on desktop (labels never wrap),
                   2x2 on phones. */}
-              <ul id="features" className="mt-9 scroll-mt-28 grid grid-cols-2 gap-x-4 gap-y-5 sm:flex sm:items-stretch sm:gap-0">
+              <ul className="mt-9 grid grid-cols-2 gap-x-4 gap-y-5 sm:flex sm:items-stretch sm:gap-0">
                 {HERO_HIGHLIGHTS.map(({ icon: Icon, title, hint }, i) => (
                   <li
                     key={title}
@@ -130,9 +133,13 @@ export default function Home() {
         <CrowdBand className="h-[320px] sm:max-lg:h-[360px] lg:max-[1199px]:h-[400px] min-[1200px]:h-[clamp(240px,calc(100svh-5rem-var(--hero-lead)),400px)]" />
       </section>
 
+      <FeaturesSection />
+
+      <SolutionsSection />
+
       {/* How it works: an inverted black band that breaks up the long white
           scroll; three linked steps with outlined numerals. */}
-      <section id="how-it-works" className="scroll-mt-8 bg-black text-white">
+      <section id="how-it-works" className="scroll-mt-20 bg-black text-white">
         <div className={`${LANDING_CONTAINER} py-16 md:py-24`}>
           <Reveal className="max-w-2xl">
             <span className="inline-flex h-8 items-center rounded-full border border-white/25 px-4 text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
@@ -181,6 +188,8 @@ export default function Home() {
           </ol>
         </div>
       </section>
+
+      <AboutSection />
 
       <LandingFooter />
     </div>
