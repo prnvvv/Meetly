@@ -11,7 +11,7 @@ import { authAppearance } from "@/lib/clerk-appearance";
  */
 export function HeroAuth() {
   return (
-    <div className="flex w-full justify-center lg:justify-start">
+    <div className="flex w-full justify-center min-[1200px]:justify-end">
       <Show when="signed-out">
         <SignIn
           routing="hash"
@@ -21,7 +21,7 @@ export function HeroAuth() {
         />
       </Show>
       <Show when="signed-in">
-        <div className="w-full max-w-[400px] rounded-2xl border border-neutral-200 bg-white p-8">
+        <div className="w-full max-w-[545px] rounded-[28px] border border-neutral-200 bg-white p-8">
           <h2 className="text-xl font-extrabold">Welcome back</h2>
           <p className="mt-2 text-sm text-neutral-500">
             You&apos;re signed in. Pick up where you left off.

@@ -87,10 +87,10 @@ export const authAppearance = {
     socialButtonsVariant: "iconButton",
   },
   elements: {
-    rootBox: "w-full max-w-[400px]",
+    rootBox: "w-full! max-w-[545px]!",
     cardBox:
-      "w-full border! border-solid! border-neutral-200! rounded-2xl bg-white overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_28px_-16px_rgba(0,0,0,0.18)]!",
-    card: "shadow-none! bg-transparent",
+      "w-full! max-w-none! border! border-solid! border-neutral-200! rounded-[28px] bg-white overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_28px_-16px_rgba(0,0,0,0.18)]!",
+    card: "shadow-none! bg-transparent w-full! max-w-none! px-10! py-[3.25rem]!",
     formButtonPrimary:
       "bg-black hover:bg-neutral-800 rounded-full normal-case shadow-none",
     footerActionLink: "text-black font-medium hover:text-neutral-600",
