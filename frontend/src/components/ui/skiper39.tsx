@@ -241,6 +241,14 @@ const CrowdCanvas = ({
       canvas.width = stage.width * devicePixelRatio;
       canvas.height = stage.height * devicePixelRatio;
 
+      // In `fit` mode a short band shrinks the figures (never enlarges them)
+      // so a person is never taller than ~90% of the band and heads stay in view.
+      if (fit && allPeeps.length) {
+        const tileHeight = allPeeps[0].rect[3];
+        config.scale = Math.min(scale, (stage.height * 0.9) / tileHeight);
+        allPeeps.forEach((peep) => peep.setRect(peep.rect));
+      }
+
       crowd.forEach((peep) => peep.walk.kill());
 
       crowd.length = 0;
