@@ -36,6 +36,8 @@ describe("getInitials", () => {
 
   it("collapses whitespace", () => {
     expect(getInitials("  ada   lovelace  ")).toBe("AL");
+    expect(getInitials("Demo User (You)")).toBe("DU");
+    expect(getInitials("(You)")).toBe("?");
   });
 
   it("falls back for an empty name", () => {
