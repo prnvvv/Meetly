@@ -68,6 +68,26 @@ export function formatTimeRange(startIso: string, durationMinutes?: number | nul
   };
 }
 
+/**
+ * "Today", "Tomorrow", "Yesterday" or a short date ("Nov 6") for an ISO
+ * timestamp, in the viewer's local timezone. `now` is injectable for tests.
+ */
+export function formatDayLabel(iso: string, now: Date = new Date()): string {
+  const date = toDate(iso);
+  if (!date) return "";
+  const startOfDay = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOfDay(date) - startOfDay(now)) / 86_400_000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  if (days === -1) return "Yesterday";
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    ...(date.getFullYear() !== now.getFullYear() ? { year: "numeric" } : {}),
+  });
+}
+
 export function formatDuration(minutes?: number | null): string {
   if (!minutes || minutes <= 0) return "";
   const hours = Math.floor(minutes / 60);
