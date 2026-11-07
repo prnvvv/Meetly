@@ -4,6 +4,7 @@ import { HeroAuth } from "@/components/landing/HeroAuth";
 import { Reveal } from "@/components/landing/Reveal";
 import {
   CalendarIcon,
+  SparklesIcon,
   UsersIcon,
   VideoIcon,
 } from "@/components/icons";
@@ -14,7 +15,7 @@ const FEATURES = [
   {
     icon: VideoIcon,
     title: "HD Meetings",
-    text: "High-quality, low-latency video calls for seamless collaboration.",
+    text: "Crystal-clear, low-latency video calls for seamless collaboration.",
   },
   {
     icon: CalendarIcon,
@@ -25,6 +26,12 @@ const FEATURES = [
     icon: UsersIcon,
     title: "Team Collaboration",
     text: "Share links, notes, and resources to keep your team in sync.",
+  },
+  {
+    icon: SparklesIcon,
+    title: "AI Meeting Rooms",
+    text: "AI-powered meeting rooms with smart notes, summaries, and action items.",
+    soon: true,
   },
 ];
 
@@ -83,14 +90,21 @@ export default function Home() {
               Everything you need to meet
             </h2>
           </Reveal>
-          <div className="mt-8 grid gap-5 md:grid-cols-3 md:gap-6">
-            {FEATURES.map(({ icon: Icon, title, text }, i) => (
+          <div className="mt-8 grid gap-5 sm:max-lg:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+            {FEATURES.map(({ icon: Icon, title, text, soon }, i) => (
               <Reveal key={title} delay={i * 100} className="h-full">
-                <article className="group flex h-full flex-col rounded-2xl border border-neutral-200 bg-white p-7 transition-colors duration-200 hover:border-black lg:p-8">
+                <article className="group flex h-full flex-col rounded-2xl border border-neutral-200 bg-white p-7 transition-colors duration-200 hover:border-black xl:p-8">
                   <span className="grid size-14 place-items-center rounded-xl bg-neutral-100 text-black transition-colors duration-200 group-hover:bg-black group-hover:text-white">
                     <Icon size={26} />
                   </span>
-                  <h3 className="mt-6 text-xl font-extrabold tracking-tight">{title}</h3>
+                  <h3 className="mt-6 flex flex-wrap items-center gap-2 text-xl font-extrabold tracking-tight">
+                    {title}
+                    {soon && (
+                      <span className="rounded-full border border-neutral-300 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+                        Coming soon
+                      </span>
+                    )}
+                  </h3>
                   <p className="mt-2 text-base leading-relaxed text-neutral-600">{text}</p>
                 </article>
               </Reveal>
