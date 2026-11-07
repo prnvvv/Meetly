@@ -243,6 +243,39 @@ html:has(.landing) {
     transition: none;
   }
 }
+.speak-ring {
+  opacity: 0;
+  animation: speak-ring 6s ease-in-out infinite;
+}
+@keyframes speak-ring {
+  0%,
+  30% {
+    opacity: 1;
+  }
+  36%,
+  100% {
+    opacity: 0;
+  }
+}
+.eq-bar {
+  transform-origin: bottom;
+  animation: eq-bar 0.7s ease-in-out infinite;
+}
+@keyframes eq-bar {
+  0%,
+  100% {
+    transform: scaleY(0.25);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .speak-ring,
+  .eq-bar {
+    animation: none;
+  }
+}
 .bloom-ray {
   stroke-dasharray: 1;
   stroke-dashoffset: 0;
