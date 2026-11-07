@@ -292,7 +292,16 @@ const CrowdCanvas = ({
     img.src = config.src;
 
     const handleResize = () => {
-      if (allPeeps.length) resize();
+      if (!allPeeps.length) return;
+      // Ignore resizes that do not change the canvas (e.g. a phone's address
+      // bar showing/hiding) so the crowd is not rebuilt for nothing.
+      if (
+        canvas.clientWidth === stage.width &&
+        canvas.clientHeight === stage.height
+      ) {
+        return;
+      }
+      resize();
     };
     window.addEventListener("resize", handleResize);
 
