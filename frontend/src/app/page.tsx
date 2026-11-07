@@ -153,7 +153,7 @@ export default function Home() {
       </section>
 
       <section id="features" className="scroll-mt-8 bg-white">
-        <div className={`${LANDING_CONTAINER} py-14 md:py-16`}>
+        <div className={`${LANDING_CONTAINER} py-16 md:py-20`}>
           <Reveal>
             <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
               Everything you need to meet
@@ -183,7 +183,7 @@ export default function Home() {
       </section>
 
       <section id="how-it-works" className="scroll-mt-8 border-t border-neutral-200 bg-white">
-        <div className={`${LANDING_CONTAINER} py-14 md:py-16`}>
+        <div className={`${LANDING_CONTAINER} py-16 md:py-20`}>
           <Reveal>
             <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">How it works</h2>
           </Reveal>
@@ -210,9 +210,6 @@ export default function Home() {
           </ol>
         </div>
       </section>
-
-      {/* Closing crowd band: flush with the footer's top rule. */}
-      <CrowdBand className="h-[260px] sm:h-[300px] lg:h-[340px]" />
 
       <LandingFooter />
     </div>
