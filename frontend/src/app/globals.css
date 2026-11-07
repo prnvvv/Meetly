@@ -229,6 +229,27 @@ kbd {
 html:has(.landing) {
   scroll-behavior: smooth;
 }
+.bloom-ray {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: bloom-ray 650ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(450ms + var(--i, 0) * 110ms);
+}
+@keyframes bloom-ray {
+  from {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bloom-ray {
+    animation: none;
+  }
+}
 .landing-rise {
   animation: landing-rise 700ms ease-out both;
 }

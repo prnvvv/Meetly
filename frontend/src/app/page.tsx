@@ -61,7 +61,10 @@ export default function Home() {
       {/* Hero: marketing copy (left) and the real Clerk sign-in (right) in one
           grid; the crowd band below is its own flow element, so nothing
           overlaps and nothing depends on viewport height. */}
-      <section className="relative overflow-hidden border-b border-neutral-200">
+      <section
+        className="relative overflow-hidden border-b border-neutral-200"
+        style={{ "--hero-lead": "29rem" } as React.CSSProperties}
+      >
         <div className={`relative z-10 ${LANDING_CONTAINER} pb-6 pt-6 sm:pt-8 lg:pb-6 lg:pt-10`}>
           <div className="grid items-center gap-10 min-[1200px]:grid-cols-[56fr_44fr] min-[1200px]:gap-[clamp(48px,4vw,64px)]">
             <div className="landing-rise @container min-w-0 min-[1200px]:ml-auto min-[1200px]:w-[92%] min-[1200px]:[zoom:0.92]">
@@ -76,21 +79,22 @@ export default function Home() {
                   and
                   <svg
                     aria-hidden="true"
-                    viewBox="0 0 34 30"
-                    className="pointer-events-none absolute left-full top-0 ml-1.5 hidden h-[0.6em] w-[0.7em] -translate-y-[35%] sm:block"
+                    viewBox="0 0 48 48"
+                    className="pointer-events-none absolute left-full top-0 ml-[0.02em] hidden h-[0.95em] w-[0.95em] -translate-y-[54%] overflow-visible sm:block"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="3"
+                    strokeWidth="4"
                     strokeLinecap="round"
                   >
-                    <path d="M4 24 L10 14" />
-                    <path d="M15 20 L19 6" />
-                    <path d="M25 22 L32 12" />
+                    {/* Three rays fanning out from one point at the top-right of "and". */}
+                    <path className="bloom-ray" style={{ "--i": 0 } as React.CSSProperties} pathLength={1} d="M6.9 32 L8.1 8.1" />
+                    <path className="bloom-ray" style={{ "--i": 1 } as React.CSSProperties} pathLength={1} d="M13.1 33.6 L31.7 11.4" />
+                    <path className="bloom-ray" style={{ "--i": 2 } as React.CSSProperties} pathLength={1} d="M15.7 39.4 L38.8 33.2" />
                   </svg>
                 </span>
-                <br className="hidden md:block" /> Collaborate{" "}
+                <br className="hidden md:block" /> Collaborate with{" "}
                 <span className="relative inline-block whitespace-nowrap">
-                  with {APP_NAME}
+                  {APP_NAME}
                   <svg
                     aria-hidden="true"
                     viewBox="0 0 200 14"
@@ -141,7 +145,11 @@ export default function Home() {
           </div>
         </div>
 
-        <CrowdBand className="h-[320px] sm:h-[360px] lg:h-[400px]" />
+        {/* Stacked layouts keep fixed band heights. From 1200px the band takes the
+            viewport height left under the hero content (29rem = nav-less content
+            block), clamped so it never gets huge or too short: the same composition
+            fits whether the window is fullscreen or not. */}
+        <CrowdBand className="h-[320px] sm:max-lg:h-[360px] lg:max-[1199px]:h-[400px] min-[1200px]:h-[clamp(240px,calc(100svh-5rem-var(--hero-lead)),400px)]" />
       </section>
 
       <section id="features" className="scroll-mt-8 bg-white">
