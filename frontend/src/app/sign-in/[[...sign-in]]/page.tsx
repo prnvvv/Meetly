@@ -1,24 +1,19 @@
-import Image from "next/image";
-import { SignIn } from "@clerk/nextjs";
+import { redirect } from "next/navigation";
 
-export default function SignInPage() {
-  return (
-    <div className="signin-split">
-      <div className="signin-split__left">
-        <div className="signin-split__logo">
-          <Image
-            src="/images/f4.png"
-            alt=""
-            fill
-            sizes="(max-width: 768px) 70vw, 520px"
-            priority
-            className="signin-split__image"
-          />
-        </div>
-      </div>
-      <div className="signin-split__right">
-        <SignIn />
-      </div>
-    </div>
-  );
+/**
+ * Sign-in now lives on the landing page. This route stays so old links,
+ * bookmarks and Clerk redirects keep working.
+ */
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const redirectUrl = params.redirect_url;
+  const target =
+    typeof redirectUrl === "string" && redirectUrl.startsWith("/")
+      ? `/?redirect_url=${encodeURIComponent(redirectUrl)}`
+      : "/";
+  redirect(target);
 }
