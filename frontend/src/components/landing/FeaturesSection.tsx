@@ -7,13 +7,14 @@ import {
   UsersIcon,
 } from "@/components/icons";
 import { Reveal } from "./Reveal";
+import { SpotlightCard } from "./SpotlightCard";
 import {
+  Scribble,
   Section,
   SectionHeader,
   cardText,
   cardTitle,
   iconTile,
-  sectionCard,
 } from "./section";
 
 // Only capabilities that exist in the app today.
@@ -53,7 +54,14 @@ const CAPABILITIES = [
 export function FeaturesSection() {
   return (
     <Section id="features">
-      <SectionHeader eyebrow="Features" title="Built for the way teams meet">
+      <SectionHeader
+        eyebrow="Features"
+        title={
+          <>
+            Built for the way teams <Scribble>meet</Scribble>
+          </>
+        }
+      >
         Everything you need in the room, and nothing that gets in the way.
       </SectionHeader>
 
@@ -61,13 +69,13 @@ export function FeaturesSection() {
         {CAPABILITIES.map(({ icon: Icon, title, text }, i) => (
           <li key={title}>
             <Reveal delay={(i % 3) * 100} className="h-full">
-              <article className={`${sectionCard} flex h-full flex-col p-7 lg:p-8`}>
+              <SpotlightCard className="flex h-full flex-col p-7 lg:p-8">
                 <span className={iconTile}>
                   <Icon size={22} />
                 </span>
                 <h3 className={`${cardTitle} mt-6`}>{title}</h3>
                 <p className={`${cardText} mt-2`}>{text}</p>
-              </article>
+              </SpotlightCard>
             </Reveal>
           </li>
         ))}

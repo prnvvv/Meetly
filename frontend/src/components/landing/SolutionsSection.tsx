@@ -7,14 +7,15 @@ import {
   UsersIcon,
 } from "@/components/icons";
 import { Reveal } from "./Reveal";
+import { SpotlightCard } from "./SpotlightCard";
 import {
+  Scribble,
   Section,
   SectionHeader,
   buttonPrimary,
   cardText,
   cardTitle,
   iconTile,
-  sectionCard,
 } from "./section";
 
 const SOLUTIONS = [
@@ -44,7 +45,14 @@ export function SolutionsSection() {
   return (
     <Section id="solutions" className="grid gap-12 lg:grid-cols-[5fr_7fr] lg:gap-20">
       <div>
-        <SectionHeader eyebrow="Solutions" title="One workspace for every kind of meeting">
+        <SectionHeader
+          eyebrow="Solutions"
+          title={
+            <>
+              One workspace for every kind of <Scribble>meeting</Scribble>
+            </>
+          }
+        >
           Whether it is a quick sync or a planned session, Meetly keeps the way
           you meet simple and the people in the same room.
         </SectionHeader>
@@ -59,7 +67,7 @@ export function SolutionsSection() {
         {SOLUTIONS.map(({ icon: Icon, title, text }, i) => (
           <li key={title}>
             <Reveal delay={i * 90}>
-              <div className={`${sectionCard} flex gap-5 p-6 sm:gap-6 sm:p-7`}>
+              <SpotlightCard className="flex gap-5 p-6 sm:gap-6 sm:p-7">
                 <span className={iconTile}>
                   <Icon size={22} />
                 </span>
@@ -67,7 +75,7 @@ export function SolutionsSection() {
                   <h3 className={cardTitle}>{title}</h3>
                   <p className={`${cardText} mt-1.5 max-w-xl`}>{text}</p>
                 </div>
-              </div>
+              </SpotlightCard>
             </Reveal>
           </li>
         ))}
