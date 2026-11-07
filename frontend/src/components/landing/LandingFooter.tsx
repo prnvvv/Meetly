@@ -5,25 +5,25 @@ import { LANDING_CONTAINER } from "./container";
 import { ScrollLink } from "./ScrollLink";
 
 const linkClass =
-  "cursor-pointer appearance-none border-0 bg-transparent p-0 text-left text-sm font-normal text-neutral-600 no-underline transition-colors hover:text-black hover:no-underline";
+  "cursor-pointer appearance-none border-0 bg-transparent p-0 text-left text-sm font-normal text-white/65 no-underline transition-colors hover:text-white hover:no-underline";
 
 /** Only links to destinations that exist in the app; nothing placeholder. */
 export function LandingFooter() {
   return (
-    <footer className="border-t border-neutral-200 bg-white">
+    <footer className="border-t border-white/15 bg-black text-white">
       <div className={`${LANDING_CONTAINER} py-14`}>
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:gap-12">
           <div id="about" className="scroll-mt-8 sm:col-span-2 lg:col-span-1">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-xl font-extrabold tracking-tight text-black no-underline hover:no-underline"
+              className="inline-flex items-center gap-2 text-xl font-extrabold tracking-tight text-white no-underline hover:no-underline"
             >
-              <span className="grid size-8 place-items-center rounded-lg bg-black text-white">
+              <span className="grid size-8 place-items-center rounded-lg bg-white text-black">
                 <VideoIcon size={18} />
               </span>
               {APP_NAME}
             </Link>
-            <p className="mt-4 max-w-sm text-sm leading-relaxed text-neutral-600">
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/60">
               {APP_NAME} brings meetings, scheduling, and collaboration
               together in one simple workspace.
             </p>
@@ -98,7 +98,7 @@ export function LandingFooter() {
           </nav>
         </div>
 
-        <div className="mt-12 flex flex-col gap-2 border-t border-neutral-200 pt-6 text-sm text-neutral-500 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-12 flex flex-col gap-2 border-t border-white/15 pt-6 text-sm text-white/50 sm:flex-row sm:items-center sm:justify-between">
           <p>
             © {new Date().getFullYear()} {APP_NAME}. All rights reserved.
           </p>
