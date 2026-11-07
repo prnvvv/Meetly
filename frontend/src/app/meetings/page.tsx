@@ -1,22 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { ErrorState } from "@/components/common/ErrorState";
+import { SkeletonList } from "@/components/common/Skeleton";
 import { RecentMeetingCard } from "@/components/dashboard/RecentMeetingCard";
 import { UpcomingMeetingCard } from "@/components/dashboard/UpcomingMeetingCard";
-import { SkeletonList } from "@/components/common/Skeleton";
 import { AppShell } from "@/components/layout/AppShell";
-import { useDashboardData } from "@/hooks/useDashboardData";
+import {
+  MAX_LIST_LIMIT,
+  useMeetingList,
+  type MeetingListKind,
+} from "@/hooks/useMeetingList";
 
-type TabKey = "upcoming" | "recent";
-
-const TABS: Array<{ key: TabKey; label: string }> = [
+const TABS: Array<{ key: MeetingListKind; label: string }> = [
   { key: "upcoming", label: "Upcoming" },
   { key: "recent", label: "Recent" },
 ];
 
-function EmptyPanel({ tab }: { tab: TabKey }) {
+function EmptyPanel({ tab }: { tab: MeetingListKind }) {
   return (
     <div className="cta-panel">
       <p className="cta-panel__title">
@@ -34,9 +36,23 @@ function EmptyPanel({ tab }: { tab: TabKey }) {
   );
 }
 
+/** `?tab=recent` support without useSearchParams (keeps the page statically prerendered). */
+function useRequestedTab(): MeetingListKind {
+  const requested = useSyncExternalStore(
+    () => () => {},
+    () => new URLSearchParams(window.location.search).get("tab"),
+    () => null
+  );
+  return requested === "recent" ? "recent" : "upcoming";
+}
+
 export default function MeetingsPage() {
-  const [tab, setTab] = useState<TabKey>("upcoming");
-  const { upcoming, recent, refresh } = useDashboardData();
+  const requested = useRequestedTab();
+  const [chosen, setChosen] = useState<MeetingListKind | null>(null);
+  const tab = chosen ?? requested;
+
+  const upcoming = useMeetingList("upcoming");
+  const recent = useMeetingList("recent");
   const active = tab === "upcoming" ? upcoming : recent;
 
   return (
@@ -65,7 +81,7 @@ export default function MeetingsPage() {
             aria-selected={tab === item.key}
             aria-controls="meetings-panel"
             className="tab"
-            onClick={() => setTab(item.key)}
+            onClick={() => setChosen(item.key)}
           >
             {item.label}
           </button>
@@ -80,24 +96,44 @@ export default function MeetingsPage() {
       >
         {active.loading ? (
           <SkeletonList rows={3} />
-        ) : active.error ? (
-          <ErrorState message={active.error} onRetry={refresh} />
+        ) : active.error && active.items.length === 0 ? (
+          <ErrorState message={active.error} onRetry={active.retry} />
         ) : active.items.length === 0 ? (
           <EmptyPanel tab={tab} />
-        ) : tab === "upcoming" ? (
-          active.items.map((meeting) => (
-            <UpcomingMeetingCard
-              key={meeting.meeting_id}
-              meeting={meeting}
-            />
-          ))
         ) : (
-          active.items.map((meeting) => (
-            <RecentMeetingCard
-              key={meeting.meeting_id}
-              meeting={meeting}
-            />
-          ))
+          <>
+            {tab === "upcoming"
+              ? active.items.map((meeting) => (
+                  <UpcomingMeetingCard key={meeting.meeting_id} meeting={meeting} />
+                ))
+              : active.items.map((meeting) => (
+                  <RecentMeetingCard key={meeting.meeting_id} meeting={meeting} />
+                ))}
+
+            {active.error ? (
+              <p className="field__error" role="alert">
+                {active.error}
+              </p>
+            ) : null}
+
+            <div className="load-more">
+              <p className="load-more__count" aria-live="polite">
+                Showing {active.items.length}{" "}
+                {active.items.length === 1 ? "meeting" : "meetings"}
+                {active.capped ? ` (the latest ${MAX_LIST_LIMIT})` : ""}
+              </p>
+              {active.hasMore ? (
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  onClick={active.loadMore}
+                  disabled={active.loadingMore}
+                >
+                  {active.loadingMore ? "Loading…" : "Load more"}
+                </button>
+              ) : null}
+            </div>
+          </>
         )}
       </section>
     </AppShell>
