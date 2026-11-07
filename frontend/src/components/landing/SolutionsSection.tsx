@@ -7,6 +7,7 @@ import {
   UsersIcon,
 } from "@/components/icons";
 import { Reveal } from "./Reveal";
+import { ScheduleCard } from "./previews";
 import { SpotlightCard } from "./SpotlightCard";
 import {
   Scribble,
@@ -60,6 +61,9 @@ export function SolutionsSection() {
           <Link href="/sign-up" className={`${buttonPrimary} mt-8`}>
             Get started <ArrowRightIcon size={16} />
           </Link>
+        </Reveal>
+        <Reveal delay={250} className="mt-8">
+          <ScheduleCard />
         </Reveal>
       </div>
 
