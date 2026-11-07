@@ -51,7 +51,7 @@ describe("AppShell top navigation", () => {
     render(<AppShell>content</AppShell>);
 
     const cta = screen
-      .getAllByRole("link", { name: /New meeting/ })
+      .getAllByRole("link", { name: /New Meeting/ })
       .find((a) => a.getAttribute("href") === "/new-meeting");
     expect(cta).toBeTruthy();
     // one icon link in the bar and one in the mobile menu panel

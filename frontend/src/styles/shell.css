@@ -178,7 +178,7 @@
 .app-main__inner {
   width: min(92%, var(--content-max));
   margin: 0 auto;
-  padding: 48px 0 80px;
+  padding: 28px 0 40px;
 }
 
 .page-header {

@@ -90,8 +90,8 @@
   --shadow-lg: 0 24px 48px -30px rgba(0, 0, 0, 0.35);
 
   /* Layout */
-  --nav-height: 72px;
-  --content-max: 1240px;
+  --nav-height: 76px;
+  --content-max: 1480px;
 
   /* Motion */
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);

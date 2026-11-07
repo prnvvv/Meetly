@@ -85,7 +85,7 @@ export function TopNav({ onMenuToggle, menuOpen, onNavigate }: TopNavProps) {
           <Show when="signed-in">
             <Link href="/new-meeting" className="btn btn--primary btn--sm topnav__cta">
               <PlusIcon size={16} />
-              New meeting
+              New Meeting
             </Link>
             <Link
               href="/settings"
@@ -148,7 +148,7 @@ export function TopNav({ onMenuToggle, menuOpen, onNavigate }: TopNavProps) {
           className="btn btn--primary btn--block"
         >
           <PlusIcon size={16} />
-          New meeting
+          New Meeting
         </Link>
       </div>
     </header>
