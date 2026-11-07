@@ -54,7 +54,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="section__body settings">
+      <div className="section__body settings-page">
         <section className="card card--pad" aria-labelledby="settings-account">
           <div className="card__header">
             <h2 className="card__title" id="settings-account">
