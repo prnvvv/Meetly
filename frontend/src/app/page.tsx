@@ -62,9 +62,9 @@ export default function Home() {
           grid; the crowd band below is its own flow element, so nothing
           overlaps and nothing depends on viewport height. */}
       <section className="relative overflow-hidden border-b border-neutral-200">
-        <div className={`relative z-10 ${LANDING_CONTAINER} pb-8 pt-6 sm:pt-8 lg:pb-10 lg:pt-10`}>
+        <div className={`relative z-10 ${LANDING_CONTAINER} pb-6 pt-6 sm:pt-8 lg:pb-6 lg:pt-10`}>
           <div className="grid items-center gap-10 min-[1200px]:grid-cols-[56fr_44fr] min-[1200px]:gap-[clamp(48px,4vw,64px)]">
-            <div className="landing-rise @container min-w-0">
+            <div className="landing-rise @container min-w-0 min-[1200px]:ml-auto min-[1200px]:w-[92%] min-[1200px]:[zoom:0.92]">
               <span className="inline-flex h-11 items-center gap-2 rounded-full bg-[#f5f5f5] px-5 text-[15px] font-semibold text-black sm:text-base">
                 <SparklesIcon size={18} />
                 All-in-One Meeting Platform
