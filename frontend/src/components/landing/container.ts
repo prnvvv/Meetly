@@ -1,2 +1,2 @@
-/** One shared width/gutter for every landing section: ~92% of the viewport, capped on very wide screens. */
-export const LANDING_CONTAINER = "mx-auto w-[92%] max-w-[1520px]";
+/** One shared width/gutter for every landing section: ~88% of the viewport, capped at 1440px. */
+export const LANDING_CONTAINER = "mx-auto w-[88%] max-w-[1440px]";
