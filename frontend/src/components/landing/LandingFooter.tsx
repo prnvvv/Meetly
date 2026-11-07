@@ -13,7 +13,7 @@ export function LandingFooter() {
     <footer className="border-t border-white/15 bg-black text-white">
       <div className={`${LANDING_CONTAINER} py-14`}>
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:gap-12">
-          <div id="about" className="scroll-mt-8 sm:col-span-2 lg:col-span-1">
+          <div className="sm:col-span-2 lg:col-span-1">
             <Link
               href="/"
               className="inline-flex items-center gap-2 text-xl font-extrabold tracking-tight text-white no-underline hover:no-underline"
