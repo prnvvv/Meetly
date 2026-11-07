@@ -36,11 +36,15 @@ const FEATURES = [
   },
 ];
 
-const HERO_HIGHLIGHTS = [
+const HERO_HIGHLIGHTS: { icon: typeof VideoIcon; title: string; hint?: string }[] = [
   { icon: VideoIcon, title: "HD Meetings" },
   { icon: CalendarIcon, title: "Smart Scheduling" },
   { icon: UsersIcon, title: "Team Collaboration" },
-  { icon: SparklesIcon, title: "AI Meeting Rooms" },
+  {
+    icon: SparklesIcon,
+    title: "AI Meeting Rooms",
+    hint: "AI-powered notes, summaries and action items",
+  },
 ];
 
 const STEPS = [
@@ -59,14 +63,14 @@ export default function Home() {
           overlaps and nothing depends on viewport height. */}
       <section className="relative overflow-hidden border-b border-neutral-200">
         <div className={`relative z-10 ${LANDING_CONTAINER} pb-8 pt-6 sm:pt-8 lg:pb-10 lg:pt-10`}>
-          <div className="grid items-center gap-10 min-[1200px]:grid-cols-[56fr_44fr] min-[1200px]:gap-[clamp(48px,5.5vw,84px)]">
-            <div className="landing-rise min-w-0">
+          <div className="grid items-center gap-10 min-[1200px]:grid-cols-[56fr_44fr] min-[1200px]:gap-[clamp(48px,4vw,64px)]">
+            <div className="landing-rise @container min-w-0">
               <span className="inline-flex h-11 items-center gap-2 rounded-full bg-[#f5f5f5] px-5 text-[15px] font-semibold text-black sm:text-base">
                 <SparklesIcon size={18} />
                 All-in-One Meeting Platform
               </span>
 
-              <h1 className="mt-6 text-[clamp(2.25rem,4vw,4rem)] font-extrabold leading-[1.07] tracking-[-0.035em] text-black">
+              <h1 className="mt-6 text-[length:clamp(2.25rem,9.2cqw,4.125rem)] font-extrabold leading-[1.05] tracking-[-0.05em] text-black">
                 Meet, Schedule{" "}
                 <span className="relative inline-block">
                   and
@@ -105,27 +109,29 @@ export default function Home() {
                 </span>
               </h1>
 
-              <p className="mt-7 max-w-[650px] text-[clamp(1.0625rem,1.5vw,1.4rem)] leading-[1.5] text-[#686868]">
+              <p className="mt-7 max-w-[650px] text-[clamp(1.0625rem,1.55vw,1.4rem)] leading-[1.5] text-[#686868]">
                 A simple and reliable platform for video meetings, smart
                 scheduling, and team collaboration.
               </p>
 
-              {/* Compact capability strip: titles only, one row on desktop,
-                  2x2 on small screens. */}
-              <ul className="mt-9 grid max-w-[720px] grid-cols-2 gap-y-5 sm:grid-cols-4 sm:gap-y-0">
-                {HERO_HIGHLIGHTS.map(({ icon: Icon, title }, i) => (
+              {/* Compact capability strip: one row on desktop (labels never wrap),
+                  2x2 on phones. */}
+              <ul className="mt-9 grid grid-cols-2 gap-x-4 gap-y-5 sm:flex sm:items-stretch sm:gap-0">
+                {HERO_HIGHLIGHTS.map(({ icon: Icon, title, hint }, i) => (
                   <li
                     key={title}
-                    className={`flex items-center gap-3 sm:pr-3 ${
-                      i > 0 ? "sm:border-l sm:border-[#e8e8e8] sm:pl-4" : ""
-                    }`}
+                    title={hint}
+                    className={`flex items-center gap-3 sm:flex-1 sm:flex-col sm:items-start sm:gap-2.5 sm:px-4 ${
+                      i === 0 ? "sm:pl-0" : "sm:border-l sm:border-[#e8e8e8]"
+                    } ${i === HERO_HIGHLIGHTS.length - 1 ? "sm:pr-0" : ""}`}
                   >
                     <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#f5f5f5] text-black">
                       <Icon size={20} />
                     </span>
-                    <span className="text-[14px] font-semibold leading-tight text-black sm:text-[15px]">
+                    <span className="text-[14px] font-semibold leading-tight text-black sm:whitespace-nowrap sm:text-[15px]">
                       {title}
                     </span>
+                    {hint && <span className="sr-only">{hint}</span>}
                   </li>
                 ))}
               </ul>
@@ -135,12 +141,12 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="relative h-[290px] w-full sm:h-[320px] lg:h-[340px]">
+        <div className="relative h-[320px] w-full sm:h-[360px] lg:h-[400px]">
           <CrowdCanvas
             src={CROWD_SRC}
             rows={15}
             cols={7}
-            scale={0.95}
+            scale={1.05}
             fit
             className="pointer-events-none absolute inset-0 h-full w-full"
           />
