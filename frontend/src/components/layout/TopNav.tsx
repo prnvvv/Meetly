@@ -1,21 +1,22 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   SignInButton,
   SignUpButton,
   Show,
   UserButton,
 } from "@clerk/nextjs";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
-  BellIcon,
-  HelpIcon,
   MenuIcon,
+  PlusIcon,
   SettingsIcon,
+  VideoIcon,
+  XIcon,
 } from "@/components/icons";
-import { clerkAppearance } from "@/lib/clerk-appearance";
 import { APP_NAME } from "@/lib/constants";
+import { clerkAppearance } from "@/lib/clerk-appearance";
 import { cx } from "@/lib/utils";
 
 const NAV_LINKS = [
@@ -27,10 +28,17 @@ const NAV_LINKS = [
 
 interface TopNavProps {
   onMenuToggle: () => void;
-  sidebarOpen: boolean;
+  menuOpen: boolean;
+  onNavigate: () => void;
 }
 
-export function TopNav({ onMenuToggle, sidebarOpen }: TopNavProps) {
+/**
+ * Application top bar, the in-app twin of the landing page navigation:
+ * camera logo + wordmark, text links with an underline on the active one,
+ * a black primary action and the Clerk user menu. On small screens the
+ * links move into a slide-down panel.
+ */
+export function TopNav({ onMenuToggle, menuOpen, onNavigate }: TopNavProps) {
   const pathname = usePathname();
   const isActive = (href: string) =>
     href === "/dashboard"
@@ -39,74 +47,109 @@ export function TopNav({ onMenuToggle, sidebarOpen }: TopNavProps) {
 
   return (
     <header className="topnav">
-      <button
-        type="button"
-        className="icon-button topnav__menu-toggle"
-        onClick={onMenuToggle}
-        aria-expanded={sidebarOpen}
-        aria-controls="app-sidebar"
-        aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
-      >
-        <MenuIcon />
-      </button>
+      <div className="topnav__inner">
+        <Link href="/dashboard" className="brand" aria-label={`${APP_NAME} home`}>
+          <VideoIcon size={26} strokeWidth={2.25} />
+          <span className="brand__name">{APP_NAME}</span>
+        </Link>
 
-      <Link href="/dashboard" className="brand" aria-label={`${APP_NAME} home`}>
-        <span className="brand__name">{APP_NAME}</span>
-      </Link>
+        <nav className="topnav__links" aria-label="Primary">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cx(
+                "topnav__link",
+                isActive(link.href) && "topnav__link--active"
+              )}
+              aria-current={isActive(link.href) ? "page" : undefined}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
 
-      <nav className="topnav__links" aria-label="Primary">
-        {NAV_LINKS.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={cx(
-              "topnav__link",
-              isActive(link.href) && "topnav__link--active"
-            )}
-            aria-current={isActive(link.href) ? "page" : undefined}
+        <div className="topnav__actions">
+          <Show when="signed-out">
+            <SignInButton mode="modal" appearance={clerkAppearance}>
+              <button type="button" className="btn btn--secondary btn--sm">
+                Sign in
+              </button>
+            </SignInButton>
+            <SignUpButton mode="modal" appearance={clerkAppearance}>
+              <button type="button" className="btn btn--primary btn--sm">
+                Sign up
+              </button>
+            </SignUpButton>
+          </Show>
+          <Show when="signed-in">
+            <Link href="/new-meeting" className="btn btn--primary btn--sm topnav__cta">
+              <PlusIcon size={16} />
+              New meeting
+            </Link>
+            <Link
+              href="/settings"
+              className={cx(
+                "icon-button",
+                pathname.startsWith("/settings") && "icon-button--active"
+              )}
+              aria-label="Settings"
+            >
+              <SettingsIcon />
+            </Link>
+            <UserButton appearance={clerkAppearance} />
+          </Show>
+          <button
+            type="button"
+            className="icon-button topnav__menu-toggle"
+            onClick={onMenuToggle}
+            aria-expanded={menuOpen}
+            aria-controls="app-menu"
+            aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
           >
-            {link.label}
-          </Link>
-        ))}
-      </nav>
+            {menuOpen ? <XIcon /> : <MenuIcon />}
+          </button>
+        </div>
+      </div>
 
-      <div className="topnav__spacer" />
-
-      <div className="topnav__actions">
-        <button type="button" className="icon-button" aria-label="Help">
-          <HelpIcon />
-        </button>
-        <button
-          type="button"
-          className="icon-button"
-          aria-label="Notifications"
-        >
-          <BellIcon />
-        </button>
-
-        <Show when="signed-out">
-          <SignInButton mode="modal" appearance={clerkAppearance}>
-            <button type="button" className="btn btn--secondary btn--sm">
-              Sign in
-            </button>
-          </SignInButton>
-          <SignUpButton mode="modal" appearance={clerkAppearance}>
-            <button type="button" className="btn btn--primary btn--sm">
-              Sign up
-            </button>
-          </SignUpButton>
-        </Show>
-
-        <Show when="signed-in">
+      <div
+        id="app-menu"
+        className={cx("topnav__panel", menuOpen && "topnav__panel--open")}
+      >
+        <nav aria-label="Menu" className="topnav__panel-links">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={onNavigate}
+              className={cx(
+                "topnav__panel-link",
+                isActive(link.href) && "topnav__panel-link--active"
+              )}
+              aria-current={isActive(link.href) ? "page" : undefined}
+            >
+              {link.label}
+            </Link>
+          ))}
           <Link
             href="/settings"
-            className="icon-button"
-            aria-label="Settings"
+            onClick={onNavigate}
+            className={cx(
+              "topnav__panel-link",
+              isActive("/settings") && "topnav__panel-link--active"
+            )}
           >
-            <SettingsIcon />
+            Settings
           </Link>
-          <UserButton appearance={clerkAppearance} />
-        </Show>
+        </nav>
+        <Link
+          href="/new-meeting"
+          onClick={onNavigate}
+          className="btn btn--primary btn--block"
+        >
+          <PlusIcon size={16} />
+          New meeting
+        </Link>
       </div>
     </header>
   );
