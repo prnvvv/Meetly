@@ -4,114 +4,154 @@
    border, grey icon tile that inverts to black on hover.
    ------------------------------------------------------------------ */
 
-.greeting {
-  margin-bottom: 32px;
+/* Hero: greeting + people illustration ------------------------------ */
+
+.dash-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(16px, 3vw, 40px);
+  margin-bottom: clamp(16px, 2vw, 24px);
 }
 
-.greeting__title {
-  font-size: clamp(1.875rem, 3.4vw, 2.75rem);
+.dash-hero__text {
+  min-width: 0;
+}
+
+.dash-hero__title {
+  /* ~56px on large desktops, scaling down smoothly */
+  font-size: clamp(2rem, 4.2vw, 3.5rem);
   font-weight: 800;
-  line-height: var(--leading-tight);
-  letter-spacing: var(--tracking-display);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  min-height: 1.05em;
 }
 
-.greeting__date {
-  margin-top: 8px;
+.dash-hero__date {
+  margin-top: 12px;
+  min-height: 1.5em;
   color: var(--color-text-secondary);
   font-size: var(--text-md);
 }
 
-/* Quick action tiles ------------------------------------------------ */
-
-.action-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  margin-bottom: 48px;
+.dash-hero__art {
+  flex-shrink: 1;
+  width: auto;
+  max-width: 46%;
+  /* 190-210px tall on desktop, proportional below */
+  height: clamp(110px, 13.5vw, 196px);
+  object-fit: contain;
+  object-position: right center;
 }
 
-.action-tile {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 20px;
-  padding: 28px;
-  border-radius: var(--radius-xl);
+/* Quick action cards: three equal, fully clickable ------------------- */
+
+.action-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(14px, 1.6vw, 24px);
+  margin-bottom: clamp(16px, 2vw, 24px);
+}
+
+.action-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(14px, 1.4vw, 22px);
+  min-height: 125px;
+  padding: clamp(20px, 2vw, 28px);
   border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
   background: var(--color-surface);
-  cursor: pointer;
-  text-align: left;
+  color: var(--color-text);
+  text-decoration: none;
   transition: transform var(--transition), border-color var(--transition),
     box-shadow var(--transition);
 }
 
-.action-tile:hover {
-  transform: translateY(-4px);
+.action-card:hover {
+  transform: translateY(-3px);
   border-color: var(--color-text);
   box-shadow: var(--shadow-md);
   text-decoration: none;
 }
 
-.action-tile__icon {
+.action-card__icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: var(--radius-lg);
   background: var(--color-primary-soft);
   color: var(--color-text);
   transition: background var(--transition), color var(--transition);
 }
 
-.action-tile:hover .action-tile__icon {
+.action-card:hover .action-card__icon {
   background: var(--color-primary);
   color: var(--color-text-inverse);
 }
 
-.action-tile__label {
+.action-card__label {
   display: block;
   font-size: var(--text-lg);
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: var(--color-text);
+  line-height: 1.2;
 }
 
-.action-tile__hint {
+.action-card__hint {
   display: block;
+  margin-top: 4px;
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  margin-top: 4px;
 }
 
-/* Two column sections ---------------------------------------------- */
+.action-card__arrow {
+  color: var(--color-text-muted);
+  transition: transform var(--transition), color var(--transition);
+}
 
-.dash-columns {
+.action-card:hover .action-card__arrow {
+  color: var(--color-text);
+  transform: translateX(4px);
+}
+
+/* Upcoming / Recent panels: identical size in every state ------------- */
+
+.dash-panels {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  gap: 32px;
-  align-items: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(16px, 1.8vw, 24px);
+  align-items: stretch;
 }
 
-.section {
-  margin-bottom: 28px;
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: clamp(20px, 2vw, 28px);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
 }
 
-.section__head {
+.panel__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
-.section__title {
+.panel__title {
   font-size: var(--text-xl);
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
-.section__link {
+.panel__link {
   font-size: var(--text-base);
   font-weight: 600;
   color: var(--color-text);
@@ -121,14 +161,216 @@
   transition: text-decoration-color var(--transition-fast);
 }
 
-.section__link:hover {
+.panel__link:hover {
   text-decoration-color: var(--color-text);
 }
 
+/* The body keeps a floor equal to three meeting rows, so a panel with one
+   meeting, three meetings or an empty state is the same size. */
+.panel__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 270px;
+}
+
+.meeting-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.meeting-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 88px;
+  padding: 12px 0;
+}
+
+.meeting-item + .meeting-item {
+  border-top: 1px solid var(--color-border);
+}
+
+.meeting-item__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+  transition: background var(--transition), color var(--transition);
+}
+
+.meeting-item__body {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.meeting-item__title {
+  display: block;
+  font-size: var(--text-md);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meeting-item__meta {
+  display: block;
+  margin-top: 3px;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.meeting-item__side {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Recent rows: the whole row is one link to the meeting */
+.meeting-item--link {
+  padding: 0;
+}
+
+.meeting-item__link {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  height: 88px;
+  padding: 12px 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.meeting-item__link:hover {
+  text-decoration: none;
+}
+
+.meeting-item__link:hover .meeting-item__icon {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.meeting-item__chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform var(--transition), color var(--transition);
+}
+
+.meeting-item__link:hover .meeting-item__chevron {
+  color: var(--color-text);
+  transform: translateX(3px);
+}
+
+/* A load error inside a panel is centred in the same space as an empty state */
+.panel__body .state-block {
+  flex: 1;
+  padding: 0 8px;
+}
+
+/* Shortcut row that fills an unused slot in a partly filled panel */
+.meeting-item--add {
+  padding: 10px 0 0;
+  border-top: 0 !important;
+}
+
+.meeting-add {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 64px;
+  padding: 0 14px;
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  text-decoration: none;
+  transition: border-color var(--transition), color var(--transition),
+    background var(--transition);
+}
+
+.meeting-add:hover {
+  border-color: var(--color-text);
+  color: var(--color-text);
+  background: var(--color-primary-soft);
+  text-decoration: none;
+}
+
+.meeting-add__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+}
+
+/* Designed empty state that fills the panel */
+.panel-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 8px;
+  text-align: center;
+}
+
+.panel-empty__art {
+  width: min(150px, 46%);
+  height: auto;
+  margin-bottom: 4px;
+}
+
+.panel-empty__title {
+  font-size: var(--text-lg);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.panel-empty__text {
+  max-width: 38ch;
+  margin-bottom: 12px;
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-secondary);
+}
+
+/* Shared list body (Meetings page, Settings) */
 .section__body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* "Load more" footer on the Meetings page */
+.load-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.load-more__count {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
 }
 
 /* Settings ----------------------------------------------------------- */
@@ -538,24 +780,7 @@
   background: var(--color-danger-hover);
 }
 
-@media (max-width: 1024px) {
-  .dash-columns {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
 @media (max-width: 560px) {
-  .action-tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-    margin-bottom: 32px;
-  }
-
-  .action-tile {
-    padding: 18px;
-    gap: 14px;
-  }
-
   .form-grid {
     grid-template-columns: 1fr;
   }
@@ -579,15 +804,75 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .action-tile,
+  .action-card,
   .meeting-card,
-  .meeting-row {
+  .meeting-row,
+  .meeting-item__chevron,
+  .action-card__arrow {
     transition: none;
   }
 
-  .action-tile:hover,
+  .action-card:hover,
   .meeting-card:hover,
-  .meeting-row:hover {
+  .meeting-row:hover,
+  .meeting-item__link:hover .meeting-item__chevron,
+  .action-card:hover .action-card__arrow {
     transform: none;
+  }
+}
+
+/* Dashboard responsive ------------------------------------------------ */
+
+@media (max-width: 1100px) {
+  .action-card__icon {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+@media (max-width: 960px) {
+  .dash-panels {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Stacked: a fixed floor (slightly taller than three rows) so the two
+     panels have the same height whether populated or empty. */
+  .panel__body {
+    min-height: 304px;
+  }
+}
+
+@media (max-width: 900px) {
+  .action-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .action-card {
+    min-height: 104px;
+  }
+}
+
+@media (max-width: 720px) {
+  .dash-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dash-hero__art {
+    align-self: stretch;
+    max-width: 100%;
+    height: clamp(96px, 34vw, 150px);
+    object-position: left center;
+  }
+}
+
+@media (max-width: 480px) {
+  .meeting-item {
+    gap: 12px;
+  }
+
+  .meeting-item__icon {
+    width: 44px;
+    height: 44px;
   }
 }
