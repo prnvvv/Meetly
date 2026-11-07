@@ -94,7 +94,7 @@ and screen sharing UI.
 - [x] Icon standardisation (one set; bespoke `EmptyState` SVG replaced, Join icon aligned)
 - [x] Clerk modal / user menu theme made monochrome
 - [x] Zoom wording removed from code and comments
-- [ ] Authenticated end-to-end verification through Clerk (blocked: invalid `CLERK_SECRET_KEY`, see section 7)
+- [ ] Authenticated end-to-end verification through Clerk (blocked: invalid `CLERK_SECRET_KEY`, see section 8)
 
 ## 5. Bugs found and fixed during the redesign
 
@@ -110,7 +110,7 @@ and screen sharing UI.
 
 | Check | Result |
 | --- | --- |
-| Frontend unit tests (Vitest) | 228 passed in 19 files |
+| Frontend unit tests (Vitest) | 249 passed in 22 files |
 | Backend tests (pytest, Python 3.14, SQLite) | 117 passed |
 | `tsc --noEmit`, ESLint | clean |
 | Production build (`next build --webpack`, scratch copy of the real code and Clerk) | compiled, type-checked and prerendered 10 pages. The in-place Turbopack build was blocked by a stale local server holding `.next/standalone`. |
@@ -130,7 +130,35 @@ signed-in user. No bypass exists in the repository.
 - Account-specific data: the backend has no authentication, so all users share
   one default account.
 
-## 7. Demo account
+## 7. Dashboard
+
+Composition, top to bottom: top bar (76px), hero (greeting + people illustration),
+three quick-action cards, two meeting panels.
+
+| Piece | Component | Notes |
+| --- | --- | --- |
+| Hero | `DashboardHero` | Greeting uses the viewer's clock and the signed-in user's first name; date is local. Illustration is `public/images/people-illustration-dashboard.png` via `next/image` (about 200px tall on desktop, scales down, never cropped). |
+| Quick actions | `ActionTiles` | Three equal 125px cards, whole card is the link: `/new-meeting`, `/join`, `/schedule`. |
+| Panels | `MeetingPanel` | Title + "View all" header. The grid stretches both panels to one height and the body keeps a floor of three rows, so every state has identical dimensions. |
+| Rows | `UpcomingRow`, `RecentRow`, `AddRow` | Upcoming: calendar tile, "Today, 10:00 AM - 10:30 AM" in local time, Join, overflow menu (copy link / ID). Recent: camera tile, "Yesterday, 45 min", whole row opens the meeting. A partly filled panel ends with a real shortcut row instead of blank space. |
+| Empty states | `PanelEmptyState` | Own illustration per panel (`empty-upcoming.svg`, `empty-recent.svg`), heading, explanation and an action. |
+
+Rules that keep the page compact:
+- The dashboard asks the API for 3 rows per list (`PREVIEW_LIMIT`) and also slices to 3, so it never grows with history.
+- Everything else is behind **View all**. `/meetings` pages with **Load more** (10 at a time; the API pages by `limit`, max 100, and the page says when it is showing the latest 100). `/meetings?tab=recent` opens the Recent tab.
+- No nested scrollbars anywhere on the dashboard.
+
+Example data (for example "Team Sync" or "Project Kickoff") is **not** in the
+product. States were verified by faking only the two list endpoints in a test
+harness; the shipped code renders real API data only.
+
+Verified at 1920x1080, 1440x900, 1366x768, 1024x768, 768x1024, 390x844 and 360x800 for
+populated, both empty, either one empty, one meeting each, 200 meetings returned and an API error:
+panels equal in size in every state, action cards equal, page height identical across states,
+no horizontal overflow, no nested scrollers, no console errors. At 1440x900 the whole dashboard
+is exactly 900px tall.
+
+## 8. Demo account
 
 | | |
 | --- | --- |
