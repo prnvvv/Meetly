@@ -86,15 +86,51 @@ and screen sharing UI.
 
 ## 4. Implementation checklist
 
-- [ ] Tokens remapped to the Meetly palette, type, radii, shadows, motion
-- [ ] App shell: landing-style top bar, sidebar removed, mobile menu
-- [ ] Primitives: buttons, fields, cards, badges, tabs, dialogs, toasts, menus, skeletons
-- [ ] Dashboard, Meetings, Join, Schedule, New meeting, Settings
-- [ ] Meeting room: tiles, toolbar, panels, settings dialog, pre-join, states
-- [ ] Icon standardisation
-- [ ] Authenticated end-to-end verification (blocked, see below)
+- [x] Tokens remapped to the Meetly palette, type, radii, shadows, motion (`globals.css`)
+- [x] App shell: landing-style sticky top bar, sidebar removed, slide-down mobile menu
+- [x] Primitives: buttons, fields, cards, badges, tabs, dialogs, toasts, menus, skeletons, states
+- [x] Dashboard, Meetings, Join, Schedule, New meeting, Settings
+- [x] Meeting room: tiles, control bar, panels, popovers, settings dialog, notices, overlay screens
+- [x] Icon standardisation (one set; bespoke `EmptyState` SVG replaced, Join icon aligned)
+- [x] Clerk modal / user menu theme made monochrome
+- [x] Zoom wording removed from code and comments
+- [ ] Authenticated end-to-end verification through Clerk (blocked: invalid `CLERK_SECRET_KEY`, see section 7)
 
-## 5. Demo account
+## 5. Bugs found and fixed during the redesign
+
+| Bug | Cause | Fix |
+| --- | --- | --- |
+| Settings page content clipped at 640px with a shadow | `.settings` class collided with the in-room settings dialog (`max-height`, `overflow: hidden`, uppercase labels) | Page uses `.settings-page` |
+| Meeting room pushed the control bar off-screen when the camera was on (page 1,291px in a 900px window) | `.room` used `min-height`, so the stage (measured in JS to size tiles) could grow with its own content | `.room` is exactly viewport-tall |
+| Avatar initials rendered as "D(" | Initials were derived from the label "Demo User (You)" | `getInitials` ignores parenthesised annotations (unit tested) |
+| Two top-bar buttons did nothing | Help and Notifications icons had no handler or destination, and no notification feature exists | Removed (regression test added) |
+| Room header squeezed "Copy invite" and the title at 360-390px | Header actions could shrink | Actions no longer shrink, header wraps below 480px |
+
+## 6. Verification
+
+| Check | Result |
+| --- | --- |
+| Frontend unit tests (Vitest) | 228 passed in 19 files |
+| Backend tests (pytest, Python 3.14, SQLite) | 117 passed |
+| `tsc --noEmit`, ESLint | clean |
+| Production build (`next build --webpack`, scratch copy of the real code and Clerk) | compiled, type-checked and prerendered 10 pages. The in-place Turbopack build was blocked by a stale local server holding `.next/standalone`. |
+| Responsive matrix: 7 routes x 7 viewports (1920x1080 to 360x800), headless Chrome | 49 combinations, no horizontal overflow, no off-screen elements, no console errors |
+| Functional flows against the real backend (instant meeting, room connect, camera, mute, participants panel, End, schedule, join by ID) | all passed |
+
+How the signed-in pages were exercised: Clerk cannot verify sessions without a
+valid secret key, so the authenticated screens were rendered in a throwaway copy
+of the frontend (outside the repo) with the `@clerk/nextjs` module stubbed as a
+signed-in user. No bypass exists in the repository.
+
+### Not verified / not implemented
+- Real Clerk sign-in, sign-out and sign-in again, the demo-account login and the
+  dashboard-after-login flow (blocked by the key, below).
+- Screen sharing, in-meeting chat and host permissions between two users: no
+  UI exists for the first two, and host actions need a second participant.
+- Account-specific data: the backend has no authentication, so all users share
+  one default account.
+
+## 7. Demo account
 
 | | |
 | --- | --- |
