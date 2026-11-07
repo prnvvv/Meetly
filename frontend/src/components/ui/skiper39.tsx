@@ -53,9 +53,14 @@ const CrowdCanvas = ({
         ? Math.max(0, Math.min(1, (stage.height - peep.height) / 150))
         : 1;
       const rawOffset = 100 - 250 * gsap.parseEase("power2.in")(Math.random());
-      // Only squeeze upward offsets; the front row keeps bleeding off the
-      // bottom edge so the crowd has a flat base.
-      const offsetY = rawOffset < 0 ? rawOffset * spread : rawOffset;
+      // Squeeze upward offsets to fit the canvas, and let the front rows bleed
+      // off the bottom edge by only a little (instead of up to 100px) so more
+      // of every face and upper body stays visible while the base stays flat.
+      const offsetY = fit
+        ? rawOffset < 0
+          ? rawOffset * spread
+          : rawOffset * 0.6
+        : rawOffset;
       const startY = stage.height - peep.height + offsetY;
       let startX: number;
       let endX: number;
