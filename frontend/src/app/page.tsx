@@ -41,23 +41,26 @@ export default function Home() {
           fills its own band beneath so the two never overlap. */}
       <section className="relative overflow-hidden border-b border-neutral-200">
         <div className={`relative z-10 ${LANDING_CONTAINER} pb-6 pt-8 sm:pt-10 lg:pt-10`}>
-          {/* Two-column grid, centred as a group: copy and Clerk card sit
-              close together and share one vertical centre. */}
-          <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,640px)_400px] lg:justify-center lg:gap-16 xl:gap-24">
-            <div className="landing-rise">
-              <h1 className="text-[clamp(2.4rem,0.9rem+3.3vw,3.9rem)] font-extrabold leading-[1.06] tracking-[-0.03em]">
+          {/* Two-column hero. The copy hugs the centre line from the left and
+              the Clerk card from the right, so the gap is always one
+              deliberate value; both share a vertical centre. */}
+          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+            <div className="landing-rise w-fit max-w-full lg:justify-self-end">
+              <h1 className="text-[clamp(2.6rem,1rem+3.4vw,3.75rem)] font-extrabold leading-[1.06] tracking-[-0.03em]">
                 Meet, Schedule
                 <br />
                 and Collaborate
                 <br />
                 with {APP_NAME}
               </h1>
-              <p className="mt-6 max-w-[560px] text-[clamp(1.05rem,0.9rem+0.5vw,1.35rem)] leading-[1.6] text-neutral-500">
+              <p className="mt-6 max-w-[520px] text-[clamp(1.125rem,1rem+0.3vw,1.25rem)] leading-[1.6] text-neutral-500">
                 A simple and reliable platform for video meetings, smart
                 scheduling, and team collaboration.
               </p>
             </div>
-            <HeroAuth />
+            <div className="lg:justify-self-start">
+              <HeroAuth />
+            </div>
           </div>
         </div>
 

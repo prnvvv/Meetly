@@ -11,7 +11,7 @@ import { authAppearance } from "@/lib/clerk-appearance";
  */
 export function HeroAuth() {
   return (
-    <div className="flex w-full justify-center lg:justify-end">
+    <div className="flex w-full justify-center lg:justify-start">
       <Show when="signed-out">
         <SignIn
           routing="hash"
