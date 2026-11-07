@@ -20,6 +20,13 @@ interface DashboardData {
   refresh: () => Promise<void>;
 }
 
+/**
+ * The dashboard only previews a few meetings per panel. Everything else lives
+ * behind "View all" on the Meetings page, so the dashboard never grows with
+ * meeting history.
+ */
+export const PREVIEW_LIMIT = 3;
+
 const EMPTY: AsyncList<Meeting> = { items: [], loading: true, error: null };
 
 function toList<T>(result: PromiseSettledResult<T[]>): AsyncList<T> {
@@ -29,13 +36,13 @@ function toList<T>(result: PromiseSettledResult<T[]>): AsyncList<T> {
   return { items: [], loading: false, error: toUserMessage(result.reason) };
 }
 
-async function fetchLists(): Promise<{
+async function fetchLists(limit: number): Promise<{
   upcoming: AsyncList<Meeting>;
   recent: AsyncList<Meeting>;
 }> {
   const [upcomingResult, recentResult] = await Promise.allSettled([
-    getUpcomingMeetings(),
-    getRecentMeetings(),
+    getUpcomingMeetings(limit),
+    getRecentMeetings(limit),
   ]);
   return {
     upcoming: toList(upcomingResult),
@@ -43,8 +50,8 @@ async function fetchLists(): Promise<{
   };
 }
 
-/** Loads upcoming and recent meetings for the dashboard. */
-export function useDashboardData(): DashboardData {
+/** Loads a short preview of upcoming and recent meetings for the dashboard. */
+export function useDashboardData(limit: number = PREVIEW_LIMIT): DashboardData {
   const [upcoming, setUpcoming] = useState<AsyncList<Meeting>>(EMPTY);
   const [recent, setRecent] = useState<AsyncList<Meeting>>({
     ...EMPTY,
@@ -53,7 +60,7 @@ export function useDashboardData(): DashboardData {
 
   useEffect(() => {
     let active = true;
-    void fetchLists().then((lists) => {
+    void fetchLists(limit).then((lists) => {
       if (!active) return;
       setUpcoming(lists.upcoming);
       setRecent(lists.recent);
@@ -61,15 +68,15 @@ export function useDashboardData(): DashboardData {
     return () => {
       active = false;
     };
-  }, []);
+  }, [limit]);
 
   const refresh = useCallback(async () => {
     setUpcoming((current) => ({ ...current, loading: true, error: null }));
     setRecent((current) => ({ ...current, loading: true, error: null }));
-    const lists = await fetchLists();
+    const lists = await fetchLists(limit);
     setUpcoming(lists.upcoming);
     setRecent(lists.recent);
-  }, []);
+  }, [limit]);
 
   return { upcoming, recent, refresh };
 }
