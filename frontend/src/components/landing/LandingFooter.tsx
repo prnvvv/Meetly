@@ -76,8 +76,8 @@ export function LandingFooter() {
             </ul>
           </nav>
 
-          <nav aria-label="Resources">
-            <h3 className="text-sm font-extrabold">Resources</h3>
+          <nav aria-label="Company">
+            <h3 className="text-sm font-extrabold">Company</h3>
             <ul className="mt-4 grid gap-3">
               <li>
                 <ScrollLink targetId="about" className={linkClass}>
