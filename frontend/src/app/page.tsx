@@ -1,4 +1,5 @@
 import { LANDING_CONTAINER } from "@/components/landing/container";
+import { CrowdBand } from "@/components/landing/CrowdBand";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { HeroAuth } from "@/components/landing/HeroAuth";
@@ -9,7 +10,6 @@ import {
   UsersIcon,
   VideoIcon,
 } from "@/components/icons";
-import { CROWD_SRC, CrowdCanvas } from "@/components/ui/skiper39";
 import { APP_NAME } from "@/lib/constants";
 
 const FEATURES = [
@@ -141,16 +141,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="relative h-[320px] w-full sm:h-[360px] lg:h-[400px]">
-          <CrowdCanvas
-            src={CROWD_SRC}
-            rows={15}
-            cols={7}
-            scale={1.05}
-            fit
-            className="pointer-events-none absolute inset-0 h-full w-full"
-          />
-        </div>
+        <CrowdBand className="h-[320px] sm:h-[360px] lg:h-[400px]" />
       </section>
 
       <section id="features" className="scroll-mt-8 bg-white">
@@ -211,6 +202,9 @@ export default function Home() {
           </ol>
         </div>
       </section>
+
+      {/* Closing crowd band: flush with the footer's top rule. */}
+      <CrowdBand className="h-[260px] sm:h-[300px] lg:h-[340px]" />
 
       <LandingFooter />
     </div>
