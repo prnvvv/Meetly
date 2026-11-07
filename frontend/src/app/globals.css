@@ -229,6 +229,20 @@ kbd {
 html:has(.landing) {
   scroll-behavior: smooth;
 }
+.scribble-path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 900ms cubic-bezier(0.65, 0, 0.35, 1) 450ms;
+}
+[data-shown="true"] .scribble-path {
+  stroke-dashoffset: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scribble-path {
+    stroke-dashoffset: 0;
+    transition: none;
+  }
+}
 .bloom-ray {
   stroke-dasharray: 1;
   stroke-dashoffset: 0;

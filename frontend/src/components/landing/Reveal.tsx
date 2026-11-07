@@ -2,7 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 
-/** Fades/slides children in once when scrolled into view (no-op for reduced motion). */
+/**
+ * Fades/slides children in once when scrolled into view. It also exposes
+ * `data-shown` (and the `group/reveal` name) so descendants can start their
+ * own animations (scribbles, connector lines, ...) at the same moment.
+ * Reduced-motion users see everything immediately.
+ */
 export function Reveal({
   children,
   className = "",
@@ -35,8 +40,9 @@ export function Reveal({
   return (
     <div
       ref={ref}
+      data-shown={shown}
       style={{ transitionDelay: `${delay}ms` }}
-      className={`transition-all duration-700 ease-out motion-reduce:transition-none ${
+      className={`group/reveal transition-all duration-700 ease-out motion-reduce:transition-none ${
         shown
           ? "translate-y-0 opacity-100"
           : "translate-y-4 opacity-0 motion-reduce:translate-y-0 motion-reduce:opacity-100"
