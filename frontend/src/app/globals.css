@@ -1,3 +1,12 @@
+/* Tailwind (theme + utilities only; no preflight so the existing
+   hand-written stylesheets keep their base styles). */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* Existing global/base styles live in the base layer so Tailwind utilities can override them. */
+@layer base {
+
 /* ------------------------------------------------------------------
    Design tokens + base styles
    Zoom-inspired enterprise SaaS visual language.
@@ -210,4 +219,35 @@ kbd {
   gap: 12px;
   color: var(--color-text-secondary);
   background: var(--color-bg);
+}
+
+/* Landing page ---------------------------------------------------- */
+.landing {
+  font-family: ui-rounded, "SF Pro Rounded", "Nunito", "Segoe UI", system-ui,
+    sans-serif;
+}
+html:has(.landing) {
+  scroll-behavior: smooth;
+}
+.landing-rise {
+  animation: landing-rise 700ms ease-out both;
+}
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-rise {
+    animation: none;
+  }
+  html:has(.landing) {
+    scroll-behavior: auto;
+  }
+}
 }
