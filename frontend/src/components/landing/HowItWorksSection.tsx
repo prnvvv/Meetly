@@ -1,5 +1,6 @@
 import { LinkIcon, PlusIcon, VideoIcon } from "@/components/icons";
 import { Reveal } from "./Reveal";
+import { LiveMeetingPreview } from "./previews";
 import { SpotlightCard } from "./SpotlightCard";
 import {
   Scribble,
@@ -19,16 +20,21 @@ const STEPS = [
 export function HowItWorksSection() {
   return (
     <Section id="how-it-works">
-      <SectionHeader
-        eyebrow="How it works"
-        title={
-          <>
-            From idea to meeting in <Scribble>three simple steps</Scribble>
-          </>
-        }
-      >
-        No downloads, no setup. Start, share and join right from your browser.
-      </SectionHeader>
+      <div className="grid items-end gap-10 lg:grid-cols-[1fr_auto] lg:gap-12">
+        <SectionHeader
+          eyebrow="How it works"
+          title={
+            <>
+              From idea to meeting in <Scribble>three simple steps</Scribble>
+            </>
+          }
+        >
+          No downloads, no setup. Start, share and join right from your browser.
+        </SectionHeader>
+        <Reveal delay={200} className="lg:justify-self-end">
+          <LiveMeetingPreview />
+        </Reveal>
+      </div>
 
       <ol className="mt-12 grid gap-5 md:grid-cols-3 md:gap-14">
         {STEPS.map(({ n, icon: Icon, title, text }, i) => (
