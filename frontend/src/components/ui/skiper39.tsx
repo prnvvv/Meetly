@@ -215,6 +215,7 @@ const CrowdCanvas = ({
       });
 
       peep.walk = walk;
+      if (observer && !ticking) walk.pause();
 
       crowd.push(peep);
       crowd.sort((a, b) => a.anchorY - b.anchorY);
@@ -258,11 +259,33 @@ const CrowdCanvas = ({
       initCrowd();
     };
 
+    // Render and animate only while the canvas is on screen, so a crowd that
+    // has been scrolled away costs nothing.
+    let ticking = false;
+    let observer: IntersectionObserver | null = null;
+    const setActive = (active: boolean) => {
+      crowd.forEach((peep) => peep.walk?.paused(!active));
+      if (active && !ticking) {
+        gsap.ticker.add(render);
+        ticking = true;
+      } else if (!active && ticking) {
+        gsap.ticker.remove(render);
+        ticking = false;
+      }
+    };
+
     const init = () => {
       if (disposed) return;
       createPeeps();
       resize();
-      gsap.ticker.add(render);
+      if ("IntersectionObserver" in window) {
+        observer = new IntersectionObserver(([entry]) =>
+          setActive(entry.isIntersecting),
+        );
+        observer.observe(canvas);
+      } else {
+        setActive(true);
+      }
     };
 
     img.onload = init;
@@ -275,6 +298,7 @@ const CrowdCanvas = ({
 
     return () => {
       disposed = true;
+      observer?.disconnect();
       img.onload = null;
       window.removeEventListener("resize", handleResize);
       gsap.ticker.remove(render);
