@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
@@ -65,11 +65,17 @@ def add_meeting_participant(
 @router.delete(
     "/participants/{participant_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    # A 204 carries no body. Declaring that explicitly (instead of relying on
+    # the `-> None` annotation) keeps the app importable on every FastAPI
+    # version: older releases infer a response model from the annotation and
+    # then assert "Status code 204 must not have a response body".
+    response_model=None,
+    response_class=Response,
 )
 def remove_participant(
     participant_id: int,
     db: Session = Depends(get_db),
-) -> None:
+) -> Response:
     """Mark a participant as having left the meeting."""
     participant = participant_service.get_participant(db, participant_id)
     if participant is None:
@@ -78,3 +84,4 @@ def remove_participant(
             detail="Participant not found",
         )
     participant_service.mark_participant_left(db, participant_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
