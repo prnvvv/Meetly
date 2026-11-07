@@ -1,4 +1,5 @@
 import { LANDING_CONTAINER } from "@/components/landing/container";
+import { LandingNav } from "@/components/landing/LandingNav";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { HeroAuth } from "@/components/landing/HeroAuth";
 import { Reveal } from "@/components/landing/Reveal";
@@ -35,6 +36,13 @@ const FEATURES = [
   },
 ];
 
+const HERO_HIGHLIGHTS = [
+  { icon: VideoIcon, title: "HD Meetings" },
+  { icon: CalendarIcon, title: "Smart Scheduling" },
+  { icon: UsersIcon, title: "Team Collaboration" },
+  { icon: SparklesIcon, title: "AI Meeting Rooms" },
+];
+
 const STEPS = [
   { n: "01", title: "Create", text: "Start an instant meeting or schedule one for later." },
   { n: "02", title: "Share", text: "Send the meeting link or ID to anyone you want to invite." },
@@ -44,34 +52,90 @@ const STEPS = [
 export default function Home() {
   return (
     <div className="landing min-h-screen bg-white text-black" id="top">
-      {/* Hero: copy on top, the walking-crowd canvas (the page background)
-          fills its own band beneath so the two never overlap. */}
+      <LandingNav />
+
+      {/* Hero: marketing copy (left) and the real Clerk sign-in (right) in one
+          grid; the crowd band below is its own flow element, so nothing
+          overlaps and nothing depends on viewport height. */}
       <section className="relative overflow-hidden border-b border-neutral-200">
-        <div className={`relative z-10 ${LANDING_CONTAINER} pb-6 pt-8 sm:pt-10 lg:pt-10`}>
-          {/* Two-column hero. The copy hugs the centre line from the left and
-              the Clerk card from the right, so the gap is always one
-              deliberate value; both share a vertical centre. */}
-          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
-            <div className="landing-rise w-fit max-w-full lg:justify-self-end">
-              <h1 className="text-[clamp(2.6rem,1rem+3.4vw,3.75rem)] font-extrabold leading-[1.06] tracking-[-0.03em]">
-                Meet, Schedule
-                <br />
-                and Collaborate
-                <br />
-                with {APP_NAME}
+        <div className={`relative z-10 ${LANDING_CONTAINER} pb-8 pt-6 sm:pt-8 lg:pb-10 lg:pt-10`}>
+          <div className="grid items-center gap-10 min-[1200px]:grid-cols-[56fr_44fr] min-[1200px]:gap-[clamp(48px,5.5vw,84px)]">
+            <div className="landing-rise min-w-0">
+              <span className="inline-flex h-11 items-center gap-2 rounded-full bg-[#f5f5f5] px-5 text-[15px] font-semibold text-black sm:text-base">
+                <SparklesIcon size={18} />
+                All-in-One Meeting Platform
+              </span>
+
+              <h1 className="mt-6 text-[clamp(2.25rem,4vw,4rem)] font-extrabold leading-[1.07] tracking-[-0.035em] text-black">
+                Meet, Schedule{" "}
+                <span className="relative inline-block">
+                  and
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 34 30"
+                    className="pointer-events-none absolute left-full top-0 ml-1.5 hidden h-[0.6em] w-[0.7em] -translate-y-[35%] sm:block"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  >
+                    <path d="M4 24 L10 14" />
+                    <path d="M15 20 L19 6" />
+                    <path d="M25 22 L32 12" />
+                  </svg>
+                </span>
+                <br className="hidden md:block" /> Collaborate{" "}
+                <span className="relative inline-block whitespace-nowrap">
+                  with {APP_NAME}
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 200 14"
+                    preserveAspectRatio="none"
+                    className="pointer-events-none absolute -bottom-[0.14em] left-0 h-[0.2em] w-full"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                  >
+                    <path
+                      d="M3 9 C 40 1, 80 13, 120 6 S 180 4, 197 8"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  </svg>
+                </span>
               </h1>
-              <p className="mt-6 max-w-[520px] text-[clamp(1.125rem,1rem+0.3vw,1.25rem)] leading-[1.6] text-neutral-500">
+
+              <p className="mt-7 max-w-[650px] text-[clamp(1.0625rem,1.5vw,1.4rem)] leading-[1.5] text-[#686868]">
                 A simple and reliable platform for video meetings, smart
                 scheduling, and team collaboration.
               </p>
+
+              {/* Compact capability strip: titles only, one row on desktop,
+                  2x2 on small screens. */}
+              <ul className="mt-9 grid max-w-[720px] grid-cols-2 gap-y-5 sm:grid-cols-4 sm:gap-y-0">
+                {HERO_HIGHLIGHTS.map(({ icon: Icon, title }, i) => (
+                  <li
+                    key={title}
+                    className={`flex items-center gap-3 sm:pr-3 ${
+                      i > 0 ? "sm:border-l sm:border-[#e8e8e8] sm:pl-4" : ""
+                    }`}
+                  >
+                    <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#f5f5f5] text-black">
+                      <Icon size={20} />
+                    </span>
+                    <span className="text-[14px] font-semibold leading-tight text-black sm:text-[15px]">
+                      {title}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <div className="lg:justify-self-start">
-              <HeroAuth />
-            </div>
+
+            <HeroAuth />
           </div>
         </div>
 
-        <div className="relative h-[310px] w-full sm:h-[340px] lg:h-[360px]">
+        <div className="relative h-[290px] w-full sm:h-[320px] lg:h-[340px]">
           <CrowdCanvas
             src={CROWD_SRC}
             rows={15}
