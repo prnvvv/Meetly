@@ -1,6 +1,6 @@
-# Scalar Zoom Clone — Backend
+# Meetly — Backend
 
-FastAPI + SQLAlchemy 2.x + SQLite backend for the video conferencing platform.
+FastAPI + SQLAlchemy 2.x + SQLite backend for Meetly: REST for meetings and schedules, and a WebSocket for room signaling. See the [root README](../README.md) for setup.
 
 ## Requirements
 
