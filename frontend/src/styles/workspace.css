@@ -423,7 +423,7 @@
 
 .day__actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   margin-top: 10px;
   padding-top: 10px;
@@ -567,10 +567,13 @@
 
 .lp__empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  gap: 10px;
   height: 100%;
   min-height: 0;
+  text-align: center;
 }
 
 .lp__empty-icon {
@@ -582,12 +585,27 @@
 
 .lp__empty-text {
   display: flex;
-  flex: 1;
   flex-direction: column;
   min-width: 0;
+  max-width: 30ch;
   font-size: var(--text-sm);
   line-height: 1.35;
   color: var(--color-text-secondary);
+}
+
+/* Short viewports: the panels are small, so lay the empty state out in a row. */
+@media (max-height: 820px) {
+  .lp__empty {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    text-align: left;
+  }
+
+  .lp__empty-text {
+    flex: 1;
+    max-width: none;
+  }
 }
 
 .lp__empty-text strong {
@@ -611,6 +629,17 @@
   display: flex;
   flex: 1;
   flex-direction: column;
+  min-width: 0;
+}
+
+.row__titleline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.row__titleline .row__title {
   min-width: 0;
 }
 
@@ -640,8 +669,9 @@
 
 .row__badge {
   flex-shrink: 0;
-  height: 22px;
-  padding: 0 9px;
+  height: 20px;
+  padding: 0 8px;
+  font-size: 0.6875rem;
 }
 
 .row__actions {
@@ -716,12 +746,14 @@
   .app-shell--fit .app-main {
     min-height: 0;
     display: flex;
+    justify-content: center;
   }
 
   .app-shell--fit .app-main__inner {
     display: flex;
-    flex: 1;
+    flex: 0 0 auto;
     flex-direction: column;
+    margin: 0;
     min-height: 0;
     padding: clamp(10px, 1.8vh, 22px) 0 clamp(10px, 2vh, 24px);
   }
@@ -745,6 +777,11 @@
 
   .day {
     min-height: 320px;
+  }
+
+  /* Flowing layout: a busy day scrolls inside its panel instead of stretching the page. */
+  .day__body {
+    max-height: 340px;
   }
 
   .lists {
@@ -790,4 +827,11 @@
   .cal__cell--selected {
     animation: none;
   }
+}
+
+.day__actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-inline: 8px;
+  white-space: nowrap;
 }

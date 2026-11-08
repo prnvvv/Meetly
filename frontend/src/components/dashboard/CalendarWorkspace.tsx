@@ -80,31 +80,38 @@ export function CalendarWorkspace({ reloadKey, onChanged }: CalendarWorkspacePro
   const { toast } = useToast();
 
   const [today, setToday] = useState<Date | null>(null);
-  const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
-  const [selected, setSelected] = useState<Date>(() => new Date());
+  // A fixed placeholder until mount: the server cannot know the viewer's date or
+  // timezone, so seeding from `new Date()` here would mismatch on hydration.
+  const [visibleMonth, setVisibleMonth] = useState(() => new Date(2000, 0, 1));
+  const [selected, setSelected] = useState<Date>(() => new Date(2000, 0, 1));
   const [dialog, setDialog] = useState<DialogState>(null);
   const [pendingCancel, setPendingCancel] = useState<Meeting | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     // Client clock only after mount, so the prerendered HTML never disagrees with it.
-    const id = window.setTimeout(() => setToday(new Date()), 0);
+    const id = window.setTimeout(() => {
+      const now = new Date();
+      setToday(now);
+      setVisibleMonth(startOfMonth(now));
+      setSelected(now);
+    }, 0);
     return () => window.clearTimeout(id);
   }, []);
 
-  const { byDay, loading, error, refresh } = useCalendarMeetings(visibleMonth, reloadKey);
+  const { byDay, loading, error, refresh } = useCalendarMeetings(visibleMonth, reloadKey, today !== null);
   const grid = useMemo(() => buildMonthGrid(visibleMonth), [visibleMonth]);
   const todayKey = today ? dayKey(today) : "";
   const selectedKey = dayKey(selected);
   const dayMeetings = useMemo(() => byDay.get(selectedKey) ?? [], [byDay, selectedKey]);
   const participants = useParticipants(dayMeetings);
 
-  const monthLabel = visibleMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" });
-  const selectedLabel = selected.toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
+  const monthLabel = today
+    ? visibleMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" })
+    : "";
+  const selectedLabel = today
+    ? selected.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })
+    : "";
   const selectedIsToday = selectedKey === todayKey;
   const selectedInPast = today ? isPastDay(selected, today) : false;
 
@@ -224,11 +231,13 @@ export function CalendarWorkspace({ reloadKey, onChanged }: CalendarWorkspacePro
             const isSelected = cell.key === selectedKey;
             const upcomingCount = meetings.filter((m) => !isCompleted(m)).length;
             const doneCount = meetings.length - upcomingCount;
-            const label = cell.date.toLocaleDateString(undefined, {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-            });
+            const label = today
+              ? cell.date.toLocaleDateString(undefined, {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                })
+              : "";
             return (
               <button
                 key={cell.key}
@@ -392,15 +401,23 @@ export function CalendarWorkspace({ reloadKey, onChanged }: CalendarWorkspacePro
             type="button"
             className="btn btn--primary btn--sm"
             disabled={selectedInPast}
-            title={selectedInPast ? "Pick today or a later date to schedule" : undefined}
+            aria-label="Schedule here"
+            title={selectedInPast ? "Pick today or a later date to schedule" : "Schedule a meeting on this date"}
             onClick={() => setDialog({ kind: "schedule", date: selected })}
           >
             <PlusIcon size={16} />
-            Schedule here
+            Schedule
           </button>
-          <button type="button" className="btn btn--secondary btn--sm" onClick={startInstant} disabled={busy}>
+          <button
+            type="button"
+            className="btn btn--secondary btn--sm"
+            onClick={startInstant}
+            disabled={busy}
+            aria-label="Instant meeting"
+            title="Start an instant meeting"
+          >
             <VideoIcon size={16} />
-            Instant meeting
+            Instant
           </button>
           <Link href="/join" className="btn btn--secondary btn--sm">
             <LinkIcon size={16} />
