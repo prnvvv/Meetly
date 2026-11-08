@@ -6,9 +6,13 @@ import { scheduleMeeting } from "@/services/scheduleService";
 
 const push = vi.hoisted(() => vi.fn());
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push }),
-}));
+vi.mock("next/navigation", async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    useRouter: () => ({ push }),
+  };
+});
 
 vi.mock("next/link", () => ({
   default: ({
