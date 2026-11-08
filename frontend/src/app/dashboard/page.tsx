@@ -74,7 +74,7 @@ export default function DashboardPage() {
         </div>
         <Image
           className="dash-top__art"
-          src="/images/people-illustration-dashboard.png"
+          src="/images/dashboard/people-illustration-dashboard.png"
           alt=""
           width={1915}
           height={821}
