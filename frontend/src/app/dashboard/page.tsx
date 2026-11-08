@@ -1,92 +1,99 @@
 "use client";
 
-import React from "react";
-import { ErrorState } from "@/components/common/ErrorState";
+import Image from "next/image";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import { ActionTiles } from "@/components/dashboard/ActionTiles";
-import { DashboardHero } from "@/components/dashboard/DashboardHero";
-import { MeetingPanel, PanelSkeleton } from "@/components/dashboard/MeetingPanel";
-import { AddRow, RecentRow, UpcomingRow } from "@/components/dashboard/MeetingRows";
-import { PanelEmptyState } from "@/components/dashboard/PanelEmptyState";
+import { CalendarWorkspace } from "@/components/dashboard/CalendarWorkspace";
+import { MeetingLists } from "@/components/dashboard/MeetingLists";
+import { ClockIcon } from "@/components/icons";
 import { AppShell } from "@/components/layout/AppShell";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PREVIEW_LIMIT, useDashboardData } from "@/hooks/useDashboardData";
-import { greetingForDate, todayLabel } from "@/lib/utils";
+import { formatCountdown, formatDayLabel, formatTime, greetingForDate, todayLabel } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { user } = useCurrentUser();
-  const { upcoming, recent, refresh } = useDashboardData();
+  const { upcoming, recent, refresh } = useDashboardData(PREVIEW_LIMIT);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [now, setNow] = useState<Date | null>(null);
 
-  const firstName = user?.name?.split(" ")[0];
-  const [now, setNow] = React.useState<Date | null>(null);
-
-  React.useEffect(() => {
-    // Deferred so the first client render matches the prerendered HTML; the
-    // greeting depends on the viewer's clock and timezone, which the server
-    // does not know.
-    const id = window.setTimeout(() => setNow(new Date()), 0);
-    return () => window.clearTimeout(id);
+  useEffect(() => {
+    // Client clock after mount: the greeting depends on the viewer's timezone,
+    // which the server does not know, and this keeps hydration consistent.
+    const tick = () => setNow(new Date());
+    const first = window.setTimeout(tick, 0);
+    const interval = window.setInterval(tick, 30_000);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(interval);
+    };
   }, []);
 
+  const changed = useCallback(() => {
+    setReloadKey((key) => key + 1);
+    void refresh();
+  }, [refresh]);
+
+  const firstName = user?.name?.split(" ")[0];
+  const next = upcoming.items[0];
+  const subtitle = upcoming.loading
+    ? "Checking your schedule…"
+    : next
+      ? "Here’s what’s coming up on your calendar."
+      : "Your schedule is clear. Start or plan a meeting below.";
+
   return (
-    <AppShell>
-      <DashboardHero
-        greeting={now ? greetingForDate(now) : ""}
-        firstName={firstName}
-        dateLabel={now ? todayLabel(now) : ""}
-      />
+    <AppShell fit>
+      <section className="dash-top" aria-labelledby="dash-greeting">
+        <div className="dash-top__text">
+          <h1 className="dash-top__title" id="dash-greeting">
+            {now ? greetingForDate(now) : ""}
+            {now && firstName ? `, ${firstName}` : ""}
+          </h1>
+          <p className="dash-top__sub">
+            <span>{now ? todayLabel(now) : ""}</span>
+            <span className="dash-top__dot" aria-hidden="true">
+              ·
+            </span>
+            <span>{subtitle}</span>
+          </p>
+          {next ? (
+            <Link href={`/meetings/${next.meeting_id}`} className="next-chip" aria-label={`Next meeting: ${next.title}`}>
+              <ClockIcon size={16} aria-hidden="true" />
+              <span className="next-chip__text">
+                <span className="next-chip__label">
+                  Next · {now ? formatCountdown(next.start_time, now.getTime()) : ""}
+                </span>
+                <span className="next-chip__title">
+                  {next.title} · {formatDayLabel(next.start_time)}, {formatTime(next.start_time)}
+                </span>
+              </span>
+            </Link>
+          ) : null}
+        </div>
+        <Image
+          className="dash-top__art"
+          src="/images/people-illustration-dashboard.png"
+          alt=""
+          width={1915}
+          height={821}
+          sizes="(max-width: 700px) 45vw, 360px"
+          priority
+        />
+      </section>
 
       <ActionTiles />
 
-      <div className="dash-panels">
-        <MeetingPanel title="Upcoming Meetings" id="upcoming" viewAllHref="/meetings">
-          {upcoming.loading ? (
-            <PanelSkeleton />
-          ) : upcoming.error ? (
-            <ErrorState message={upcoming.error} onRetry={refresh} />
-          ) : upcoming.items.length === 0 ? (
-            <PanelEmptyState
-              illustration="/images/empty-upcoming.svg"
-              title="No upcoming meetings"
-              description="Your schedule is clear. Create a meeting or schedule one to get started."
-              actionHref="/schedule"
-              actionLabel="Schedule a Meeting"
-            />
-          ) : (
-            <ul className="meeting-list">
-              {upcoming.items.slice(0, PREVIEW_LIMIT).map((meeting) => (
-                <UpcomingRow key={meeting.meeting_id} meeting={meeting} />
-              ))}
-              {upcoming.items.length < PREVIEW_LIMIT && (
-                <AddRow href="/schedule" label="Schedule another meeting" />
-              )}
-            </ul>
-          )}
-        </MeetingPanel>
-
-        <MeetingPanel title="Recent Meetings" id="recent" viewAllHref="/meetings?tab=recent">
-          {recent.loading ? (
-            <PanelSkeleton />
-          ) : recent.error ? (
-            <ErrorState message={recent.error} onRetry={refresh} />
-          ) : recent.items.length === 0 ? (
-            <PanelEmptyState
-              illustration="/images/empty-recent.svg"
-              title="No recent meetings"
-              description="Your hosted and attended meetings will appear here."
-              actionHref="/new-meeting"
-              actionLabel="New Meeting"
-            />
-          ) : (
-            <ul className="meeting-list">
-              {recent.items.slice(0, PREVIEW_LIMIT).map((meeting) => (
-                <RecentRow key={meeting.meeting_id} meeting={meeting} />
-              ))}
-              {recent.items.length < PREVIEW_LIMIT && (
-                <AddRow href="/new-meeting" label="Start a new meeting" />
-              )}
-            </ul>
-          )}
-        </MeetingPanel>
+      <div className="workspace">
+        <CalendarWorkspace reloadKey={reloadKey} onChanged={changed} />
+        <MeetingLists
+          upcoming={upcoming}
+          recent={recent}
+          limit={PREVIEW_LIMIT}
+          onRetry={refresh}
+          onChanged={changed}
+        />
       </div>
     </AppShell>
   );

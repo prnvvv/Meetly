@@ -20,11 +20,7 @@ interface DashboardData {
   refresh: () => Promise<void>;
 }
 
-/**
- * The dashboard only previews a few meetings per panel. Everything else lives
- * behind "View all" on the Meetings page, so the dashboard never grows with
- * meeting history.
- */
+/** The dashboard previews a few meetings per panel; "View all" holds the rest. */
 export const PREVIEW_LIMIT = 3;
 
 const EMPTY: AsyncList<Meeting> = { items: [], loading: true, error: null };
@@ -50,13 +46,10 @@ async function fetchLists(limit: number): Promise<{
   };
 }
 
-/** Loads a short preview of upcoming and recent meetings for the dashboard. */
+/** Loads upcoming and recent meetings for the dashboard. */
 export function useDashboardData(limit: number = PREVIEW_LIMIT): DashboardData {
   const [upcoming, setUpcoming] = useState<AsyncList<Meeting>>(EMPTY);
-  const [recent, setRecent] = useState<AsyncList<Meeting>>({
-    ...EMPTY,
-    loading: false,
-  });
+  const [recent, setRecent] = useState<AsyncList<Meeting>>(EMPTY);
 
   useEffect(() => {
     let active = true;
