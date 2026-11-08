@@ -60,6 +60,8 @@ export const STORAGE_KEYS = {
   pinnedParticipant: (meetingId: string) => `scalarmeet.pinned.${meetingId}`,
   /** Optional meeting password remembered for the current session. */
   meetingPassword: (meetingId: string) => `scalarmeet.password.${meetingId}`,
+  /** Host's setup preferences + invited friends for a meeting (not yet enforced server-side). */
+  meetingConfig: (meetingId: string) => `scalarmeet.config.${meetingId}`,
 } as const;
 
 /** Reaction picker set — transient, never stored as participant state. */
