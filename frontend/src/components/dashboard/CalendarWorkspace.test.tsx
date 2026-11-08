@@ -64,6 +64,18 @@ function renderWorkspace() {
   );
 }
 
+/** Click today's cell: the day dialog is where the meetings and actions live. */
+async function openToday() {
+  const cell = await waitFor(() => {
+    const el = document.querySelector<HTMLElement>('[aria-current="date"]');
+    if (!el) throw new Error("today not rendered yet");
+    return el;
+  });
+  fireEvent.click(cell);
+}
+
+const topDialog = () => screen.getAllByRole("dialog").at(-1)!;
+
 beforeEach(() => {
   getMeetingsInRange.mockResolvedValue([]);
 });
@@ -93,15 +105,20 @@ describe("CalendarWorkspace", () => {
     expect(second.getTime()).toBeGreaterThan(first.getTime());
   });
 
-  it("shows a friendly empty state for a day without meetings", async () => {
+  it("opens a dialog (not a side panel) when a day is clicked, and closes it again", async () => {
     renderWorkspace();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await openToday();
     expect(await screen.findByText("Nothing planned")).toBeTruthy();
     expect(screen.getByRole("button", { name: /Schedule here/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("lists the selected day's meetings with time, status, participants and ID", async () => {
     getMeetingsInRange.mockResolvedValue([meeting()]);
     renderWorkspace();
+    await openToday();
     expect(await screen.findByText("Design sync")).toBeTruthy();
     expect(screen.getByText("Scheduled")).toBeTruthy();
     expect(screen.getByText("ID 123456789")).toBeTruthy();
@@ -112,8 +129,9 @@ describe("CalendarWorkspace", () => {
     getMeetingsInRange.mockResolvedValue([meeting()]);
     updateScheduledMeeting.mockResolvedValue(meeting({ title: "Renamed" }));
     renderWorkspace();
+    await openToday();
     fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
-    const dialog = screen.getByRole("dialog");
+    const dialog = topDialog();
     const title = within(dialog).getByLabelText("Topic");
     fireEvent.change(title, { target: { value: "Renamed" } });
     fireEvent.change(within(dialog).getByLabelText("Date"), {
@@ -130,15 +148,17 @@ describe("CalendarWorkspace", () => {
     getMeetingsInRange.mockResolvedValue([meeting()]);
     endMeeting.mockResolvedValue(meeting({ status: "cancelled" }));
     renderWorkspace();
+    await openToday();
     fireEvent.click(await screen.findByRole("button", { name: "Cancel Design sync" }));
     expect(endMeeting).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Cancel meeting" }));
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancel meeting" }));
     await waitFor(() => expect(endMeeting).toHaveBeenCalledWith("123456789"));
   });
 
   it("starts an instant meeting and routes into the room", async () => {
     createMeeting.mockResolvedValue(meeting({ meeting_id: "987654321", status: "active" }));
     renderWorkspace();
+    await openToday();
     fireEvent.click(await screen.findByRole("button", { name: /Instant meeting/ }));
     await waitFor(() => expect(push).toHaveBeenCalledWith("/meetings/987654321"));
   });
@@ -146,8 +166,9 @@ describe("CalendarWorkspace", () => {
   it("schedules from the calendar for the selected date", async () => {
     scheduleMeeting.mockResolvedValue(meeting());
     renderWorkspace();
+    await openToday();
     fireEvent.click(await screen.findByRole("button", { name: /Schedule here/ }));
-    const dialog = screen.getByRole("dialog");
+    const dialog = topDialog();
     fireEvent.change(within(dialog).getByLabelText("Topic"), { target: { value: "Retro" } });
     fireEvent.change(within(dialog).getByLabelText("Date"), { target: { value: "2099-01-01" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Schedule" }));
