@@ -26,7 +26,7 @@ export function DashboardHero({ greeting, firstName, dateLabel }: DashboardHeroP
       </div>
       <Image
         className="dash-hero__art"
-        src="/images/people-illustration-dashboard.png"
+        src="/images/dashboard/people-illustration-dashboard.png"
         alt=""
         width={1915}
         height={821}
