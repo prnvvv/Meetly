@@ -1,22 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import { Skeleton } from "@/components/common/Skeleton";
 import { useToast } from "@/components/common/ToastProvider";
-import {
-  CalendarIcon,
-  ChevronRightIcon,
-  ClockIcon,
-  CopyIcon,
-  LinkIcon,
-  PlusIcon,
-  TrashIcon,
-  UsersIcon,
-  VideoIcon,
-} from "@/components/icons";
+import { ChevronRightIcon } from "@/components/icons";
 import { toUserMessage } from "@/lib/api-client";
 import {
   addMonths,
@@ -26,16 +14,18 @@ import {
   isPastDay,
   startOfMonth,
 } from "@/lib/calendar";
-import { buildInviteUrl, copyText, cx, formatTimeRange, statusLabel } from "@/lib/utils";
+import { buildInviteUrl, copyText, cx, formatTimeRange } from "@/lib/utils";
 import { useCalendarMeetings } from "@/hooks/useCalendarMeetings";
 import { createMeeting, endMeeting } from "@/services/meetingService";
 import { getParticipants } from "@/services/participantService";
 import type { Meeting } from "@/types/meeting";
 import type { Participant } from "@/types/participant";
+import { DayDialog } from "./DayDialog";
 import { MeetingDialog } from "./MeetingDialog";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MAX_DOTS = 3;
+const NO_MEETINGS: Meeting[] = [];
 
 type DialogState = { kind: "schedule"; date: Date } | { kind: "edit"; meeting: Meeting } | null;
 
@@ -59,15 +49,6 @@ function useParticipants(meetings: Meeting[]) {
   return cache;
 }
 
-function participantSummary(entry: Participant[] | "error" | undefined): string {
-  if (entry === undefined) return "Loading participants…";
-  if (entry === "error") return "Participants unavailable";
-  if (entry.length === 0) return "No participants yet";
-  const names = entry.slice(0, 2).map((p) => p.display_name);
-  const rest = entry.length - names.length;
-  return rest > 0 ? `${names.join(", ")} +${rest}` : names.join(", ");
-}
-
 interface CalendarWorkspaceProps {
   /** Bumped by the page when meetings change elsewhere (e.g. edited from a list). */
   reloadKey: number;
@@ -84,6 +65,7 @@ export function CalendarWorkspace({ reloadKey, onChanged }: CalendarWorkspacePro
   // timezone, so seeding from `new Date()` here would mismatch on hydration.
   const [visibleMonth, setVisibleMonth] = useState(() => new Date(2000, 0, 1));
   const [selected, setSelected] = useState<Date>(() => new Date(2000, 0, 1));
+  const [dayOpen, setDayOpen] = useState(false);
   const [dialog, setDialog] = useState<DialogState>(null);
   const [pendingCancel, setPendingCancel] = useState<Meeting | null>(null);
   const [busy, setBusy] = useState(false);
@@ -104,13 +86,10 @@ export function CalendarWorkspace({ reloadKey, onChanged }: CalendarWorkspacePro
   const todayKey = today ? dayKey(today) : "";
   const selectedKey = dayKey(selected);
   const dayMeetings = useMemo(() => byDay.get(selectedKey) ?? [], [byDay, selectedKey]);
-  const participants = useParticipants(dayMeetings);
+  const participants = useParticipants(dayOpen ? dayMeetings : NO_MEETINGS);
 
   const monthLabel = today
     ? visibleMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" })
-    : "";
-  const selectedLabel = today
-    ? selected.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })
     : "";
   const selectedIsToday = selectedKey === todayKey;
   const selectedInPast = today ? isPastDay(selected, today) : false;
@@ -129,6 +108,7 @@ export function CalendarWorkspace({ reloadKey, onChanged }: CalendarWorkspacePro
   };
 
   const onKeyNav = (event: React.KeyboardEvent) => {
+    if (dayOpen) return;
     const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[event.key];
     if (!step) return;
     event.preventDefault();
@@ -256,6 +236,7 @@ export function CalendarWorkspace({ reloadKey, onChanged }: CalendarWorkspacePro
                 onClick={() => {
                   setSelected(cell.date);
                   if (!cell.inMonth) setVisibleMonth(startOfMonth(cell.date));
+                  setDayOpen(true);
                 }}
               >
                 <span className="cal__num">{cell.date.getDate()}</span>
@@ -291,140 +272,25 @@ export function CalendarWorkspace({ reloadKey, onChanged }: CalendarWorkspacePro
         </footer>
       </section>
 
-      {/* Selected day ------------------------------------------------ */}
-      <section className="panel day" aria-labelledby="day-heading">
-        <header className="day__head">
-          <div>
-            <p className="eyebrow">{selectedIsToday ? "Today" : "Selected date"}</p>
-            <h2 className="panel__title" id="day-heading">
-              {selectedLabel}
-            </h2>
-          </div>
-        </header>
-
-        <div className="day__body" aria-live="polite">
-          {loading ? (
-            <div className="day__list" aria-hidden="true">
-              <Skeleton className="skeleton--line" style={{ height: 64 }} />
-              <Skeleton className="skeleton--line" style={{ height: 64 }} />
-            </div>
-          ) : dayMeetings.length === 0 ? (
-            <div className="day__empty">
-              <span className="day__empty-icon" aria-hidden="true">
-                <CalendarIcon size={26} />
-              </span>
-              <h3>{selectedInPast ? "No meetings on this day" : "Nothing planned"}</h3>
-              <p>
-                {selectedInPast
-                  ? "Meetings you host or join on this date will appear here."
-                  : "This day is free. Plan a meeting or jump into one right now."}
-              </p>
-            </div>
-          ) : (
-            <ul className="day__list">
-              {dayMeetings.map((meeting) => {
-                const { start, end } = formatTimeRange(meeting.start_time, meeting.duration);
-                const canEdit = meeting.status === "scheduled";
-                const canCancel = meeting.status === "scheduled" || meeting.status === "active";
-                const canJoin = meeting.status === "scheduled" || meeting.status === "active";
-                return (
-                  <li key={meeting.meeting_id} className={cx("event", isCompleted(meeting) && "event--done")}>
-                    <div className="event__top">
-                      <h3 className="event__title">{meeting.title}</h3>
-                      <span className={cx("badge", `badge--${meeting.status}`)}>
-                        {statusLabel(meeting.status)}
-                      </span>
-                    </div>
-                    <p className="event__meta">
-                      <ClockIcon size={14} aria-hidden="true" />
-                      {end ? `${start} – ${end}` : start}
-                    </p>
-                    <p className="event__meta">
-                      <UsersIcon size={14} aria-hidden="true" />
-                      {participantSummary(participants[meeting.meeting_id])}
-                    </p>
-                    <p className="event__meta event__meta--mono">ID {meeting.meeting_id}</p>
-                    <div className="event__actions">
-                      {canJoin && (
-                        <Link href={`/meetings/${meeting.meeting_id}`} className="btn btn--primary btn--sm">
-                          Join
-                        </Link>
-                      )}
-                      {canEdit && (
-                        <button
-                          type="button"
-                          className="btn btn--secondary btn--sm"
-                          onClick={() => setDialog({ kind: "edit", meeting })}
-                        >
-                          Edit
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="icon-button event__icon"
-                        aria-label={`Copy invitation for ${meeting.title}`}
-                        title="Copy invitation"
-                        onClick={() => copyInvitation(meeting)}
-                      >
-                        <CopyIcon size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        className="icon-button event__icon"
-                        aria-label={`Copy link for ${meeting.title}`}
-                        title="Copy link"
-                        onClick={() => copy(buildInviteUrl(meeting.meeting_id), "Invite link")}
-                      >
-                        <LinkIcon size={16} />
-                      </button>
-                      {canCancel && (
-                        <button
-                          type="button"
-                          className="icon-button event__icon event__icon--danger"
-                          aria-label={`${meeting.status === "scheduled" ? "Cancel" : "End"} ${meeting.title}`}
-                          title={meeting.status === "scheduled" ? "Cancel meeting" : "End meeting"}
-                          onClick={() => setPendingCancel(meeting)}
-                        >
-                          <TrashIcon size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-
-        <footer className="day__actions">
-          <button
-            type="button"
-            className="btn btn--primary btn--sm"
-            disabled={selectedInPast}
-            aria-label="Schedule here"
-            title={selectedInPast ? "Pick today or a later date to schedule" : "Schedule a meeting on this date"}
-            onClick={() => setDialog({ kind: "schedule", date: selected })}
-          >
-            <PlusIcon size={16} />
-            Schedule
-          </button>
-          <button
-            type="button"
-            className="btn btn--secondary btn--sm"
-            onClick={startInstant}
-            disabled={busy}
-            aria-label="Instant meeting"
-            title="Start an instant meeting"
-          >
-            <VideoIcon size={16} />
-            Instant
-          </button>
-          <Link href="/join" className="btn btn--secondary btn--sm">
-            <LinkIcon size={16} />
-            Join
-          </Link>
-        </footer>
-      </section>
+      {dayOpen ? (
+        <DayDialog
+          date={selected}
+          isToday={selectedIsToday}
+          isPast={selectedInPast}
+          meetings={dayMeetings}
+          loading={loading}
+          participants={participants}
+          busy={busy}
+          suspended={dialog !== null || pendingCancel !== null}
+          onClose={() => setDayOpen(false)}
+          onSchedule={() => setDialog({ kind: "schedule", date: selected })}
+          onInstant={startInstant}
+          onEdit={(meeting) => setDialog({ kind: "edit", meeting })}
+          onCancel={setPendingCancel}
+          onCopyInvitation={copyInvitation}
+          onCopyLink={(meeting) => copy(buildInviteUrl(meeting.meeting_id), "Invite link")}
+        />
+      ) : null}
 
       {dialog ? (
         <MeetingDialog

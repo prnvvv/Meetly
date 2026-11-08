@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ActionTiles } from "@/components/dashboard/ActionTiles";
@@ -57,20 +58,29 @@ export default function DashboardPage() {
             </span>
             <span>{subtitle}</span>
           </p>
+          {next ? (
+            <Link href={`/meetings/${next.meeting_id}`} className="next-chip" aria-label={`Next meeting: ${next.title}`}>
+              <ClockIcon size={16} aria-hidden="true" />
+              <span className="next-chip__text">
+                <span className="next-chip__label">
+                  Next · {now ? formatCountdown(next.start_time, now.getTime()) : ""}
+                </span>
+                <span className="next-chip__title">
+                  {next.title} · {formatDayLabel(next.start_time)}, {formatTime(next.start_time)}
+                </span>
+              </span>
+            </Link>
+          ) : null}
         </div>
-        {next ? (
-          <Link href={`/meetings/${next.meeting_id}`} className="next-chip" aria-label={`Next meeting: ${next.title}`}>
-            <ClockIcon size={16} aria-hidden="true" />
-            <span className="next-chip__text">
-              <span className="next-chip__label">
-                Next · {now ? formatCountdown(next.start_time, now.getTime()) : ""}
-              </span>
-              <span className="next-chip__title">
-                {next.title} · {formatDayLabel(next.start_time)}, {formatTime(next.start_time)}
-              </span>
-            </span>
-          </Link>
-        ) : null}
+        <Image
+          className="dash-top__art"
+          src="/images/people-illustration-dashboard.png"
+          alt=""
+          width={1915}
+          height={821}
+          sizes="(max-width: 700px) 45vw, 360px"
+          priority
+        />
       </section>
 
       <ActionTiles />
