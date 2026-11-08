@@ -1,8 +1,8 @@
-# Scalar Zoom Clone
+# Meetly
 
-**A modern full-stack video conferencing platform inspired by Zoom's interaction patterns and workflows — sign in, start an instant meeting, share a nine-digit ID or invite link, schedule for later, and meet in a live browser-to-browser room with host controls.**
+**A full-stack video conferencing platform with a distinctive black-and-white, hand-drawn identity — sign in, set up a meeting (name, password, devices, invitees), share a nine-digit ID or invite link, schedule for later from a calendar, and meet in a live browser-to-browser room with host controls.**
 
-[![CI](https://github.com/prnvvv/ScalarZoomClone/actions/workflows/ci.yml/badge.svg)](https://github.com/prnvvv/ScalarZoomClone/actions/workflows/ci.yml)
+[![CI](https://github.com/prnvvv/Meetly/actions/workflows/ci.yml/badge.svg)](https://github.com/prnvvv/Meetly/actions/workflows/ci.yml)
 ![Next.js](https://img.shields.io/badge/Next.js-16.3.8-000000)
 ![React](https://img.shields.io/badge/React-19.3.0-61dafb)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6)
@@ -10,7 +10,7 @@
 ![SQLite](https://img.shields.io/badge/SQLite-3-003B57)
 ![WebRTC](https://img.shields.io/badge/WebRTC-peer--to--peer-0b5cff)
 
-> The in-app brand renders as **Zoom** (`APP_NAME` in `frontend/src/lib/constants.ts`); the repository, package metadata (`scalarzoomclone`) and API title (*Scalar Meeting API*) use the Scalar names.
+> The in-app brand renders as **Meetly** (`APP_NAME` in `frontend/src/lib/constants.ts`). Some internal identifiers predate the rename and still use the original names: the Python package metadata (`scalarzoomclone`), the API title (*Scalar Meeting API*), the SQLite file name and the `scalarmeet.*` browser-storage keys.
 
 ---
 
@@ -110,24 +110,30 @@ signed-in user sees the same meetings; accounts are not isolated from each other
 
 ## Product Overview
 
-Scalar Zoom Clone is a browser-based meeting product with a Zoom-shaped user
-journey:
+Meetly is a browser-based meeting product with a familiar, simple user journey:
 
-1. **Authenticate** — the visitor lands on `/`, is redirected to `/dashboard`, and
-   is sent to the Clerk sign-in/sign-up screen unless already signed in.
-2. **Dashboard** — a Zoom-style home with three action tiles (*New Meeting*,
-   *Join Meeting*, *Schedule Meeting*), an **Upcoming Meetings** column and a
-   **Recent Meetings** column, each with live countdowns, status badges, invite
-   link copying and meeting-ID copying.
-3. **Create an instant meeting** — `/new-meeting` optionally accepts a meeting
-   password, calls `POST /api/meetings`, receives a server-generated nine-digit
-   meeting ID and invite link, and navigates straight into the room.
+1. **Authenticate** — the marketing landing page at `/` embeds Clerk's sign-in
+   form; signed-in visitors continue to `/dashboard`. Every other route is
+   protected.
+2. **Dashboard** — one screen that fits the viewport on desktop: a greeting with
+   the Meetly people illustration, three action tiles (*New Meeting*, *Join
+   Meeting*, *Schedule Meeting*), a **month calendar** of your meetings (click a
+   day to open its meetings and plan a new one) and compact **Upcoming** /
+   **Recent** lists (three rows each, with *View all* leading to `/meetings`).
+3. **Set up and create a meeting** — `/new-meeting` is a single-viewport setup
+   page. The left card takes an optional meeting name and password, an *Invite
+   People* picker, and meeting settings; the right card previews your camera and
+   lets you pick camera, microphone and speaker before you join. **Start
+   Meeting** calls `POST /api/meetings`, receives a server-generated nine-digit
+   meeting ID and navigates into the room; **Copy Invite Link** creates the
+   meeting (once) and copies its link. See [New Meeting setup](#new-meeting-setup).
 4. **Join a meeting** — `/join` accepts a raw meeting ID *or* a pasted invite
    link, a display name and an optional password, validates the meeting over
    REST, then enters `/meetings/{meetingId}`.
-5. **Schedule a meeting** — `/schedule` captures topic, description, date, time
-   and duration (1–1440 minutes) and persists a `scheduled` meeting; it appears
-   in *Upcoming* with a countdown.
+5. **Schedule a meeting** — `/schedule` (or a day on the dashboard calendar)
+   captures topic, description, date, time and duration (1–1440 minutes) and
+   persists a `scheduled` meeting; it appears in *Upcoming* and on the calendar.
+   Meetings that have not started yet can be edited (`PATCH /api/schedules/{id}`).
 6. **Enter the room** — the room page loads the meeting and its active
    participant list, then runs the join sequence: REST join validation →
    camera/microphone permission handling → WebSocket signaling connect →
@@ -156,9 +162,10 @@ journey:
 ```mermaid
 flowchart LR
     A["Sign in<br/>(Clerk)"] --> B["Dashboard"]
-    B -->|"New Meeting"| C["Instant meeting<br/>POST /api/meetings"]
+    B -->|"New Meeting"| C0["Setup page<br/>/new-meeting<br/>name, password, devices"]
+    C0 --> C["Create meeting<br/>POST /api/meetings"]
     B -->|"Join Meeting"| D["Meeting ID / link<br/>+ display name"]
-    B -->|"Schedule Meeting"| E["Scheduled meeting<br/>POST /api/schedules"]
+    B -->|"Schedule Meeting<br/>or calendar day"| E["Scheduled meeting<br/>POST /api/schedules"]
 
     C --> F["Meeting room<br/>/meetings/{id}"]
     D -->|"POST /join validates"| F
@@ -181,11 +188,16 @@ the backend contract but are **not** surfaced in the UI are labelled as such.
 
 | Category | Capability | Status |
 |---|---|---|
+| Landing page | Marketing page with embedded Clerk sign-in, features, how-it-works and solutions sections, hand-drawn people illustrations | ✅ Implemented |
 | Authentication | Clerk email/password sign-in and sign-up, route protection for every non-public route | ✅ Implemented |
-| Dashboard | Greeting header, action tiles, upcoming + recent columns, skeletons, empty and error states | ✅ Implemented |
+| Dashboard | Viewport-fitting layout: greeting, action tiles, month calendar with day dialog, compact upcoming + recent lists, skeletons, empty and error states | ✅ Implemented |
+| Calendar | Month grid backed by `GET /api/schedules/range`; open a day, plan or edit a not-yet-started meeting | ✅ Implemented |
 | Instant meetings | Server-generated nine-digit meeting ID, invite link, optional bcrypt meeting password | ✅ Implemented |
+| New Meeting setup | Optional name + password, live camera preview, camera/microphone/speaker pickers (all off until you enable them), *Copy Invite Link* | ✅ Implemented |
+| Invite People | Friend picker with selection, search and a horizontal row — **mock contacts**, no invitations are sent | ⚠️ UI only |
+| Meeting settings | Waiting room, lock, mute on entry, unmuting, screen sharing, chat, host controls, recording toggles — saved with the meeting, **not enforced by the server** | ⚠️ UI only |
 | Joining | Join by meeting ID **or** invite link (URL pasting is parsed), display name, optional password | ✅ Implemented |
-| Scheduling | Topic, description, date, time, duration; validation; timezone-aware ISO timestamps | ✅ Implemented |
+| Scheduling | Topic, description, date, time, duration; validation; timezone-aware ISO timestamps; edit before start | ✅ Implemented |
 | Meeting lists | Upcoming (soonest first) and Recent (newest first) tabs, countdown pills, status badges | ✅ Implemented |
 | Meeting history | `meeting_history` row per started meeting with duration and participant count; persisted on end | ✅ Implemented |
 | Video | `getUserMedia` camera capture, per-participant tiles, start/stop video, device selection, mirror + fit options | ✅ Implemented |
@@ -201,12 +213,27 @@ the backend contract but are **not** surfaced in the UI are labelled as such.
 | Chat / recording / captions | Not present | ❌ Not implemented |
 | TURN / SFU / media server | Not present — media is pure peer-to-peer over STUN | ❌ Not implemented |
 
+### New Meeting setup
+
+`/new-meeting` fits one desktop viewport (no page scroll); on narrower screens the
+two cards stack and the page scrolls normally.
+
+| Part | Behaviour |
+|---|---|
+| Meeting name / password | Both optional and empty by default. A blank name is created as *Instant Meeting*; a password is sent to `POST /api/meetings` and remembered for the session. |
+| Camera preview | A 16:9 box that shows the live `getUserMedia` stream (`object-fit: cover`) with a *Camera On / Off* badge. Nothing is requested until you switch the camera on. |
+| Devices | Camera, microphone and speaker selectors are populated from `enumerateDevices`; camera and microphone start **off**, the speaker shows *Connected* for the default output. Selections are stored and reused in the room. Streams are released when you leave the page. |
+| Invite People | Mock contacts (`src/lib/friends.ts`, behind `listFriends()`) so a real API can replace them. Selecting people marks them for this meeting; **no invitation is sent**. |
+| Meeting settings | Four essentials are shown (waiting room, unmuting, chat, screen sharing); *More settings* opens a dialog with the rest. Choices and selected friends are saved per meeting in `sessionStorage` (`scalarmeet.config.<id>`). The meeting API only accepts a title and password, so each setting is tagged **Soon** — it is stored, not enforced. |
+| Start / Copy | *Start Meeting* creates the meeting and enters the room; *Copy Invite Link* creates it once and copies `/meetings/{id}`. Both reuse the same room if nothing changed. |
+
 ---
 
 ## Product Demo
 
-No screenshots or recordings are checked into the repository yet. The only
-committed assets are the favicon and the sign-in brand image
+No screenshots or recordings are checked into the repository yet. The committed
+media are the favicon, empty-state graphics and the hand-drawn people
+illustrations used on the dashboard and New Meeting page
 (`frontend/public/images/`). Add real captures here before publishing:
 
 <!-- TODO: Add dashboard screenshot -->
@@ -310,7 +337,8 @@ Versions are taken from `frontend/package.json`, `backend/requirements.txt`,
 | Frontend framework | Next.js (App Router) | 16.3.8 |
 | UI library | React | 19.3.0 |
 | Language | TypeScript (`strict: true`) | 5.9 |
-| Styling | Plain CSS with design tokens (5 stylesheets + global) — no CSS framework | — |
+| Styling | Plain CSS with design tokens (6 surface stylesheets + global) for the app; Tailwind CSS 4 utilities for the landing page and a few shared accents | Tailwind 4.3 |
+| Motion | GSAP (landing page animations) | 3.15 |
 | Authentication | Clerk (`@clerk/nextjs`) | 7.9.x |
 | Realtime client | Native `WebSocket` (`MeetingSocket` class) | — |
 | Media | WebRTC (`RTCPeerConnection`, `getUserMedia`) + Web Audio API | — |
@@ -356,17 +384,19 @@ Versions are taken from `frontend/package.json`, `backend/requirements.txt`,
 │   ├── .env.example
 │   └── README.md
 ├── frontend/
-│   ├── public/images/            # favicon + sign-in brand image (only committed media)
+│   ├── public/images/            # favicon, empty-state SVGs, dashboard/ and new-meeting/ illustrations
 │   ├── src/
 │   │   ├── app/                  # routes: /, /dashboard, /new-meeting, /join, /schedule,
 │   │   │                         #       /meetings, /meetings/[meetingId], /settings,
 │   │   │                         #       /sign-in, /sign-up
 │   │   ├── proxy.ts              # Clerk middleware: protects every non-public route
-│   │   ├── components/           # common/ dashboard/ icons/ layout/ meeting/
-│   │   ├── hooks/                # useMeeting, useWebRTC, useWebSocket, useMediaDevices, ...
-│   │   ├── lib/                  # api-client, websocket, webrtc, constants, validators, utils
+│   │   ├── components/           # common/ dashboard/ icons/ landing/ layout/ meeting/ ui/
+│   │   ├── hooks/                # useMeeting, useWebRTC, useWebSocket, useMediaDevices,
+│   │   │                         #   useCalendarMeetings, useDashboardData, useFriends, ...
+│   │   ├── lib/                  # api-client, websocket, webrtc, calendar, friends,
+│   │   │                         #   meetingConfig, constants, validators, utils
 │   │   ├── services/             # meetingService, scheduleService, participantService, api
-│   │   ├── styles/               # primitives, shell, dashboard, meeting, auth
+│   │   ├── styles/               # primitives, shell, dashboard, workspace, meeting, new-meeting
 │   │   └── types/                # TS contracts mirroring the backend schemas
 │   ├── Dockerfile
 │   ├── vitest.config.ts
@@ -395,14 +425,15 @@ presentational.
 |---|---|
 | `src/app/**` | Routes/pages. Pages compose components; they do not talk to the network directly. |
 | `src/components/common` | Toasts, dialogs, dropdowns, skeletons, empty/error states. |
-| `src/components/dashboard` | Action tiles, join form, schedule form, upcoming/recent cards. |
-| `src/components/meeting` | Room top bar, control bar, participant grid/tiles, participants panel, settings dialog, reactions, popovers. |
-| `src/components/layout` | `AppShell`, `TopNav` (responsive chrome). |
+| `src/components/dashboard` | Hero, action tiles, calendar workspace + day/meeting dialogs, compact upcoming/recent lists, join and schedule forms. |
+| `src/components/landing` | Landing page sections, sign-in panel and illustration bands (Tailwind). |
+| `src/components/meeting` | Room: top bar, control bar, participant grid/tiles, participants panel, settings dialog, reactions, popovers. New Meeting setup: `NewMeetingPage`, `MeetingDetailsForm`, `InvitePeopleSection`, `FriendsDialog`, `EssentialMeetingSettings`, `MoreMeetingSettings`, `MeetingActions`, `MeetingSetupCard`, `CameraPreview`, device rows/selects/badges, `SecurityInfoCard`. |
+| `src/components/layout` | `AppShell` (optional viewport-fit mode), `TopNav` (responsive chrome). |
 | `src/hooks` | Session orchestration. `useMeeting` is the hub: REST validation → media → socket → WebRTC → host actions → terminal phases. |
 | `src/lib` | Pure/platform modules: `api-client` (fetch + timeout + error copy), `websocket` (`MeetingSocket` with queue/ping/backoff), `webrtc` (peer config, glare rule), `constants`, `validators`, `utils`, `gridLayout`. |
 | `src/services` | Thin REST wrappers, one function per endpoint. |
 | `src/types` | TypeScript mirrors of backend Pydantic schemas, including `realtime.ts` for every WS message; `contract.test.ts` asserts the mirror stays honest. |
-| `src/styles` | Design tokens (`primitives.css`) plus one stylesheet per surface. |
+| `src/styles` | Buttons, fields, cards and dialogs (`primitives.css`) plus one stylesheet per surface: `shell`, `dashboard`, `workspace`, `meeting`, `new-meeting`. Design tokens live in `src/app/globals.css`. |
 
 Key client-side rules:
 
@@ -469,6 +500,8 @@ Interactive documentation is served at `GET /docs` (Swagger UI) and
 | `POST` | `/api/schedules` | Schedule a future meeting (`201`) |
 | `GET` | `/api/schedules/upcoming` | Scheduled, not-yet-started meetings, soonest first (`?limit=`) |
 | `GET` | `/api/schedules/recent` | Active + ended meetings, newest first (`?limit=`) |
+| `GET` | `/api/schedules/range` | Meetings starting in `[start, end)` — the data behind the dashboard calendar (`?start=&end=&limit=`) |
+| `PATCH` | `/api/schedules/{meeting_id}` | Edit title, description, start time or duration of a meeting that has not started yet |
 
 ### Examples
 
@@ -929,8 +962,8 @@ pytest                              # full suite
 pytest tests/test_websocket.py -v   # a single module
 ```
 
-- **111 tests** across 4 modules: `test_meetings.py` (44),
-  `test_websocket.py` (35), `test_schedules.py` (17),
+- **115 tests** across 4 modules: `test_meetings.py` (44),
+  `test_websocket.py` (35), `test_schedules.py` (21),
   `test_participants.py` (15).
 - Each test builds its own temporary/in-memory SQLite database — the
   development `backend/data/zoom_clone.db` is never touched.
@@ -950,11 +983,15 @@ npm run lint          # eslint
 npm run build         # production build
 ```
 
-- **224 test cases** in **18 files**, colocated as `src/**/*.test.{ts,tsx}`.
+- **263 test cases** in **24 files**, colocated as `src/**/*.test.{ts,tsx}`.
 - Covers hooks (`useMeeting`, `useMediaDevices`, `useCountdown`), components
-  (control bar, participants panel, video tile, forms, cards), lib utilities
-  (validators, grid layout, `webrtc` helpers, `utils`), the REST service layer
-  and the frontend↔backend type contract (`types/contract.test.ts`).
+  (control bar, participants panel, video tile, top navigation, calendar
+  workspace, forms, cards), pages (dashboard, settings), lib utilities
+  (validators, grid layout, calendar helpers, `webrtc` helpers, `utils`), the
+  REST service layer and the frontend↔backend type contract
+  (`types/contract.test.ts`).
+- Page and layout tests mock `next/navigation` (`usePathname`, `useRouter`);
+  declare every router method the component tree calls.
 
 ### End-to-end probe
 
@@ -978,7 +1015,8 @@ both already in `requirements.txt`.
 
 ### CI
 
-`.github/workflows/ci.yml` runs two jobs on every push/PR to `main`:
+`.github/workflows/ci.yml` runs two jobs on every push/PR to `main`; the frontend
+job must pass type-checking, lint, tests **and** the production build:
 
 | Job | Steps |
 |---|---|
@@ -1039,9 +1077,18 @@ build context (`COPY frontend/ ...`); the backend image expects `backend/`.
   tracking) and a faint dotted-grid background. The meeting room uses the same
   light language (grey tiles, black controls, black filled "off" states, red only
   for leaving and destructive actions).
+- **People illustrations:** a hand-drawn, black-and-white illustration style is
+  the product's visual signature — the dashboard hero, the New Meeting camera
+  preview scene (a person leaning over the preview, a plant and a mug in its
+  corners) and the landing page crowd bands. Keep new artwork in the same style.
+- **One-viewport pages:** the dashboard and New Meeting page size themselves
+  from the viewport height (`AppShell fit`, `vh`/`clamp()`/container units) so
+  they fit without scrolling on desktop; below 1100px wide (or 640px tall) they
+  fall back to a normal scrolling layout.
 - **Design tokens** are CSS variables in `src/app/globals.css` (`:root`),
   consumed by the surface stylesheets (`primitives`, `shell`, `dashboard`,
-  `meeting`). Change a token and every screen follows.
+  `workspace`, `meeting`, `new-meeting`). Change a token and every screen
+  follows.
 - **Navigation:** one sticky top bar (the in-app twin of the landing nav); the
   old sidebar is gone and its quick actions live in the bar and on the dashboard.
 - **Responsive:** breakpoints at 480 / 560 / 640 / 768 / 860 / 1024px; a
@@ -1102,7 +1149,8 @@ this is a well-structured demo application, not a hardened production service.
 | Hook-centric frontend | `useMeeting` orchestrates REST → media → WS → WebRTC | One source of truth for room phases; components stay presentational and testable. |
 | Resilient `MeetingSocket` class | Queue-until-open, 25s ping, backoff reconnect, no reconnect after clean close | Real networks drop; contract errors must not cause reconnect loops. |
 | Session-scoped identity for rooms | Display name + stored `participant_id` in `sessionStorage` | Lets a reconnect re-bind the same participant row without a user↔socket link. |
-| Plain CSS with tokens | No CSS framework | Full control over the Zoom-like design language and zero styling runtime. |
+| Plain CSS with tokens | App screens use hand-written CSS on shared tokens; Tailwind utilities are used by the landing page (and for the heading accent reused from it) | Full control over the Meetly design language and zero styling runtime in the app. |
+| Settings stored, not faked | New Meeting preferences are saved per meeting and tagged *Soon* until the server enforces them | The API accepts only title and password; the UI must not imply enforcement that does not exist. |
 
 ---
 
@@ -1132,8 +1180,13 @@ this is a well-structured demo application, not a hardened production service.
 - **Screen sharing is contract-ready but not surfaced** — the backend accepts
   and broadcasts `screen_share`, and the stylesheet has a share-control state,
   but no UI control or `getDisplayMedia` call exists yet.
-- **No chat, recording, captions, calendar sync or notifications** — none of
-  these are implemented anywhere in the codebase.
+- **No chat, recording, captions, external calendar sync or notifications** —
+  none of these are implemented. The dashboard calendar is an in-app view of
+  Meetly's own meetings.
+- **New Meeting preferences are not enforced.** Waiting room, lock, mute on
+  entry, unmuting, screen sharing, chat, host controls and recording are saved in
+  `sessionStorage` for the meeting but nothing on the server or in the room
+  reads them yet. *Invite People* uses mock contacts and sends no invitations.
 - **Dashboard lists are scoped to the seeded host user** on the backend, so all
   meetings created through the API appear under the same account.
 
@@ -1151,6 +1204,9 @@ Not yet implemented, and clearly valuable next steps:
   status instead of first-joiner, and protect the REST API per user.
 - **Production database + migrations** (PostgreSQL + Alembic) with a documented
   migration workflow.
+- **Server-side enforcement** of the New Meeting preferences (waiting room,
+  lock, mute on entry, permissions) and a real **friends / invitations** API
+  behind `listFriends()`.
 - **In-meeting chat**, meeting **recording**, and live **captions**.
 - **Calendar integrations** (Google/Outlook) and **email/notifications** for
   scheduled meetings.
@@ -1177,9 +1233,11 @@ Not yet implemented, and clearly valuable next steps:
 
 **3. Take it for a spin (≈3 minutes)**
 
-1. You land on the **Dashboard** — note the action tiles and the
-   *Upcoming* / *Recent* columns.
-2. Click **New Meeting** → optionally set a password → **Start Meeting**.
+1. You land on the **Dashboard** — note the action tiles, the calendar and the
+   *Upcoming* / *Recent* lists.
+2. Click **New Meeting** → optionally add a name and password, pick a few
+   friends, and try the camera preview → **Start Meeting** (or **Copy Invite
+   Link** to share before joining).
 3. Copy the invite link from the room's top bar (**Copy invite**).
 4. Open that link in a second browser (or another device on the same network)
    and join with a different display name.
@@ -1192,8 +1250,8 @@ Not yet implemented, and clearly valuable next steps:
 8. **Leave** in the second window (participant count drops) and **End** in the
    first — both return to the dashboard, and the meeting now appears under
    *Recent Meetings* with its duration.
-9. Optionally, schedule a meeting from **Schedule** and watch it count down in
-   *Upcoming*.
+9. Optionally, click a day on the dashboard calendar (or open **Schedule**) to
+   plan a meeting and watch it count down in *Upcoming*.
 
 **4. Optional: run it locally** — see
 [Local Development Setup](#local-development-setup) (backend on `:8000`,
