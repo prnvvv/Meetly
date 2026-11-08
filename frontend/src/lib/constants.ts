@@ -20,6 +20,9 @@ export const REST = {
   schedulesUpcoming: "/api/schedules/upcoming",
   schedulesRecent: "/api/schedules/recent",
   schedules: "/api/schedules",
+  schedulesRange: "/api/schedules/range",
+  schedule: (meetingId: string) =>
+    `/api/schedules/${encodeURIComponent(meetingId)}`,
 } as const;
 
 /** `http://host:8000` -> `ws://host:8000`, `https://` -> `wss://`. */
