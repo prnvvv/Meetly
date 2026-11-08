@@ -6,6 +6,7 @@ import "@/styles/shell.css";
 import "@/styles/dashboard.css";
 import "@/styles/workspace.css";
 import "@/styles/meeting.css";
+import "@/styles/new-meeting.css";
 import { authLocalization } from "@/lib/clerk-appearance";
 import { ToastProvider } from "@/components/common/ToastProvider";
 
