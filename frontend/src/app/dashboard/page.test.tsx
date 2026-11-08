@@ -15,9 +15,13 @@ vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "u1", name: "Priya Sharma", email: "p@example.com" } }),
 }));
 
-vi.mock("next/navigation", () => ({
-  usePathname: () => "/dashboard",
-}));
+vi.mock("next/navigation", async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    usePathname: () => "/dashboard",
+  };
+});
 
 vi.mock("next/link", () => ({
   default: ({

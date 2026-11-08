@@ -6,10 +6,14 @@ import SettingsPage from "./page";
 
 const getCurrentUser = vi.hoisted(() => vi.fn());
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
-  usePathname: () => "/settings",
-}));
+vi.mock("next/navigation", async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    useRouter: () => ({ push: vi.fn() }),
+    usePathname: () => "/settings",
+  };
+});
 
 vi.mock("next/link", () => ({
   default: ({
