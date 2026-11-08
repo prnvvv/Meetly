@@ -1,7 +1,6 @@
-# Scalar Meet — Frontend
+# Meetly — Frontend
 
-Next.js (App Router) + TypeScript client for the Zoom-style video
-conferencing app. Owned by the frontend developer; `backend/` is off limits.
+Next.js (App Router) + TypeScript client for Meetly. See the [root README](../README.md) for setup.
 
 ## Requirements
 
