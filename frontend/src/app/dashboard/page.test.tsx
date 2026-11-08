@@ -17,7 +17,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/dashboard",
-  useRouter: () => ({ push }),
+  useRouter: () => ({ push: () => undefined, replace: () => undefined, prefetch: () => undefined }),
 }));
 
 vi.mock("next/link", () => ({
@@ -98,27 +98,29 @@ describe("DashboardPage", () => {
     });
     renderPage();
 
-    const upcoming = screen.getByRole("region", { name: "Upcoming Meetings" });
-    const recent = screen.getByRole("region", { name: "Recent Meetings" });
+    const upcoming = screen.getByRole("region", { name: "Upcoming" });
+    const recent = screen.getByRole("region", { name: "Recent" });
     expect(within(upcoming).getAllByRole("listitem")).toHaveLength(3);
     expect(within(recent).getAllByRole("listitem")).toHaveLength(3);
     expect(screen.queryByText("Upcoming 4")).toBeNull();
     expect(screen.queryByText("Past 4")).toBeNull();
   });
 
-  it("fills a panel that has fewer meetings with a real shortcut row", () => {
+  it("shows how many meetings sit behind View all when a panel is capped", () => {
     dashboardData.mockReturnValue({
-      upcoming: list(meetings(1, true)),
+      upcoming: list(meetings(40, true)),
       recent: list(meetings(2, false)),
       refresh: vi.fn(),
     });
     renderPage();
 
-    expect(screen.getByRole("link", { name: "Schedule another meeting" }).getAttribute("href")).toBe(
-      "/schedule"
+    const upcoming = screen.getByRole("region", { name: "Upcoming" });
+    expect(within(upcoming).getByRole("link", { name: "View all (40+)" }).getAttribute("href")).toBe(
+      "/meetings"
     );
-    expect(screen.getByRole("link", { name: "Start a new meeting" }).getAttribute("href")).toBe(
-      "/new-meeting"
+    const recent = screen.getByRole("region", { name: "Recent" });
+    expect(within(recent).getByRole("link", { name: "View all" }).getAttribute("href")).toBe(
+      "/meetings?tab=recent"
     );
   });
 
@@ -126,23 +128,17 @@ describe("DashboardPage", () => {
     dashboardData.mockReturnValue({ upcoming: list([]), recent: list([]), refresh: vi.fn() });
     renderPage();
 
-    const upcoming = screen.getByRole("region", { name: "Upcoming Meetings" });
-    expect(within(upcoming).getByRole("heading", { name: "No upcoming meetings" })).toBeTruthy();
-    expect(
-      within(upcoming).getByText(
-        "Your schedule is clear. Create a meeting or schedule one to get started."
-      )
-    ).toBeTruthy();
-    expect(
-      within(upcoming).getByRole("link", { name: "Schedule a Meeting" }).getAttribute("href")
-    ).toBe("/schedule");
+    const upcoming = screen.getByRole("region", { name: "Upcoming" });
+    expect(within(upcoming).getByText("No upcoming meetings")).toBeTruthy();
+    expect(within(upcoming).getByText("Pick a date on the calendar to plan one.")).toBeTruthy();
+    expect(within(upcoming).getByRole("link", { name: "Schedule" }).getAttribute("href")).toBe(
+      "/schedule"
+    );
 
-    const recent = screen.getByRole("region", { name: "Recent Meetings" });
-    expect(within(recent).getByRole("heading", { name: "No recent meetings" })).toBeTruthy();
-    expect(
-      within(recent).getByText("Your hosted and attended meetings will appear here.")
-    ).toBeTruthy();
-    expect(within(recent).getByRole("link", { name: "New Meeting" }).getAttribute("href")).toBe(
+    const recent = screen.getByRole("region", { name: "Recent" });
+    expect(within(recent).getByText("No recent meetings")).toBeTruthy();
+    expect(within(recent).getByText("Meetings you host or attend show up here.")).toBeTruthy();
+    expect(within(recent).getByRole("link", { name: "New meeting" }).getAttribute("href")).toBe(
       "/new-meeting"
     );
   });
@@ -163,7 +159,7 @@ describe("DashboardPage", () => {
     });
     renderPage();
 
-    const upcoming = screen.getByRole("region", { name: "Upcoming Meetings" });
+    const upcoming = screen.getByRole("region", { name: "Upcoming" });
     expect(within(upcoming).getByText("Cannot reach the meeting service.")).toBeTruthy();
     expect(within(upcoming).getByRole("button", { name: /try again/i })).toBeTruthy();
   });
