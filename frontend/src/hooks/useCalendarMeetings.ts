@@ -14,7 +14,7 @@ interface State {
 }
 
 /** Real meetings for the visible calendar grid; refetches when the month changes. */
-export function useCalendarMeetings(visibleMonth: Date) {
+export function useCalendarMeetings(visibleMonth: Date, reloadKey = 0) {
   const year = visibleMonth.getFullYear();
   const month = visibleMonth.getMonth();
   const [state, setState] = useState<State | null>(null);
@@ -34,7 +34,7 @@ export function useCalendarMeetings(visibleMonth: Date) {
     return () => {
       active = false;
     };
-  }, [year, month, version]);
+  }, [year, month, version, reloadKey]);
 
   const refresh = useCallback(() => setVersion((v) => v + 1), []);
   const ready = state !== null && state.year === year && state.month === month;
