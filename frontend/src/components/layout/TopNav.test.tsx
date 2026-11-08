@@ -2,13 +2,10 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "./AppShell";
 
-vi.mock("next/navigation", async (importOriginal) => {
-  const actual = await importOriginal()
-  return {
-    ...actual,
-    usePathname: () => "/meetings",
-  };
-});
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/dashboard",
+  useRouter: () => ({ push }),
+}));
 
 vi.mock("next/link", () => ({
   default: ({
