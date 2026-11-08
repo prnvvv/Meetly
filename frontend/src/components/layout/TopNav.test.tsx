@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "./AppShell";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/dashboard",
-  useRouter: () => ({ push }),
+  usePathname: () => "/meetings",
+  useRouter: () => ({ push: () => undefined, replace: () => undefined, prefetch: () => undefined }),
 }));
 
 vi.mock("next/link", () => ({

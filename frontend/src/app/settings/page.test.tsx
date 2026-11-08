@@ -8,7 +8,7 @@ const getCurrentUser = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/dashboard",
-  useRouter: () => ({ push }),
+  useRouter: () => ({ push: () => undefined, replace: () => undefined, prefetch: () => undefined }),
 }));
 
 vi.mock("next/link", () => ({
