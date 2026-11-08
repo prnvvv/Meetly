@@ -1,0 +1,1150 @@
+/* ------------------------------------------------------------------
+   New Meeting page.
+
+   Desktop (>= 1100px wide and >= 640px tall): AppShell "fit" makes the shell
+   exactly 100dvh. The page takes what is left under the nav, the grid takes
+   what is left under the header, and both cards fill the grid row, so they
+   share top, bottom and height. Every size below is derived from the viewport
+   (vh / clamp) or from the card itself (container units), so a maximized
+   window and a small one look the same, just scaled.
+
+   Smaller screens: the cards stack and the page scrolls normally.
+   ------------------------------------------------------------------ */
+
+.nm-page {
+  --nm-gap: clamp(8px, 1.5vh, 18px);
+  --nm-pad: clamp(14px, 2.1vh, 28px);
+  --nm-ctl: clamp(38px, 5vh, 48px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.6vh, 20px);
+  min-height: 0;
+}
+
+/* Header ---------------------------------------------------------- */
+
+.nm-header__text {
+  min-width: 0;
+}
+
+.nm-back {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: clamp(2px, 0.8vh, 10px);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.nm-back:hover {
+  color: var(--color-text);
+  text-decoration: none;
+  transform: translateX(-2px);
+}
+
+.nm-title {
+  position: relative;
+  display: inline-block;
+  font-size: clamp(1.6rem, 4.4vh, 2.9rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+
+.nm-subtitle {
+  margin-top: clamp(3px, 0.8vh, 10px);
+  max-width: 560px;
+  font-size: clamp(0.8125rem, 1.9vh, 1rem);
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+/* Grid and cards ------------------------------------------------------ */
+
+.nm-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 56fr) minmax(0, 44fr);
+  gap: clamp(12px, 1.6vw, 24px);
+  align-items: stretch;
+}
+
+.nm-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--nm-pad) calc(var(--nm-pad) + 2px);
+  gap: var(--nm-gap);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+}
+
+.nm-card__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nm-card__title {
+  font-size: clamp(1.0625rem, 2.6vh, 1.375rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.nm-card__subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* Left card sections ------------------------------------------------------ */
+
+.nm-section {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 1.1vh, 12px);
+  min-width: 0;
+}
+
+.nm-section__head {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.nm-section__head--row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.nm-section__title {
+  font-size: var(--text-base);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.nm-section__sub {
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+/* Details */
+
+.nm-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.nm-details .field {
+  gap: clamp(4px, 0.8vh, 8px);
+}
+
+.nm-details .input {
+  min-height: var(--nm-ctl);
+  font-size: var(--text-sm);
+}
+
+.nm-optional {
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.nm-pw .input {
+  padding-left: 14px;
+  padding-right: 46px;
+}
+
+.nm-pw__toggle {
+  width: 34px;
+  height: 34px;
+  right: 6px;
+  color: var(--color-text-secondary);
+}
+
+/* Invite people */
+
+.nm-invite__tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.nm-invite__count {
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.nm-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.nm-link:hover {
+  color: var(--color-text);
+}
+
+.nm-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.nm-arrow:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+  border-color: var(--color-text);
+}
+
+.nm-arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.nm-friends {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-alt);
+}
+
+.nm-friends__scroll {
+  display: flex;
+  flex: 1 1 0;
+  gap: 6px;
+  min-width: 0;
+  padding: clamp(8px, 1.3vh, 14px) 8px clamp(6px, 1vh, 12px) 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scroll-padding-left: 12px;
+  scrollbar-width: none;
+}
+
+.nm-friends__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.nm-friend {
+  flex: 0 0 62px;
+  scroll-snap-align: start;
+}
+
+.nm-friend__btn,
+.nm-friend__more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 62px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.nm-friend__btn:disabled,
+.nm-friend__more:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.nm-friend__avatar {
+  position: relative;
+  display: inline-flex;
+}
+
+.nm-friend__name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nm-friend__check {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--color-surface-alt);
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.nm-friend--skeleton .nm-avatar {
+  background: var(--color-border);
+}
+
+/* "More": separated from the scrolling row so it never scrolls away. */
+.nm-friend__more {
+  flex: 0 0 auto;
+  width: 74px;
+  margin: clamp(8px, 1.3vh, 14px) 0 clamp(6px, 1vh, 12px);
+  padding-left: 6px;
+  border-left: 1px solid var(--color-border-strong);
+  border-radius: 0;
+}
+
+.nm-friend__more-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border: 1.5px dashed var(--color-text-muted);
+  border-radius: 50%;
+  background: var(--color-surface);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.nm-friend__more:hover:not(:disabled) .nm-friend__more-icon {
+  border-style: solid;
+  border-color: var(--color-text);
+  background: var(--color-primary-soft);
+}
+
+/* Avatars (monochrome initials) */
+.nm-avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: #f1f1f1;
+  color: var(--color-text);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  transition: box-shadow var(--transition-fast);
+}
+
+.nm-avatar[data-shade="1"] {
+  background: #e9e9e9;
+}
+
+.nm-avatar[data-shade="2"] {
+  background: #e1e1e1;
+}
+
+.nm-avatar[data-shade="3"] {
+  background: #fafafa;
+}
+
+.nm-avatar--selected {
+  border-color: var(--color-text);
+  box-shadow: 0 0 0 2px var(--color-surface-alt), 0 0 0 4px var(--color-text);
+}
+
+.nm-avatar__dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-surface-alt);
+  border-radius: 50%;
+  background: #c8c8c8;
+}
+
+.nm-avatar__dot--on {
+  background: var(--color-primary);
+}
+
+.nm-dialog .nm-avatar__dot {
+  border-color: var(--color-surface);
+}
+
+/* More-friends dialog */
+.nm-dialog {
+  width: min(440px, 100%);
+}
+
+.nm-dialog__search {
+  margin-top: 4px;
+}
+
+.nm-dialog__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: min(320px, 44vh);
+  margin-top: 12px;
+  margin-bottom: 20px;
+  overflow-y: auto;
+}
+
+.nm-dialog__empty {
+  padding: 24px 8px;
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.nm-pick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nm-pick:hover {
+  background: var(--color-primary-soft);
+}
+
+.nm-pick--selected {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-alt);
+}
+
+.nm-pick__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.nm-pick__name {
+  font-size: var(--text-base);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.nm-pick__status {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.nm-pick__box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text-inverse);
+}
+
+.nm-pick--selected .nm-pick__box {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.nm-dialog__actions {
+  align-items: center;
+}
+
+.nm-dialog__count {
+  margin-right: auto;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+/* Settings ------------------------------------------------------------------ */
+
+.nm-settings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.nm-settings--list {
+  grid-template-columns: 1fr;
+}
+
+.nm-setting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: clamp(50px, 8.4vh, 84px);
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.nm-setting__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-soft);
+}
+
+.nm-setting__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.nm-setting__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.nm-setting__hint {
+  font-size: 0.6875rem;
+  line-height: 1.3;
+  color: var(--color-text-secondary);
+}
+
+/* "Soon": saved with the meeting but not enforced by the server yet. */
+.nm-soon {
+  display: inline-flex;
+  align-items: center;
+  height: 15px;
+  padding: 0 6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  font-size: 0.5938rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.nm-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 42px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-strong);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.nm-switch--on {
+  background: var(--color-primary);
+}
+
+.nm-switch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nm-switch__thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform var(--transition-fast);
+}
+
+.nm-switch--on .nm-switch__thumb {
+  transform: translateX(18px);
+}
+
+/* More settings: compact modal, fixed over the page so layout height never changes. */
+.nm-more {
+  position: relative;
+}
+
+.nm-more__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 10px 0 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.nm-more__trigger:hover,
+.nm-more__trigger--open {
+  background: var(--color-primary-soft);
+  border-color: var(--color-text);
+}
+
+.nm-more__trigger svg {
+  transition: transform var(--transition-fast);
+}
+
+.nm-more__trigger--open svg {
+  transform: rotate(180deg);
+}
+
+.nm-moredialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(440px, 100%);
+  max-height: 92dvh;
+  overflow-y: auto;
+  padding: 22px;
+}
+
+.nm-moredialog .dialog__title {
+  margin-bottom: 0;
+}
+
+.nm-moredialog__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nm-moredialog .nm-setting {
+  min-height: 52px;
+}
+
+.nm-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nm-group__label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.nm-more__note .nm-soon {
+  margin-right: 4px;
+  vertical-align: 1px;
+}
+
+.nm-more__note {
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+/* Actions -------------------------------------------------------------------- */
+
+.nm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: auto;
+}
+
+/* Left card: sections spread evenly down the card; actions stay anchored at the bottom. */
+.nm-card--create {
+  justify-content: space-between;
+}
+
+.nm-actions .btn {
+  height: clamp(42px, 5.6vh, 54px);
+}
+
+/* Right card: stage = lady leaning over the preview ------------------------- */
+
+.nm-stage {
+  --lady-overlap: 6px;
+  /* ~15% larger than the earlier 15vh / 150px cap. */
+  --lady-h: clamp(104px, 21vw, 172px);
+  position: relative;
+  min-height: 0;
+}
+
+.nm-stage__inner {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Heading above, lady centred on the bottom edge of this band (stacked layout). */
+.nm-stage__top {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: calc(var(--lady-h) - var(--lady-overlap));
+}
+
+.nm-stage__lady {
+  position: absolute;
+  bottom: calc(var(--lady-overlap) * -1);
+  left: 50%;
+  z-index: 2;
+  width: auto;
+  max-width: none;
+  height: var(--lady-h);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.nm-stage__slot {
+  display: flex;
+  justify-content: center;
+}
+
+/* 16:9 box. The video fills it, so its height always resolves from the aspect ratio. */
+.nm-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-alt);
+}
+
+.nm-preview__status {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-xs);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-text);
+}
+
+.nm-preview__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9a9a9a;
+}
+
+.nm-preview__status--live .nm-preview__dot {
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.22);
+}
+
+.nm-preview__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #111;
+}
+
+.nm-preview__video[hidden] {
+  display: none;
+}
+
+.nm-preview__video--mirror {
+  transform: scaleX(-1);
+}
+
+.nm-preview__off {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.nm-preview__off-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-surface);
+}
+
+.nm-preview__caption {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+/* Plant and mug: same scale, anchored to the bottom corners. */
+.nm-preview__prop {
+  position: absolute;
+  bottom: 10px;
+  width: auto;
+  height: 64px;
+  max-width: 18%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.nm-preview__prop--left {
+  left: 12px;
+  object-position: left bottom;
+}
+
+.nm-preview__prop--right {
+  right: 12px;
+  object-position: right bottom;
+}
+
+/* Devices -------------------------------------------------------------------- */
+
+.nm-devices {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 1.1vh, 10px);
+}
+
+.nm-device {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr) 118px;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--nm-ctl);
+}
+
+.nm-device__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.nm-device__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-soft);
+}
+
+.nm-select {
+  min-height: var(--nm-ctl);
+  padding: 6px 12px;
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+}
+
+.nm-select:disabled {
+  background: var(--color-surface-alt);
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+}
+
+.nm-device__status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.nm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--color-primary-soft);
+  color: var(--color-text-secondary);
+}
+
+.nm-badge--on,
+.nm-badge--connected {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.nm-badge--unavailable {
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+}
+
+.nm-device-error {
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+/* Security ---------------------------------------------------------------------- */
+
+.nm-security {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  padding: clamp(8px, 1.4vh, 14px) 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-alt);
+}
+
+.nm-security__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.nm-security__title {
+  font-size: var(--text-base);
+}
+
+.nm-security__text {
+  margin-top: 1px;
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+/* Desktop: exactly one viewport -------------------------------------------------- */
+
+@media (min-width: 1100px) and (min-height: 640px) {
+  .app-shell--fit .app-main__inner:has(.nm-page) {
+    width: min(92%, var(--content-max));
+    flex: 0 0 auto;
+  }
+
+  .nm-page {
+    flex: 1 1 0;
+  }
+
+  .nm-card--create .nm-actions {
+    margin-top: 0;
+  }
+
+  .nm-grid {
+    flex: 1 1 0;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    /* Very tall monitors: stop growing so spacing stays tight, not stretched. */
+    max-height: 800px;
+  }
+
+  /* Right card: tighter control rows so the preview can be a real 16:9. */
+  .nm-card--setup {
+    --nm-ctl: clamp(32px, 4vh, 44px);
+    --nm-gap: clamp(6px, 1.1vh, 14px);
+  }
+
+  .nm-devices {
+    gap: clamp(5px, 1vh, 9px);
+  }
+
+  .nm-security {
+    padding: clamp(6px, 1.1vh, 12px) 14px;
+  }
+
+  .nm-stage {
+    --lady-h: clamp(84px, 17vh, 176px);
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+  }
+
+  .nm-stage__inner {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  /* Heading and lady share one band; the text block stops short of her. */
+  .nm-stage__top {
+    flex: none;
+    height: calc(var(--lady-h) - var(--lady-overlap));
+    padding-bottom: 0;
+  }
+
+  .nm-stage__top .nm-card__head {
+    max-width: calc(50% - var(--lady-h) * 0.66 - 10px);
+  }
+
+  .nm-stage__top .nm-card__title {
+    font-size: clamp(1rem, 2.2vh, 1.25rem);
+    line-height: 1.15;
+  }
+
+  .nm-stage__top .nm-card__subtitle {
+    font-size: 0.75rem;
+    line-height: 1.3;
+  }
+
+  /* The slot has a known size; the preview is the largest 16:9 that fits in it. */
+  .nm-stage__slot {
+    flex: 1 1 0;
+    min-height: 0;
+    align-items: flex-start;
+    container-type: size;
+  }
+
+  .nm-preview {
+    width: min(100cqw, calc(100cqh * 16 / 9));
+    flex: none;
+    container-type: size;
+  }
+
+  .nm-preview__status {
+    top: clamp(6px, 3cqh, 10px);
+    left: clamp(6px, 2cqw, 10px);
+  }
+
+  .nm-preview__off {
+    gap: clamp(4px, 3cqh, 10px);
+  }
+
+  .nm-preview__off-icon {
+    width: clamp(30px, 24cqh, 56px);
+    height: clamp(30px, 24cqh, 56px);
+  }
+
+  .nm-preview__off-icon svg {
+    width: 55%;
+    height: 55%;
+  }
+
+  .nm-preview__prop {
+    bottom: clamp(6px, 4cqh, 12px);
+    height: clamp(30px, 30cqh, 68px);
+  }
+}
+
+/* Windows under 900px tall: smaller lady, so the preview keeps a usable size. */
+@media (min-width: 1100px) and (min-height: 640px) and (max-height: 880px) {
+  .nm-stage {
+    --lady-h: clamp(80px, 14vh, 176px);
+  }
+}
+
+/* Short desktop windows: tighten before anything is lost. */
+@media (min-width: 1100px) and (min-height: 640px) and (max-height: 760px) {
+  .nm-page {
+    --nm-gap: 8px;
+    --nm-pad: 14px;
+  }
+
+  .nm-setting {
+    min-height: 46px;
+    padding: 6px 10px;
+  }
+
+  .nm-setting__hint {
+    display: none;
+  }
+}
+
+/* Stacked layout: tablet and mobile ------------------------------------------------ */
+
+@media (max-width: 1099px) {
+  .nm-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .nm-card {
+    padding: clamp(16px, 3vw, 28px);
+    gap: 16px;
+  }
+
+  .nm-section {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 640px) {
+  .nm-details,
+  .nm-settings,
+  .nm-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .nm-actions .btn {
+    height: 50px;
+  }
+
+  .nm-device {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 8px;
+  }
+
+  .nm-device__select {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nm-back,
+  .nm-switch,
+  .nm-switch__thumb,
+  .nm-avatar,
+  .nm-more__trigger svg {
+    transition: none;
+  }
+}
