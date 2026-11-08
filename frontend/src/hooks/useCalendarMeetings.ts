@@ -14,13 +14,14 @@ interface State {
 }
 
 /** Real meetings for the visible calendar grid; refetches when the month changes. */
-export function useCalendarMeetings(visibleMonth: Date, reloadKey = 0) {
+export function useCalendarMeetings(visibleMonth: Date, reloadKey = 0, enabled = true) {
   const year = visibleMonth.getFullYear();
   const month = visibleMonth.getMonth();
   const [state, setState] = useState<State | null>(null);
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
+    if (!enabled) return;
     let active = true;
     const { start, end } = gridRange(new Date(year, month, 1));
     getMeetingsInRange(start, end).then(
@@ -34,10 +35,10 @@ export function useCalendarMeetings(visibleMonth: Date, reloadKey = 0) {
     return () => {
       active = false;
     };
-  }, [year, month, version, reloadKey]);
+  }, [year, month, version, reloadKey, enabled]);
 
   const refresh = useCallback(() => setVersion((v) => v + 1), []);
-  const ready = state !== null && state.year === year && state.month === month;
+  const ready = enabled && state !== null && state.year === year && state.month === month;
   const items = useMemo(() => (ready && state ? state.items : []), [ready, state]);
   const byDay = useMemo(() => groupByDay(items), [items]);
 

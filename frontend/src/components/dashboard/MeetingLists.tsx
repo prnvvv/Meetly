@@ -101,14 +101,16 @@ export function MeetingLists({ upcoming, recent, limit, onRetry, onChanged }: Me
           return (
             <li key={meeting.meeting_id} className="row">
               <div className="row__body">
-                <span className="row__title">{meeting.title}</span>
+                <span className="row__titleline">
+                  <span className="row__title">{meeting.title}</span>
+                  <span className="badge badge--scheduled row__badge">{statusLabel(meeting.status)}</span>
+                </span>
                 <span className="row__meta">
                   <ClockIcon size={13} aria-hidden="true" />
                   {formatDayLabel(meeting.start_time)}, {end ? `${start} – ${end}` : start}
                   {duration ? ` · ${duration}` : ""}
                 </span>
               </div>
-              <span className="badge badge--scheduled row__badge">{statusLabel(meeting.status)}</span>
               <div className="row__actions">
                 <button
                   type="button"
@@ -155,15 +157,17 @@ export function MeetingLists({ upcoming, recent, limit, onRetry, onChanged }: Me
                 aria-label={`Open ${meeting.title}`}
               >
                 <span className="row__body">
-                  <span className="row__title">{meeting.title}</span>
+                  <span className="row__titleline">
+                    <span className="row__title">{meeting.title}</span>
+                    <span className={cx("badge", `badge--${meeting.status}`, "row__badge")}>
+                      {statusLabel(meeting.status)}
+                    </span>
+                  </span>
                   <span className="row__meta">
                     <UsersIcon size={13} aria-hidden="true" />
                     Hosted by you · {formatDayLabel(meeting.start_time)}
                     {duration ? ` · ${duration}` : ""}
                   </span>
-                </span>
-                <span className={cx("badge", `badge--${meeting.status}`, "row__badge")}>
-                  {statusLabel(meeting.status)}
                 </span>
                 <ChevronRightIcon size={16} className="row__chevron" aria-hidden="true" />
               </Link>
