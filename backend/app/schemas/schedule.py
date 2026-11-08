@@ -21,5 +21,21 @@ class ScheduleMeetingCreate(BaseModel):
         return value
 
 
+class ScheduleMeetingUpdate(BaseModel):
+    """Partial edit of a meeting that has not started yet."""
+
+    title: Title | None = None
+    description: str | None = Field(default=None, max_length=5000)
+    start_time: AwareDatetime | None = None
+    duration: int | None = Field(default=None, gt=0, le=1440, description="Minutes")
+
+    @field_validator("duration", mode="before")
+    @classmethod
+    def _reject_bool(cls, value: Any) -> Any:
+        if isinstance(value, bool):
+            raise ValueError("Duration must be a number of minutes, not a boolean")
+        return value
+
+
 class ScheduleMeetingResponse(MeetingResponse):
     """Same shape as MeetingResponse so the frontend has one meeting type."""
