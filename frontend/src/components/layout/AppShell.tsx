@@ -1,33 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { Sidebar } from "./Sidebar";
 import { TopNav } from "./TopNav";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const closeSidebar = () => setSidebarOpen(false);
+/**
+ * Application frame: sticky top bar + centered content column. The old
+ * left sidebar is gone; its links and quick actions live in the top bar and
+ * on the dashboard, exactly like the landing page navigation.
+ */
+export function AppShell({
+  children,
+  fit = false,
+}: {
+  children: React.ReactNode;
+  /** Fit content to the viewport on desktop (dashboard); other pages scroll normally. */
+  fit?: boolean;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = () => setMenuOpen(false);
 
   return (
-    <div className="app-shell">
+    <div className={fit ? "app-shell app-shell--fit" : "app-shell"}>
       <TopNav
-        onMenuToggle={() => setSidebarOpen((open) => !open)}
-        sidebarOpen={sidebarOpen}
+        onMenuToggle={() => setMenuOpen((open) => !open)}
+        menuOpen={menuOpen}
+        onNavigate={closeMenu}
       />
-      <div className="app-body">
-        <Sidebar open={sidebarOpen} onNavigate={closeSidebar} />
-        {sidebarOpen ? (
-          <div
-            className="sidebar-backdrop"
-            onClick={closeSidebar}
-            role="presentation"
-          />
-        ) : null}
-        <main className="app-main">
-          <div className="app-main__inner">{children}</div>
-        </main>
-      </div>
+      <main className="app-main">
+        <div className="app-main__inner">{children}</div>
+      </main>
     </div>
   );
 }

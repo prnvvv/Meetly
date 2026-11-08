@@ -6,3 +6,11 @@ export interface ScheduleCreatePayload {
   /** Minutes, 1..1440. */
   duration: number;
 }
+
+/** PATCH /api/schedules/{meeting_id}: only the fields that changed. */
+export interface ScheduleUpdatePayload {
+  title?: string;
+  description?: string | null;
+  start_time?: string;
+  duration?: number;
+}

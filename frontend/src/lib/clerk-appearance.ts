@@ -1,5 +1,5 @@
 /**
- * Shared Clerk appearance configuration for a polished, Zoom-inspired
+ * Shared Clerk appearance configuration for a polished, Meetly
  * authentication experience. This only customizes visuals; all authentication
  * behavior remains controlled by Clerk.
  */
@@ -9,19 +9,19 @@
  */
 export const clerkAppearance = {
   variables: {
-    colorPrimary: "#0b5cff",
+    colorPrimary: "#000000",
     colorPrimaryForeground: "#ffffff",
     colorBackground: "#ffffff",
     colorInput: "#ffffff",
-    colorInputForeground: "#13161c",
-    colorForeground: "#13161c",
-    colorMutedForeground: "#566072",
-    colorBorder: "#e4e8ee",
-    colorRing: "#0b5cff",
+    colorInputForeground: "#000000",
+    colorForeground: "#000000",
+    colorMutedForeground: "#686868",
+    colorBorder: "#e8e8e8",
+    colorRing: "#000000",
     colorDanger: "#d92d20",
-    colorSuccess: "#12805c",
-    colorWarning: "#b54708",
-    borderRadius: "10px",
+    colorSuccess: "#000000",
+    colorWarning: "#686868",
+    borderRadius: "12px",
     fontFamily: "inherit",
     fontFamilyButtons: "inherit",
   },
@@ -60,5 +60,51 @@ export const clerkAppearance = {
     spinner: "cl-spinner",
     otpCodeFieldInput: "cl-otpCodeFieldInput",
     profileSection: "cl-profileSection",
+  },
+};
+
+/**
+ * Monochrome appearance for the sign-in / sign-up pages so they match the
+ * black-and-white crowd landing page.
+ */
+export const authAppearance = {
+  variables: {
+    colorPrimary: "#000000",
+    colorPrimaryForeground: "#ffffff",
+    colorBackground: "#ffffff",
+    colorInput: "#ffffff",
+    colorInputForeground: "#000000",
+    colorForeground: "#000000",
+    colorMutedForeground: "#6b6b6b",
+    colorBorder: "#e5e5e5",
+    colorRing: "#000000",
+    borderRadius: "12px",
+    fontFamily: "inherit",
+    fontFamilyButtons: "inherit",
+  },
+  layout: {
+    logoPlacement: "none",
+    socialButtonsVariant: "iconButton",
+  },
+  elements: {
+    rootBox: "w-full! max-w-[545px]!",
+    cardBox:
+      "w-full! max-w-none! border! border-solid! border-neutral-200! rounded-[28px] bg-white overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_28px_-16px_rgba(0,0,0,0.18)]!",
+    card: "shadow-none! bg-transparent w-full! max-w-none! px-10! py-[3.25rem]!",
+    formButtonPrimary:
+      "bg-black hover:bg-neutral-800 rounded-full normal-case shadow-none",
+    footerActionLink: "text-black font-medium hover:text-neutral-600",
+  },
+};
+
+/**
+ * Copy overrides for the embedded Clerk components. The default title uses
+ * the Clerk application's name, which is not the product name.
+ */
+export const authLocalization = {
+  signIn: {
+    start: {
+      title: "Sign in to Meetly",
+    },
   },
 };

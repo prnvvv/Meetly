@@ -174,6 +174,9 @@ def test_delete_participant_marks_it_left(client, db):
     deleted = client.delete(f"/api/participants/{participant.id}")
 
     assert deleted.status_code == 204
+    # A 204 must carry no body (older FastAPI versions refuse to even start
+    # when the route is declared in a way that implies one).
+    assert deleted.content == b""
     db.refresh(participant)
     assert participant.left_at is not None
 

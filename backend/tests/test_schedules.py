@@ -353,3 +353,62 @@ def test_validate_duration_rejects_bool():
     with pytest.raises(InvalidRequestError):
         validate_duration(False)
     assert validate_duration(30) == 30
+
+
+# --------------------------------------------------------------------------
+# Calendar range + edit
+# --------------------------------------------------------------------------
+
+
+def test_range_returns_only_window_and_skips_cancelled(client, db):
+    inside = _schedule(db, title="Inside", start_offset=timedelta(days=2))
+    _schedule(db, title="Outside", start_offset=timedelta(days=20))
+    cancelled = _schedule(db, title="Cancelled", start_offset=timedelta(days=3))
+    meeting_service.end_meeting(db, cancelled.meeting_id, host_id=DEMO_USER_ID)
+
+    start = (utc_now() + timedelta(days=1)).isoformat()
+    end = (utc_now() + timedelta(days=10)).isoformat()
+    response = client.get("/api/schedules/range", params={"start": start, "end": end})
+
+    assert response.status_code == 200
+    assert [m["meeting_id"] for m in response.json()] == [inside.meeting_id]
+
+
+def test_range_rejects_inverted_window(client):
+    start = utc_now().isoformat()
+    end = (utc_now() - timedelta(days=1)).isoformat()
+    response = client.get("/api/schedules/range", params={"start": start, "end": end})
+    assert response.status_code == 400
+
+
+def test_update_schedule_changes_fields_and_end_time(client, db):
+    meeting = _schedule(db, title="Old", start_offset=timedelta(days=1))
+    new_start = utc_now() + timedelta(days=3)
+
+    response = client.patch(
+        f"/api/schedules/{meeting.meeting_id}",
+        json={"title": "New", "start_time": new_start.isoformat(), "duration": 60},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["title"] == "New"
+    assert body["duration"] == 60
+    db.refresh(meeting)
+    assert meeting.end_time == meeting.start_time + timedelta(minutes=60)
+
+
+def test_update_schedule_rejects_past_start_and_non_scheduled(client, db):
+    meeting = _schedule(db, title="Edit me", start_offset=timedelta(days=1))
+    past = (utc_now() - timedelta(hours=1)).isoformat()
+    assert (
+        client.patch(f"/api/schedules/{meeting.meeting_id}", json={"start_time": past}).status_code
+        == 400
+    )
+
+    meeting_service.end_meeting(db, meeting.meeting_id, host_id=DEMO_USER_ID)
+    assert (
+        client.patch(f"/api/schedules/{meeting.meeting_id}", json={"title": "x"}).status_code
+        == 409
+    )
+    assert client.patch("/api/schedules/999999999", json={"title": "x"}).status_code == 404

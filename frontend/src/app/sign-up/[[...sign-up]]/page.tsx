@@ -1,24 +1,14 @@
-import Image from "next/image";
 import { SignUp } from "@clerk/nextjs";
+import { CrowdBackdrop } from "@/components/landing/CrowdBackdrop";
+import { authAppearance } from "@/lib/clerk-appearance";
 
 export default function SignUpPage() {
   return (
-    <div className="signin-split">
-      <div className="signin-split__left">
-        <div className="signin-split__logo">
-          <Image
-            src="/images/f4.png"
-            alt=""
-            fill
-            sizes="(max-width: 768px) 70vw, 520px"
-            priority
-            className="signin-split__image"
-          />
-        </div>
+    <CrowdBackdrop>
+      <div className="-mt-[10vh] grid justify-items-center gap-6">
+        <span className="text-3xl font-semibold tracking-tight">Meetly</span>
+        <SignUp appearance={authAppearance} />
       </div>
-      <div className="signin-split__right">
-        <SignUp />
-      </div>
-    </div>
+    </CrowdBackdrop>
   );
 }

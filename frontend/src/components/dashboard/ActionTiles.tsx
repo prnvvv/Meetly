@@ -1,46 +1,46 @@
 import Link from "next/link";
 import {
+  ArrowRightIcon,
   CalendarIcon,
-  PlusIcon,
+  LinkIcon,
   VideoIcon,
 } from "@/components/icons";
 
-const TILES = [
+const ACTIONS = [
   {
     href: "/new-meeting",
     label: "New Meeting",
     hint: "Start an instant meeting",
     icon: VideoIcon,
-    modifier: "",
   },
   {
     href: "/join",
     label: "Join Meeting",
     hint: "Enter a meeting ID",
-    icon: PlusIcon,
-    modifier: "action-tile--join",
+    icon: LinkIcon,
   },
   {
     href: "/schedule",
     label: "Schedule Meeting",
     hint: "Plan it for later",
     icon: CalendarIcon,
-    modifier: "action-tile--schedule",
   },
 ];
 
+/** Three equal, fully clickable quick-action cards that open the real workflows. */
 export function ActionTiles() {
   return (
-    <div className="action-tiles">
-      {TILES.map((tile) => (
-        <Link key={tile.label} href={tile.href} className={`action-tile ${tile.modifier}`}>
-          <span className="action-tile__icon">
-            <tile.icon size={22} />
+    <div className="action-cards">
+      {ACTIONS.map(({ href, label, hint, icon: Icon }) => (
+        <Link key={href} href={href} className="action-card">
+          <span className="action-card__icon" aria-hidden="true">
+            <Icon size={24} />
           </span>
-          <span>
-            <span className="action-tile__label">{tile.label}</span>
-            <span className="action-tile__hint">{tile.hint}</span>
+          <span className="action-card__text">
+            <span className="action-card__label">{label}</span>
+            <span className="action-card__hint">{hint}</span>
           </span>
+          <ArrowRightIcon className="action-card__arrow" size={20} aria-hidden="true" />
         </Link>
       ))}
     </div>

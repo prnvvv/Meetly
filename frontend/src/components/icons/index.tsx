@@ -481,3 +481,21 @@ export function KeyboardIcon(props: IconProps) {
     </Icon>
   );
 }
+
+export function SparklesIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />
+      <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z" />
+    </Icon>
+  );
+}
+
+export function InboxIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M3 13.5h4.5l1.6 3h5.8l1.6-3H21" />
+      <path d="M5.6 5h12.8a2 2 0 0 1 1.9 1.4L21 13.5V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4.5l.7-7.1A2 2 0 0 1 5.6 5Z" />
+    </Icon>
+  );
+}

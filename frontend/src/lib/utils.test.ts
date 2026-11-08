@@ -5,6 +5,7 @@ import {
   formatCountdown,
   formatDuration,
   formatDate,
+  formatDayLabel,
   getInitials,
   greetingForDate,
   isPast,
@@ -36,6 +37,8 @@ describe("getInitials", () => {
 
   it("collapses whitespace", () => {
     expect(getInitials("  ada   lovelace  ")).toBe("AL");
+    expect(getInitials("Demo User (You)")).toBe("DU");
+    expect(getInitials("(You)")).toBe("?");
   });
 
   it("falls back for an empty name", () => {
@@ -163,5 +166,27 @@ describe("buildInviteUrl", () => {
     expect(buildInviteUrl("839452761")).toBe(
       `${window.location.origin}/meetings/839452761`
     );
+  });
+});
+
+describe("formatDayLabel", () => {
+  const now = new Date(2026, 10, 8, 14, 30); // 8 Nov 2026, 14:30 local
+
+  it("labels today, tomorrow and yesterday relative to local midnight", () => {
+    expect(formatDayLabel(new Date(2026, 10, 8, 0, 5).toISOString(), now)).toBe("Today");
+    expect(formatDayLabel(new Date(2026, 10, 8, 23, 59).toISOString(), now)).toBe("Today");
+    expect(formatDayLabel(new Date(2026, 10, 9, 11, 0).toISOString(), now)).toBe("Tomorrow");
+    expect(formatDayLabel(new Date(2026, 10, 7, 20, 0).toISOString(), now)).toBe("Yesterday");
+  });
+
+  it("falls back to a short date, adding the year only when it differs", () => {
+    const sameYear = formatDayLabel(new Date(2026, 10, 5, 9, 0).toISOString(), now);
+    expect(sameYear).not.toMatch(/2026/);
+    expect(sameYear).toMatch(/5/);
+    expect(formatDayLabel(new Date(2025, 10, 5, 9, 0).toISOString(), now)).toMatch(/2025/);
+  });
+
+  it("returns an empty string for an invalid date", () => {
+    expect(formatDayLabel("not a date", now)).toBe("");
   });
 });

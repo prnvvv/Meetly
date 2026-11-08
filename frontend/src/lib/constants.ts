@@ -20,6 +20,9 @@ export const REST = {
   schedulesUpcoming: "/api/schedules/upcoming",
   schedulesRecent: "/api/schedules/recent",
   schedules: "/api/schedules",
+  schedulesRange: "/api/schedules/range",
+  schedule: (meetingId: string) =>
+    `/api/schedules/${encodeURIComponent(meetingId)}`,
 } as const;
 
 /** `http://host:8000` -> `ws://host:8000`, `https://` -> `wss://`. */
@@ -71,4 +74,4 @@ export const REACTION_EMOJIS = [
   "✋",
 ] as const;
 
-export const APP_NAME = "Zoom";
+export const APP_NAME = "Meetly";

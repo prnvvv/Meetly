@@ -7,7 +7,12 @@ export function cx(
 }
 
 export function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+  // Ignore annotations such as "(You)" or "(Host)" so "Demo User (You)" is "DU".
+  const parts = name
+    .replace(/\([^)]*\)/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
@@ -61,6 +66,18 @@ export function formatTimeRange(startIso: string, durationMinutes?: number | nul
       minute: "2-digit",
     }),
   };
+}
+
+/** "Today" / "Tomorrow" / "Yesterday", otherwise "Mon, Nov 9". */
+export function formatDayLabel(iso: string, now: Date = new Date()): string {
+  const date = toDate(iso);
+  if (!date) return "";
+  const startOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diff = Math.round((startOf(date) - startOf(now)) / 86_400_000);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Tomorrow";
+  if (diff === -1) return "Yesterday";
+  return date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
 
 export function formatDuration(minutes?: number | null): string {
