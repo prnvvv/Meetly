@@ -68,6 +68,18 @@ export function formatTimeRange(startIso: string, durationMinutes?: number | nul
   };
 }
 
+/** "Today" / "Tomorrow" / "Yesterday", otherwise "Mon, Nov 9". */
+export function formatDayLabel(iso: string, now: Date = new Date()): string {
+  const date = toDate(iso);
+  if (!date) return "";
+  const startOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diff = Math.round((startOf(date) - startOf(now)) / 86_400_000);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Tomorrow";
+  if (diff === -1) return "Yesterday";
+  return date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
 export function formatDuration(minutes?: number | null): string {
   if (!minutes || minutes <= 0) return "";
   const hours = Math.floor(minutes / 60);

@@ -1,113 +1,89 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import { ActionTiles } from "@/components/dashboard/ActionTiles";
-import { RecentMeetingCard } from "@/components/dashboard/RecentMeetingCard";
-import { UpcomingMeetingCard } from "@/components/dashboard/UpcomingMeetingCard";
-import { EmptyState } from "@/components/common/EmptyState";
-import { ErrorState } from "@/components/common/ErrorState";
-import { SkeletonList } from "@/components/common/Skeleton";
+import { CalendarWorkspace } from "@/components/dashboard/CalendarWorkspace";
+import { MeetingLists } from "@/components/dashboard/MeetingLists";
+import { ClockIcon } from "@/components/icons";
 import { AppShell } from "@/components/layout/AppShell";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useDashboardData } from "@/hooks/useDashboardData";
-import { greetingForDate } from "@/lib/utils";
+import { PREVIEW_LIMIT, useDashboardData } from "@/hooks/useDashboardData";
+import { formatCountdown, formatDayLabel, formatTime, greetingForDate, todayLabel } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { user } = useCurrentUser();
-  const { upcoming, recent, refresh } = useDashboardData();
+  const { upcoming, recent, refresh } = useDashboardData(PREVIEW_LIMIT);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [now, setNow] = useState<Date | null>(null);
 
-  const firstName = user?.name?.split(" ")[0];
-  const [today, setToday] = React.useState<Date | null>(null);
-
-  React.useEffect(() => {
-    // Deferred so the first client render matches the server HTML; reading the
-    // clock during render would risk a hydration mismatch at a date boundary.
-    const id = window.setTimeout(() => setToday(new Date()), 0);
-    return () => window.clearTimeout(id);
+  useEffect(() => {
+    // Client clock after mount: the greeting depends on the viewer's timezone,
+    // which the server does not know, and this keeps hydration consistent.
+    const tick = () => setNow(new Date());
+    const first = window.setTimeout(tick, 0);
+    const interval = window.setInterval(tick, 30_000);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(interval);
+    };
   }, []);
 
+  const changed = useCallback(() => {
+    setReloadKey((key) => key + 1);
+    void refresh();
+  }, [refresh]);
+
+  const firstName = user?.name?.split(" ")[0];
+  const next = upcoming.items[0];
+  const subtitle = upcoming.loading
+    ? "Checking your schedule…"
+    : next
+      ? "Here’s what’s coming up on your calendar."
+      : "Your schedule is clear. Start or plan a meeting below.";
+
   return (
-    <AppShell>
-      <div className="greeting">
-        <h1 className="greeting__title">
-          {greetingForDate()}
-          {firstName ? `, ${firstName}` : ""}
-        </h1>
-        {today && <p className="greeting__date">{today.toLocaleDateString(undefined, {
-          weekday: "long",
-          month: "long",
-          day: "numeric",
-          year: "numeric",
-        })}</p>}
-      </div>
+    <AppShell fit>
+      <section className="dash-top" aria-labelledby="dash-greeting">
+        <div className="dash-top__text">
+          <h1 className="dash-top__title" id="dash-greeting">
+            {now ? greetingForDate(now) : ""}
+            {now && firstName ? `, ${firstName}` : ""}
+          </h1>
+          <p className="dash-top__sub">
+            <span>{now ? todayLabel(now) : ""}</span>
+            <span className="dash-top__dot" aria-hidden="true">
+              ·
+            </span>
+            <span>{subtitle}</span>
+          </p>
+        </div>
+        {next ? (
+          <Link href={`/meetings/${next.meeting_id}`} className="next-chip" aria-label={`Next meeting: ${next.title}`}>
+            <ClockIcon size={16} aria-hidden="true" />
+            <span className="next-chip__text">
+              <span className="next-chip__label">
+                Next · {now ? formatCountdown(next.start_time, now.getTime()) : ""}
+              </span>
+              <span className="next-chip__title">
+                {next.title} · {formatDayLabel(next.start_time)}, {formatTime(next.start_time)}
+              </span>
+            </span>
+          </Link>
+        ) : null}
+      </section>
 
       <ActionTiles />
 
-      <div className="dash-columns">
-        <section className="section" aria-labelledby="upcoming-heading">
-          <div className="section__head">
-            <h2 className="section__title" id="upcoming-heading">
-              Upcoming Meetings
-            </h2>
-            <Link href="/meetings" className="section__link">
-              View all
-            </Link>
-          </div>
-
-          <div className="section__body">
-            {upcoming.loading ? (
-              <SkeletonList rows={2} />
-            ) : upcoming.error ? (
-              <ErrorState message={upcoming.error} onRetry={refresh} />
-            ) : upcoming.items.length === 0 ? (
-              <EmptyState
-                title="No upcoming meetings"
-                description="Schedule a meeting and it will show up here with its invite link."
-                action={
-                  <Link href="/schedule" className="btn btn--primary">
-                    Schedule a Meeting
-                  </Link>
-                }
-              />
-            ) : (
-              upcoming.items.map((meeting) => (
-                <UpcomingMeetingCard
-                  key={meeting.meeting_id}
-                  meeting={meeting}
-                />
-              ))
-            )}
-          </div>
-        </section>
-
-        <section className="section" aria-labelledby="recent-heading">
-          <div className="section__head">
-            <h2 className="section__title" id="recent-heading">
-              Recent Meetings
-            </h2>
-          </div>
-
-          <div className="section__body">
-            {recent.loading ? (
-              <SkeletonList rows={2} />
-            ) : recent.error ? (
-              <ErrorState message={recent.error} onRetry={refresh} />
-            ) : recent.items.length === 0 ? (
-              <EmptyState
-                title="No recent meetings"
-                description="Meetings you have hosted or attended will appear here."
-              />
-            ) : (
-              recent.items.map((meeting) => (
-                <RecentMeetingCard
-                  key={meeting.meeting_id}
-                  meeting={meeting}
-                />
-              ))
-            )}
-          </div>
-        </section>
+      <div className="workspace">
+        <CalendarWorkspace reloadKey={reloadKey} onChanged={changed} />
+        <MeetingLists
+          upcoming={upcoming}
+          recent={recent}
+          limit={PREVIEW_LIMIT}
+          onRetry={refresh}
+          onChanged={changed}
+        />
       </div>
     </AppShell>
   );
