@@ -13,7 +13,8 @@ import { MeetingDialog } from "./MeetingDialog";
 interface ListPanelProps {
   title: string;
   id: string;
-  viewAllHref: string;
+  /** Optional "View all" destination; omitted when there is no full list page. */
+  viewAllHref?: string;
   list: AsyncList<Meeting>;
   limit: number;
   onRetry: () => void;
@@ -22,8 +23,8 @@ interface ListPanelProps {
 }
 
 /**
- * Compact list panel. It never shows more than `limit` rows; the rest lives
- * behind "View all" on the Meetings page, so history can never grow the dashboard.
+ * Compact list panel. It never shows more than `limit` rows, so history can
+ * never grow the dashboard.
  */
 function ListPanel({ title, id, viewAllHref, list, limit, onRetry, empty, renderRow }: ListPanelProps) {
   const extra = Math.max(0, list.items.length - limit);
@@ -33,9 +34,11 @@ function ListPanel({ title, id, viewAllHref, list, limit, onRetry, empty, render
         <h2 className="lp__title" id={`${id}-heading`}>
           {title}
         </h2>
-        <Link href={viewAllHref} className="panel__link">
-          {extra > 0 ? `View all (${list.items.length}+)` : "View all"}
-        </Link>
+        {viewAllHref ? (
+          <Link href={viewAllHref} className="panel__link">
+            {extra > 0 ? `View all (${list.items.length}+)` : "View all"}
+          </Link>
+        ) : null}
       </header>
       <div className="lp__body">
         {list.loading ? (
@@ -82,15 +85,14 @@ export function MeetingLists({ upcoming, recent, limit, onRetry, onChanged }: Me
   return (
     <div className="lists">
       <ListPanel
-        title="Upcoming"
+        title="Scheduled"
         id="upcoming"
-        viewAllHref="/meetings"
         list={upcoming}
         limit={limit}
         onRetry={onRetry}
         empty={{
           icon: <CalendarIcon size={20} />,
-          title: "No upcoming meetings",
+          title: "No scheduled meetings",
           text: "Pick a date on the calendar to plan one.",
           href: "/schedule",
           cta: "Schedule",
@@ -136,7 +138,6 @@ export function MeetingLists({ upcoming, recent, limit, onRetry, onChanged }: Me
       <ListPanel
         title="Recent"
         id="recent"
-        viewAllHref="/meetings?tab=recent"
         list={recent}
         limit={limit}
         onRetry={onRetry}

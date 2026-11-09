@@ -26,6 +26,10 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+vi.mock("@/hooks/useCurrentUser", () => ({
+  useCurrentUser: () => ({ user: null, loading: false, failed: false }),
+}));
+
 vi.mock("@/services/meetingService", () => ({
   joinMeeting: vi.fn(),
 }));
@@ -42,10 +46,10 @@ function renderForm() {
 }
 
 function fill(displayName: string, meetingId: string) {
-  fireEvent.change(screen.getByLabelText("Meeting ID or invite link"), {
+  fireEvent.change(screen.getByLabelText("Meeting code or invite link"), {
     target: { value: meetingId },
   });
-  fireEvent.change(screen.getByLabelText("Your name"), {
+  fireEvent.change(screen.getByLabelText(/Your name/), {
     target: { value: displayName },
   });
 }
