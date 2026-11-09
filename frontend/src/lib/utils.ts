@@ -187,7 +187,7 @@ export function formatRelativeTime(iso: string, now: Date = new Date()): string 
   const nowUTC = new Date(
     now.getTime() - now.getTimezoneOffset() * 60000
   );
-  const deltaSeconds = (targetUTC.getTime() - nowUTC.getTime()) / 1000;
+  let deltaSeconds = (targetUTC.getTime() - nowUTC.getTime()) / 1000;
 
   if (deltaSeconds < -60) {
     deltaSeconds = Math.abs(deltaSeconds);
@@ -207,18 +207,18 @@ export function formatRelativeTime(iso: string, now: Date = new Date()): string 
     return `in ${seconds} seconds`;
   }
 
-  const minutes = Math.floor(deltaSeconds / 60);
-  const hours = Math.floor(minutes / 60);
-  minutes = minutes % 60;
+  const minutesTotal = Math.floor(deltaSeconds / 60);
+  const hours = Math.floor(minutesTotal / 60);
+  const remainingMinutes = minutesTotal % 60;
 
   if (hours === 0) {
-    if (minutes === 1) return "in 1 minute";
-    return `in ${minutes} minutes`;
+    if (remainingMinutes === 1) return "in 1 minute";
+    return `in ${remainingMinutes} minutes`;
   }
 
   if (hours === 1) {
-    if (minutes === 0) return "in 1 hour";
-    return `in 1 hour ${minutes} minutes`;
+    if (remainingMinutes === 0) return "in 1 hour";
+    return `in 1 hour ${remainingMinutes} minutes`;
   }
 
   const days = Math.floor(hours / 24);
@@ -231,8 +231,8 @@ export function formatRelativeTime(iso: string, now: Date = new Date()): string 
   if (remainingHours === 1) parts.push("1 hour");
   else if (remainingHours > 1) parts.push(`${remainingHours} hours`);
 
-  if (minutes === 1) parts.push("1 minute");
-  else if (minutes > 1) parts.push(`${minutes} minutes`);
+  if (remainingMinutes === 1) parts.push("1 minute");
+  else if (remainingMinutes > 1) parts.push(`${remainingMinutes} minutes`);
 
   if (parts.length === 1) return `in ${parts[0]}`;
   return `in ${parts.slice(0, -1).join(", ")} and ${parts[-1]}`;
