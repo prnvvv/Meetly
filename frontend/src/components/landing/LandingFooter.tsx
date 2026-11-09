@@ -44,7 +44,7 @@ export function LandingFooter() {
                 </ScrollLink>
               </li>
               <li>
-                <Link href="/meetings" className={linkClass}>
+                <Link href="/new-meeting" className={linkClass}>
                   Meeting Rooms
                 </Link>
               </li>
