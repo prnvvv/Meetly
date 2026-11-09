@@ -15,6 +15,78 @@ from app.models.meeting import MeetingStatus
 if TYPE_CHECKING:
     from app.models.meeting import Meeting
 
+def format_relative_time(dt: datetime, *, now: datetime | None = None) -> str:
+    """Return a human-readable relative time string for ``dt``.
+
+    Examples:
+        - "in 2 minutes"
+        - "in 3 hours"
+        - "2 days ago"
+        - "just now"
+    """
+    from datetime import timedelta
+
+    target = ensure_aware(dt)
+    now_time = _now(now)
+
+    delta = (target - now_time).total_seconds()
+
+    if delta < 0:
+        delta = abs(delta)
+        if delta < 60:
+            return "just now"
+        minutes = int(delta // 60)
+        hours = minutes // 60
+        days = hours // 24
+        if days == 1:
+            return "1 day ago"
+        return f"{days} days ago"
+
+    if delta < 60:
+        seconds = int(delta)
+        if seconds == 1:
+            return "in 1 second"
+        return f"in {seconds} seconds"
+
+    minutes = int(delta // 60)
+    hours = minutes // 60
+    minutes = minutes % 60
+
+    if hours == 0:
+        if minutes == 1:
+            return "in 1 minute"
+        return f"in {minutes} minutes"
+
+    if hours == 1:
+        if minutes == 0:
+            return "in 1 hour"
+        return f"in 1 hour {minutes} minutes"
+
+    days = hours // 24
+    hours = hours % 24
+
+    parts = []
+    if days == 1:
+        parts.append("1 day")
+    elif days > 1:
+        parts.append(f"{days} days")
+
+    if hours == 1:
+        parts.append("1 hour")
+    elif hours > 1:
+        parts.append(f"{hours} hours")
+
+    if minutes == 1:
+        parts.append("1 minute")
+    elif minutes > 1:
+        parts.append(f"{minutes} minutes")
+
+    if len(parts) == 1:
+        return f"in {parts[0]}"
+
+    return f"in {', '.join(parts[:-1])} and {parts[-1]}"
+
+
 __all__ = [
     "utc_now",
     "ensure_aware",
@@ -24,6 +96,7 @@ __all__ = [
     "has_ended",
     "calculate_end_time",
     "minutes_between",
+    "format_relative_time",
 ]
 
 
