@@ -98,6 +98,11 @@ if _is_sqlite:
         # SQLite ignores foreign keys unless enabled per connection.
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
+        # WAL lets readers run while one writer commits; the busy timeout makes a
+        # second writer wait instead of failing with "database is locked".
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.execute("PRAGMA busy_timeout=10000")
         cursor.close()
 
 
@@ -108,7 +113,11 @@ def init_db() -> None:
     import app.models  # noqa: F401  (registers tables on Base.metadata)
     from app.models.user import DEMO_USER_EMAIL, DEMO_USER_ID, DEMO_USER_NAME, User
 
+    from app.database.migrations import apply_migrations
+
+    # create_all only creates missing tables; it never alters or drops anything.
     Base.metadata.create_all(bind=engine)
+    apply_migrations(engine)
     with Session(engine) as db:
         if db.get(User, DEMO_USER_ID) is None:
             db.add(User(id=DEMO_USER_ID, name=DEMO_USER_NAME, email=DEMO_USER_EMAIL))

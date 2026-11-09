@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String
+from sqlalchemy import String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.database import Base, UTCDateTime, utc_now
@@ -24,6 +24,12 @@ class User(Base):
     # unique=True already creates the index used for email lookups.
     email: Mapped[str] = mapped_column(String(255), unique=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
+    # Clerk user id ("user_..."); NULL for the seeded demo user. Unique index
+    # `uq_users_clerk_id` is created by the additive migration.
+    clerk_id: Mapped[str | None] = mapped_column(String(255), default=None)
+    last_login_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
+    # JSON object: display name, preferred camera/microphone/speaker ids, etc.
+    preferences: Mapped[str | None] = mapped_column(Text, default=None)
 
     # No delete cascade: removing a user must never silently remove meetings.
     meetings: Mapped[list[Meeting]] = relationship(
