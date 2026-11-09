@@ -123,7 +123,7 @@ describe("CalendarWorkspace", () => {
     renderWorkspace();
     await openToday();
     expect(await screen.findByText("Design sync")).toBeTruthy();
-    expect(screen.getByText("Scheduled")).toBeTruthy();
+    expect(document.querySelector(".badge--scheduled")).toBeTruthy();
     expect(screen.getByText("ID 123456789")).toBeTruthy();
     expect(await screen.findByText("Ada, Linus +1")).toBeTruthy();
   });

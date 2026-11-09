@@ -259,7 +259,7 @@ export function CalendarWorkspace({ reloadKey, onChanged }: CalendarWorkspacePro
 
         <footer className="cal__legend">
           <span>
-            <i className="cal__dot cal__dot--upcoming" /> Upcoming
+            <i className="cal__dot cal__dot--upcoming" /> Scheduled
           </span>
           <span>
             <i className="cal__dot cal__dot--done" /> Completed
