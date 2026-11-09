@@ -8,6 +8,8 @@ export interface JoinMessage {
   participant_id?: number | null;
   display_name: string;
   password?: string;
+  /** Clerk session token; the server resolves identity and host role from it. */
+  token?: string;
 }
 
 export interface LeaveMessage {

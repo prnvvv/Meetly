@@ -5,6 +5,8 @@ export interface ScheduleCreatePayload {
   start_time: string;
   /** Minutes, 1..1440. */
   duration: number;
+  /** Optional join password (stored hashed by the server). */
+  password?: string;
 }
 
 /** PATCH /api/schedules/{meeting_id}: only the fields that changed. */
