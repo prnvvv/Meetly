@@ -5,3 +5,8 @@ venv
 .env
 .git
 .pytest_cache
+data/*.db
+data/*.db-*
+data/backups
+tests
+scripts

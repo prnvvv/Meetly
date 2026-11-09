@@ -90,3 +90,25 @@ primary key.
 
 `WS /ws/meetings/{meeting_id}` for signaling and participant state. Media is
 peer-to-peer via WebRTC; audio/video never passes through FastAPI.
+
+## Authentication, persistence and deployment
+
+- **Auth:** every REST route (except `/health`) and every WebSocket `join` needs a
+  Clerk session token. The API verifies its RS256 signature against Clerk's JWKS,
+  checks issuer and expiry, and maps `sub` to a `users` row (`users.clerk_id`).
+  Host status is decided from `meetings.host_id`, never from the client.
+  `AUTH_MODE=demo` (tests, local experiments) bypasses this and must not be used
+  in production.
+- **Database:** SQLite in WAL mode with a 10s busy timeout. Schema changes to an
+  existing database are additive only (`app/database/migrations.py`); nothing is
+  dropped or rewritten. Run a single server process.
+- **Backups:** `python scripts/backup_db.py backup` writes a consistent, integrity
+  checked copy to `data/backups/` and never overwrites a file. Restore with
+  `python scripts/backup_db.py restore <backup> <new path>`, stop the app, then
+  swap the file in. Suggested: daily, keep 14, and always before a deploy that
+  changes the schema. Delete a user's rows on request to honour data-removal asks.
+- **Render + Vercel:** `render.yaml` deploys the API with a persistent disk at
+  `/var/data` (paid instance types only). Set `CLERK_PUBLISHABLE_KEY`,
+  `FRONTEND_URL` and `CLERK_AUTHORIZED_PARTIES` in the Render dashboard. On Vercel
+  set `NEXT_PUBLIC_API_URL=https://<your-api>.onrender.com`; the frontend derives
+  `wss://` from it. Only the exact Vercel origin should be in `FRONTEND_URL`.
