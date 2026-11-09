@@ -21,6 +21,7 @@ lookup here queries by that column rather than by primary key.
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -82,6 +83,23 @@ def is_joinable(meeting: Any) -> bool:
     if status:
         return status in JOINABLE_STATUSES
     return not is_ended(meeting)
+
+
+def meeting_settings(meeting: Any) -> dict[str, bool]:
+    """The host's saved settings, or an empty dict when none were saved."""
+    raw = getattr(meeting, "settings", None)
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+    except (TypeError, ValueError):
+        return {}
+    return {k: bool(v) for k, v in data.items()} if isinstance(data, dict) else {}
+
+
+def is_locked(meeting: Any) -> bool:
+    """True when the host locked the meeting against new joiners."""
+    return bool(meeting_settings(meeting).get("lockMeeting"))
 
 
 def get_host_id(meeting: Any) -> int | None:
