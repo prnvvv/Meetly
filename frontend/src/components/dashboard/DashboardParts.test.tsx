@@ -78,13 +78,13 @@ describe("ActionTiles", () => {
 describe("MeetingPanel", () => {
   it("has a titled heading and a View all link", () => {
     render(
-      <MeetingPanel title="Upcoming Meetings" id="upcoming" viewAllHref="/meetings">
+      <MeetingPanel title="Upcoming Meetings" id="upcoming" viewAllHref="/somewhere">
         <p>body</p>
       </MeetingPanel>
     );
     const region = screen.getByRole("region", { name: "Upcoming Meetings" });
     expect(within(region).getByRole("link", { name: "View all" }).getAttribute("href")).toBe(
-      "/meetings"
+      "/somewhere"
     );
     expect(within(region).getByText("body")).toBeTruthy();
   });

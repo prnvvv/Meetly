@@ -6,8 +6,8 @@ interface MeetingPanelProps {
   title: string;
   /** Stable id suffix for aria-labelledby. */
   id: string;
-  /** Where "View all" goes. */
-  viewAllHref: string;
+  /** Where "View all" goes; the link is omitted when not given. */
+  viewAllHref?: string;
   children: React.ReactNode;
 }
 
@@ -25,9 +25,11 @@ export function MeetingPanel({ title, id, viewAllHref, children }: MeetingPanelP
         <h2 className="panel__title" id={headingId}>
           {title}
         </h2>
-        <Link href={viewAllHref} className="panel__link">
-          View all
-        </Link>
+        {viewAllHref ? (
+          <Link href={viewAllHref} className="panel__link">
+            View all
+          </Link>
+        ) : null}
       </header>
       <div className="panel__body">{children}</div>
     </section>
