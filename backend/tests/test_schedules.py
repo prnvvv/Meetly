@@ -109,6 +109,29 @@ def test_create_scheduled_meeting_sets_window_and_status(db):
     assert is_valid_meeting_id(created.meeting_id)
 
 
+def test_scheduled_meeting_password_is_hashed_and_never_returned(client, db):
+    from app.utils.password import verify_password
+
+    start = (utc_now() + timedelta(days=1)).isoformat()
+    created = client.post(
+        "/api/schedules",
+        json={"title": "Locked", "start_time": start, "duration": 30, "password": "secret123"},
+    )
+    assert created.status_code == 201
+    assert "password" not in created.json()
+    assert "password_hash" not in created.json()
+
+    row = db.query(Meeting).filter_by(meeting_id=created.json()["meeting_id"]).one()
+    assert row.password_hash and row.password_hash != "secret123"
+    assert verify_password("secret123", row.password_hash)
+
+    open_meeting = client.post(
+        "/api/schedules", json={"title": "Open", "start_time": start, "duration": 30}
+    )
+    row = db.query(Meeting).filter_by(meeting_id=open_meeting.json()["meeting_id"]).one()
+    assert row.password_hash is None
+
+
 def test_create_scheduled_meeting_rejects_past_start(db):
     with pytest.raises(InvalidRequestError, match="future"):
         _schedule(db, title="Yesterday", start_offset=-timedelta(days=1))
