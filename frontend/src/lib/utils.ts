@@ -169,6 +169,75 @@ export function statusTone(
   }
 }
 
+/** Return a human-readable relative time string for an ISO timestamp.
+ *
+ * Examples (when called from now):
+ * - "in 2 minutes"
+ * - "in 3 hours"
+ * - "2 days ago"
+ * - "just now"
+ */
+export function formatRelativeTime(iso: string, now: Date = new Date()): string {
+  const target = toDate(iso);
+  if (!target) return "";
+
+  const targetUTC = new Date(
+    target.getTime() - target.getTimezoneOffset() * 60000
+  );
+  const nowUTC = new Date(
+    now.getTime() - now.getTimezoneOffset() * 60000
+  );
+  const deltaSeconds = (targetUTC.getTime() - nowUTC.getTime()) / 1000;
+
+  if (deltaSeconds < -60) {
+    deltaSeconds = Math.abs(deltaSeconds);
+    if (deltaSeconds < 60) {
+      return "just now";
+    }
+    const minutes = Math.floor(deltaSeconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    if (days === 1) return "1 day ago";
+    return `${days} days ago`;
+  }
+
+  if (deltaSeconds < 60) {
+    const seconds = Math.floor(deltaSeconds);
+    if (seconds <= 1) return "just now";
+    return `in ${seconds} seconds`;
+  }
+
+  const minutes = Math.floor(deltaSeconds / 60);
+  const hours = Math.floor(minutes / 60);
+  minutes = minutes % 60;
+
+  if (hours === 0) {
+    if (minutes === 1) return "in 1 minute";
+    return `in ${minutes} minutes`;
+  }
+
+  if (hours === 1) {
+    if (minutes === 0) return "in 1 hour";
+    return `in 1 hour ${minutes} minutes`;
+  }
+
+  const days = Math.floor(hours / 24);
+  const remainingHours = hours % 24;
+
+  const parts: string[] = [];
+  if (days === 1) parts.push("1 day");
+  else if (days > 1) parts.push(`${days} days`);
+
+  if (remainingHours === 1) parts.push("1 hour");
+  else if (remainingHours > 1) parts.push(`${remainingHours} hours`);
+
+  if (minutes === 1) parts.push("1 minute");
+  else if (minutes > 1) parts.push(`${minutes} minutes`);
+
+  if (parts.length === 1) return `in ${parts[0]}`;
+  return `in ${parts.slice(0, -1).join(", ")} and ${parts[-1]}`;
+}
+
 /** Copy helper that falls back to a hidden textarea when the API is blocked. */
 export async function copyText(text: string): Promise<boolean> {
   try {
