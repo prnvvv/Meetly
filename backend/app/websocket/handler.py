@@ -16,6 +16,8 @@ from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
 from app.database.session import get_db
+from app.auth import AuthError, user_from_token
+from app.config import settings
 from app.schemas.websocket import (
     AnswerMessage,
     EndMeetingMessage,
@@ -54,6 +56,7 @@ class RealtimeSession:
     __slots__ = (
         "meeting_id",
         "meeting_pk",
+        "user_id",
         "participant_id",
         "is_host",
         "joined",
@@ -65,6 +68,8 @@ class RealtimeSession:
         # internal meetings.id that Participant.meeting_id refers to.
         self.meeting_id = meeting_id
         self.meeting_pk: int | None = None
+        # Set from the verified token; None only in demo auth mode.
+        self.user_id: int | None = None
         self.participant_id: int | None = None
         self.is_host: bool = False
         self.joined: bool = False
@@ -232,12 +237,33 @@ async def _handle_join(
         )
         return
 
+    user_id: int | None = None
+    if settings.auth_mode != "demo":
+        try:
+            user = await run_in_threadpool(user_from_token, db, message.token or "")
+        except AuthError:
+            await _send_error(
+                websocket, ErrorCode.UNAUTHORIZED_ACTION, "Sign in to join this meeting"
+            )
+            session.closing = True
+            return
+        user_id = user.id
+
+    if user_id is not None and not await run_in_threadpool(
+        _may_enter, db, meeting, user_id
+    ):
+        await _send_error(
+            websocket, ErrorCode.UNAUTHORIZED_ACTION, "This meeting is locked"
+        )
+        return
+
     existing = await _resolve_participant(
         db,
         meeting=meeting,
         meeting_pk=meeting.id,
         requested_id=message.participant_id,
         display_name=message.display_name,
+        user_id=user_id,
     )
     if existing is None:
         await _send_error(
@@ -249,6 +275,7 @@ async def _handle_join(
 
     participant_id, is_host = existing
     session.meeting_pk = meeting.id
+    session.user_id = user_id
     session.participant_id = participant_id
     session.is_host = is_host
     session.joined = True
@@ -306,12 +333,40 @@ async def _resolve_participant(
     meeting_pk: int,
     requested_id: int | None,
     display_name: str,
+    user_id: int | None = None,
 ) -> tuple[int, bool] | None:
     """Bind a connection to a participant row, creating or reviving one as needed.
 
     ``meeting_pk`` is the internal ``meetings.id``. Host status comes from the
-    meeting row, never from the client payload.
+    meeting row, never from the client payload. With an authenticated user the
+    row is found (or created) by ``(meeting, user_id)`` so one person never has
+    two participant rows, and a client cannot claim someone else's row by id.
     """
+    if user_id is not None:
+        participant = await run_in_threadpool(
+            participant_service.find_user_participant, db, meeting_pk, user_id
+        )
+        if participant is not None:
+            if participant.left_at is not None:
+                participant.left_at = None
+                participant.screen_share = False
+                await run_in_threadpool(db.commit)
+            is_host = meeting_gateway.is_host_participant(meeting, participant)
+            if participant.is_host != is_host:
+                await run_in_threadpool(
+                    participant_service.set_participant_host, db, participant.id, is_host
+                )
+            return participant.id, is_host
+        created = await run_in_threadpool(
+            participant_service.create_participant,
+            db,
+            meeting_id=meeting_pk,
+            display_name=display_name,
+            is_host=meeting_gateway.get_host_id(meeting) == user_id,
+            user_id=user_id,
+        )
+        return created.id, created.is_host
+
     if requested_id is not None:
         participant = await run_in_threadpool(
             participant_service.get_participant, db, requested_id
@@ -340,6 +395,15 @@ async def _resolve_participant(
         ),
     )
     return created.id, created.is_host
+
+
+def _may_enter(db: Session, meeting: Any, user_id: int) -> bool:
+    """A locked meeting admits only its host and people who already joined."""
+    if meeting_gateway.get_host_id(meeting) == user_id:
+        return True
+    if not meeting_gateway.is_locked(meeting):
+        return True
+    return participant_service.find_user_participant(db, meeting.id, user_id) is not None
 
 
 async def _handle_leave(
