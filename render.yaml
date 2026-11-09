@@ -1,0 +1,41 @@
+# Render Blueprint for the Meetly API. The frontend deploys to Vercel.
+#
+# A persistent disk is required: without it SQLite lives on Render's ephemeral
+# filesystem and every deploy or restart wipes users, meetings and schedules.
+# Persistent disks are only available on paid instance types.
+#
+# Run a SINGLE instance (no numInstances > 1, no --workers): the realtime
+# connection state is held in process memory and SQLite is single-writer.
+services:
+  - type: web
+    name: meetly-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: meetly-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: AUTH_MODE
+        value: clerk
+      - key: DATABASE_URL
+        value: sqlite:////var/data/meetly.db
+      # Clerk publishable key (the public one); the API derives the JWKS URL and
+      # issuer from it. Set in the Render dashboard.
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      # Exact Vercel origin(s), comma-separated, e.g. https://meetly.vercel.app
+      - key: FRONTEND_URL
+        sync: false
+      # Same origin(s); rejects tokens minted for another Clerk application.
+      - key: CLERK_AUTHORIZED_PARTIES
+        sync: false
+      # Optional: lets the API read a new user's name and email from Clerk.
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: STUN_SERVER
+        value: stun:stun.l.google.com:19302
