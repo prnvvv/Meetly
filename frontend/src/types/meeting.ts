@@ -18,6 +18,8 @@ export interface MeetingCreatePayload {
   title: string;
   description?: string;
   password?: string;
+  /** Host settings saved with the meeting (only `lockMeeting` is enforced server-side). */
+  settings?: Record<string, boolean>;
 }
 
 export interface MeetingJoinPayload {
