@@ -77,6 +77,17 @@ def has_host_participant(db: Session, meeting_id: int | str) -> bool:
     return db.execute(stmt).first() is not None
 
 
+def find_user_participant(db: Session, meeting_pk: int, user_id: int) -> Participant | None:
+    """The participant row for an authenticated user in a meeting, if any."""
+    stmt = (
+        select(Participant)
+        .where(Participant.meeting_id == meeting_pk, Participant.user_id == user_id)
+        .order_by(Participant.id)
+        .limit(1)
+    )
+    return db.execute(stmt).scalars().first()
+
+
 def get_participant(db: Session, participant_id: int) -> Participant | None:
     return db.get(Participant, participant_id)
 

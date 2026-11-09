@@ -2,7 +2,7 @@
 
 Routers translate these into HTTP responses:
 
-* :class:`InvalidRequestError`  -> 400
+* :class:`InvalidRequestError`  -> 400 (:class:`PermissionDeniedError` -> 403)
 * :class:`MeetingNotFoundError` -> 404
 * :class:`MeetingConflictError` -> 409
 """
@@ -16,6 +16,10 @@ class ServiceError(Exception):
 
 class InvalidRequestError(ServiceError):
     """The request cannot be honoured as submitted (HTTP 400)."""
+
+
+class PermissionDeniedError(InvalidRequestError):
+    """The caller is authenticated but may not do this (HTTP 403)."""
 
 
 class MeetingNotFoundError(ServiceError):

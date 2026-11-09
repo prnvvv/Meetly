@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 
 from sqlalchemy import select
@@ -17,6 +18,7 @@ from app.services.meeting_service import (
 from app.services.exceptions import InvalidRequestError
 from app.utils.datetime_utils import calculate_end_time, ensure_aware, utc_now
 from app.utils.meeting_id import generate_meeting_id
+from app.utils.password import hash_password
 from app.utils.validation import (
     validate_duration,
     validate_future_datetime,
@@ -51,6 +53,7 @@ def create_scheduled_meeting(
     start_time = validate_future_datetime(payload.start_time)
     host = require_host(db, host_id)
     description = (payload.description or "").strip() or None
+    password = (payload.password or "").strip() or None
 
     meeting_id = generate_meeting_id(db)
     meeting = Meeting(
@@ -63,6 +66,8 @@ def create_scheduled_meeting(
         duration=duration,
         status=MeetingStatus.SCHEDULED,
         meeting_link=build_meeting_link(meeting_id),
+        password_hash=hash_password(password) if password else None,
+        settings=json.dumps(payload.settings) if payload.settings else None,
     )
     db.add(meeting)
     db.commit()

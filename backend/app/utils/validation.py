@@ -10,7 +10,11 @@ from collections.abc import Collection
 from datetime import datetime
 
 from app.models.meeting import Meeting, MeetingStatus
-from app.services.exceptions import InvalidRequestError, MeetingConflictError
+from app.services.exceptions import (
+    InvalidRequestError,
+    MeetingConflictError,
+    PermissionDeniedError,
+)
 from app.utils.datetime_utils import ensure_aware, is_future
 from app.utils.meeting_id import is_valid_meeting_id
 
@@ -102,4 +106,4 @@ def validate_meeting_state(
 def validate_host(meeting: Meeting, host_id: int, *, action: str = "manage") -> None:
     """Raise a 400-level error when ``host_id`` does not own the meeting."""
     if meeting.host_id != host_id:
-        raise InvalidRequestError(f"Only the meeting host can {action} this meeting")
+        raise PermissionDeniedError(f"Only the meeting host can {action} this meeting")

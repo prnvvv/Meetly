@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Meeting
-from app.models.user import DEMO_USER_ID
+from app.auth import get_current_user
+from app.models.user import User
 from app.schemas.meeting import MeetingCreate, MeetingJoinRequest, MeetingResponse
 from app.services import meeting_service
 from app.services.exceptions import (
@@ -11,6 +12,7 @@ from app.services.exceptions import (
     InvalidRequestError,
     MeetingConflictError,
     MeetingNotFoundError,
+    PermissionDeniedError,
 )
 
 router = APIRouter(prefix="/api/meetings", tags=["meetings"])
@@ -23,23 +25,31 @@ def _http_error(exc: Exception) -> HTTPException:
         return HTTPException(status.HTTP_404_NOT_FOUND, str(exc) or "Meeting not found")
     if isinstance(exc, MeetingConflictError):
         return HTTPException(status.HTTP_409_CONFLICT, str(exc) or "Meeting conflict")
+    if isinstance(exc, PermissionDeniedError):
+        return HTTPException(status.HTTP_403_FORBIDDEN, str(exc) or "Not allowed")
     if isinstance(exc, InvalidPasswordError):
         return HTTPException(status.HTTP_403_FORBIDDEN, str(exc) or "Incorrect meeting password")
     return HTTPException(status.HTTP_400_BAD_REQUEST, str(exc) or "Invalid request")
 
 
 @router.post("", response_model=MeetingResponse, status_code=status.HTTP_201_CREATED)
-def create_meeting(payload: MeetingCreate, db: Session = Depends(get_db)) -> Meeting:
+def create_meeting(
+    payload: MeetingCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Meeting:
     """Create an instant meeting."""
     try:
-        return meeting_service.create_meeting(db, payload, host_id=DEMO_USER_ID)
+        return meeting_service.create_meeting(db, payload, host_id=user.id)
     except InvalidRequestError as exc:
         raise _http_error(exc) from exc
 
 
 @router.get("/{meeting_id}", response_model=MeetingResponse)
 def get_meeting(
-    meeting_id: str = PublicMeetingId, db: Session = Depends(get_db)
+    meeting_id: str = PublicMeetingId,
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ) -> Meeting:
     meeting = meeting_service.get_meeting(db, meeting_id)
     if meeting is None:
@@ -52,6 +62,7 @@ def join_meeting(
     payload: MeetingJoinRequest,
     meeting_id: str = PublicMeetingId,
     db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ) -> Meeting:
     """Validate that the meeting is joinable.
 
@@ -72,10 +83,12 @@ def join_meeting(
 
 @router.delete("/{meeting_id}", response_model=MeetingResponse)
 def end_meeting(
-    meeting_id: str = PublicMeetingId, db: Session = Depends(get_db)
+    meeting_id: str = PublicMeetingId,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> Meeting:
     """End (or cancel) a meeting. History is preserved."""
     try:
-        return meeting_service.end_meeting(db, meeting_id, host_id=DEMO_USER_ID)
+        return meeting_service.end_meeting(db, meeting_id, host_id=user.id)
     except (MeetingNotFoundError, MeetingConflictError, InvalidRequestError) as exc:
         raise _http_error(exc) from exc

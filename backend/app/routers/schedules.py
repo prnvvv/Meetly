@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Meeting
-from app.models.user import DEMO_USER_ID
+from app.auth import get_current_user
+from app.models.user import User
 from app.schemas.schedule import (
     ScheduleMeetingCreate,
     ScheduleMeetingResponse,
@@ -16,6 +17,7 @@ from app.services.exceptions import (
     InvalidRequestError,
     MeetingConflictError,
     MeetingNotFoundError,
+    PermissionDeniedError,
 )
 
 router = APIRouter(prefix="/api/schedules", tags=["schedules"])
@@ -25,15 +27,19 @@ router = APIRouter(prefix="/api/schedules", tags=["schedules"])
     "", response_model=ScheduleMeetingResponse, status_code=status.HTTP_201_CREATED
 )
 def create_schedule(
-    payload: ScheduleMeetingCreate, db: Session = Depends(get_db)
+    payload: ScheduleMeetingCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> Meeting:
     """Schedule a future meeting."""
     try:
         return schedule_service.create_scheduled_meeting(
-            db, payload, host_id=DEMO_USER_ID
+            db, payload, host_id=user.id
         )
     except MeetingConflictError as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc) or "Conflict") from exc
+    except PermissionDeniedError as exc:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, str(exc)) from exc
     except InvalidRequestError as exc:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST, str(exc) or "Invalid request"
@@ -42,16 +48,20 @@ def create_schedule(
 
 @router.get("/upcoming", response_model=list[ScheduleMeetingResponse])
 def list_upcoming(
-    limit: int = Query(50, ge=1, le=100), db: Session = Depends(get_db)
+    limit: int = Query(50, ge=1, le=100),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> list[Meeting]:
-    return schedule_service.get_upcoming_meetings(db, host_id=DEMO_USER_ID, limit=limit)
+    return schedule_service.get_upcoming_meetings(db, host_id=user.id, limit=limit)
 
 
 @router.get("/recent", response_model=list[ScheduleMeetingResponse])
 def list_recent(
-    limit: int = Query(50, ge=1, le=100), db: Session = Depends(get_db)
+    limit: int = Query(50, ge=1, le=100),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> list[Meeting]:
-    return schedule_service.get_recent_meetings(db, host_id=DEMO_USER_ID, limit=limit)
+    return schedule_service.get_recent_meetings(db, host_id=user.id, limit=limit)
 
 
 @router.get("/range", response_model=list[ScheduleMeetingResponse])
@@ -60,11 +70,12 @@ def list_range(
     end: datetime,
     limit: int = Query(schedule_service.MAX_RANGE_LIMIT, ge=1, le=schedule_service.MAX_RANGE_LIMIT),
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> list[Meeting]:
     """Meetings starting in [start, end): the data behind the dashboard calendar."""
     try:
         return schedule_service.get_meetings_in_range(
-            db, start=start, end=end, host_id=DEMO_USER_ID, limit=limit
+            db, start=start, end=end, host_id=user.id, limit=limit
         )
     except InvalidRequestError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
@@ -75,15 +86,18 @@ def update_schedule(
     payload: ScheduleMeetingUpdate,
     meeting_id: str = Path(min_length=1, max_length=32),
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> Meeting:
     """Edit a meeting that has not started yet."""
     try:
         return schedule_service.update_scheduled_meeting(
-            db, meeting_id, payload, host_id=DEMO_USER_ID
+            db, meeting_id, payload, host_id=user.id
         )
     except MeetingNotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc) or "Meeting not found") from exc
     except MeetingConflictError as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc) or "Conflict") from exc
+    except PermissionDeniedError as exc:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, str(exc)) from exc
     except InvalidRequestError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc) or "Invalid request") from exc

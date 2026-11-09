@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 from app.models.meeting import MeetingStatus
 
@@ -11,10 +11,40 @@ DisplayName = Annotated[
 ]
 
 
+# Settings the host can save with a meeting. Only `lockMeeting` is enforced by the
+# server today (new joiners are refused); the rest are stored and returned so the
+# room can honour them later. Unknown keys are rejected so typos never pass silently.
+ALLOWED_SETTINGS = frozenset(
+    {
+        "waitingRoom",
+        "lockMeeting",
+        "muteOnEntry",
+        "allowUnmute",
+        "allowScreenShare",
+        "allowChat",
+        "hostControls",
+        "record",
+    }
+)
+ENFORCED_SETTINGS = frozenset({"lockMeeting"})
+
+
+def validate_settings(value: dict[str, bool] | None) -> dict[str, bool] | None:
+    if value is None:
+        return None
+    unknown = set(value) - ALLOWED_SETTINGS
+    if unknown:
+        raise ValueError(f"Unknown meeting settings: {', '.join(sorted(unknown))}")
+    return {k: bool(v) for k, v in value.items()}
+
+
 class MeetingCreate(BaseModel):
     title: Title
     description: str | None = Field(default=None, max_length=5000)
     password: str | None = Field(default=None, max_length=128)
+    settings: dict[str, bool] | None = None
+
+    _check_settings = field_validator("settings")(validate_settings)
 
 
 class MeetingJoinRequest(BaseModel):
@@ -38,3 +68,20 @@ class MeetingResponse(BaseModel):
     status: MeetingStatus
     meeting_link: str
     created_at: datetime
+    settings: dict[str, bool] = Field(default_factory=dict)
+
+    @field_validator("settings", mode="before")
+    @classmethod
+    def _decode_settings(cls, value: object) -> object:
+        """The column stores JSON text; the API returns an object."""
+        if value is None or value == "":
+            return {}
+        if isinstance(value, str):
+            import json
+
+            try:
+                decoded = json.loads(value)
+            except ValueError:
+                return {}
+            return decoded if isinstance(decoded, dict) else {}
+        return value
