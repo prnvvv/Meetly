@@ -1099,6 +1099,254 @@
   }
 }
 
+/* Join page (left card) ---------------------------------------------------------- */
+
+.jm-card {
+  --jm-ctl: clamp(40px, 5.6vh, 54px);
+  justify-content: space-between;
+  gap: var(--nm-gap);
+}
+
+.jm-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nm-gap);
+}
+
+.jm-fields .field {
+  gap: clamp(4px, 0.8vh, 8px);
+}
+
+.jm-fields .input {
+  min-height: var(--jm-ctl);
+  font-size: var(--text-sm);
+}
+
+/* The character takes whatever height is left between the fields and the button. */
+.jm-art {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.jm-art__img {
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.jm-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.jm-submit,
+.jm-cancel {
+  height: var(--jm-ctl);
+}
+
+.jm-cancel {
+  padding-inline: 18px;
+}
+
+@media (min-width: 1100px) and (min-height: 640px) {
+  .jm-art {
+    container-type: size;
+  }
+
+  .jm-art__img {
+    width: min(100cqw, calc(100cqh * 1756 / 896));
+    height: min(100cqh, calc(100cqw * 896 / 1756));
+  }
+
+  /* Lady ~18% bigger, still bottom-anchored on the preview edge, so the preview keeps its size. */
+  .nm-card--setup[data-art="large"] .nm-stage {
+    --lady-overlap: 18px;
+  }
+
+  .nm-card--setup[data-art="large"] .nm-stage__lady {
+    height: calc(var(--lady-h) * 1.15);
+  }
+
+  .nm-card--setup[data-art="large"] .nm-stage__top .nm-card__head {
+    max-width: calc(50% - var(--lady-h) * 0.77 - 6px);
+  }
+}
+
+@media (max-width: 1099px) {
+  .jm-art {
+    flex: none;
+  }
+
+  .jm-art__img {
+    max-width: 440px;
+    margin: 0 auto;
+  }
+}
+
+/* Schedule page ---------------------------------------------------------------------- */
+
+.sm-details,
+.sm-config {
+  gap: var(--nm-gap);
+}
+
+.sm-details .field,
+.sm-config .field {
+  gap: clamp(4px, 0.8vh, 8px);
+}
+
+.sm-details .input,
+.sm-config .input {
+  min-height: var(--nm-ctl);
+  font-size: var(--text-sm);
+}
+
+/* The description takes whatever height the other fields leave. */
+.sm-description {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.sm-description .textarea {
+  flex: 1 1 auto;
+  min-height: 56px;
+  height: 100%;
+  resize: none;
+  font-size: var(--text-sm);
+}
+
+.sm-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.sm-row__error {
+  grid-column: 1 / -1;
+  margin-top: -4px;
+}
+
+.sm-durations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sm-chip {
+  height: clamp(30px, 4.2vh, 38px);
+  padding: 0 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.sm-chip:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+  border-color: var(--color-text);
+}
+
+.sm-chip--active,
+.sm-chip--active:hover:not(:disabled) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.sm-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sm-custom {
+  max-width: 140px;
+}
+
+.sm-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.sm-actions .btn {
+  height: clamp(42px, 5.6vh, 54px);
+}
+
+/* Right card: illustration band, then invitees, then options. */
+.sm-art {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(56px, 9vh, 90px);
+}
+
+.sm-art__img {
+  width: 100%;
+  max-width: 460px;
+  height: auto;
+  object-fit: contain;
+}
+
+.sm-options {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.sm-options--repeat {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.55fr);
+}
+
+@media (min-width: 1100px) and (min-height: 640px) {
+  .sm-details,
+  .sm-config {
+    --nm-ctl: clamp(34px, 4.8vh, 46px);
+  }
+
+  .sm-art {
+    container-type: size;
+  }
+
+  .sm-art__img {
+    width: min(100cqw, calc(100cqh * 3 / 2), 460px);
+    height: auto;
+  }
+}
+
+@media (max-width: 1099px) {
+  .sm-art {
+    flex: none;
+    height: 140px;
+  }
+
+  .sm-description .textarea {
+    min-height: 96px;
+  }
+}
+
+@media (max-width: 640px) {
+  .sm-options,
+  .sm-options--repeat {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sm-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Stacked layout: tablet and mobile ------------------------------------------------ */
 
 @media (max-width: 1099px) {
@@ -1110,6 +1358,7 @@
     padding: clamp(16px, 3vw, 28px);
     gap: 16px;
   }
+
 
   .nm-section {
     gap: 10px;

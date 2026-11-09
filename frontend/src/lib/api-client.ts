@@ -1,3 +1,4 @@
+import { getAuthToken } from "./auth-token";
 import { API_BASE_URL, REQUEST_TIMEOUT_MS } from "./constants";
 import { ApiError, type ApiErrorBody } from "@/types/api";
 
@@ -29,6 +30,7 @@ export async function apiRequest<T>(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
+  const token = await getAuthToken();
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
@@ -36,6 +38,7 @@ export async function apiRequest<T>(
       signal: rest.signal ?? controller.signal,
       headers: {
         Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
         ...(headers ?? {}),
       },
