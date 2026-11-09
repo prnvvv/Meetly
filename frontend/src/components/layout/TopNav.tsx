@@ -21,7 +21,6 @@ import { cx } from "@/lib/utils";
 
 const NAV_LINKS = [
   { href: "/dashboard", label: "Home" },
-  { href: "/meetings", label: "Meetings" },
   { href: "/schedule", label: "Schedule" },
   { href: "/join", label: "Join" },
 ];

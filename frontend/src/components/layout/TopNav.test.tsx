@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "./AppShell";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/meetings",
+  usePathname: () => "/schedule",
   useRouter: () => ({ push: () => undefined, replace: () => undefined, prefetch: () => undefined }),
 }));
 
@@ -37,11 +37,11 @@ describe("AppShell top navigation", () => {
     render(<AppShell>content</AppShell>);
     const primary = screen.getByRole("navigation", { name: "Primary" });
 
-    for (const label of ["Home", "Meetings", "Schedule", "Join"]) {
+    for (const label of ["Home", "Schedule", "Join"]) {
       expect(within(primary).getByRole("link", { name: label })).toBeTruthy();
     }
     expect(
-      within(primary).getByRole("link", { name: "Meetings" }).getAttribute("aria-current")
+      within(primary).getByRole("link", { name: "Schedule" }).getAttribute("aria-current")
     ).toBe("page");
     expect(
       within(primary).getByRole("link", { name: "Home" }).getAttribute("aria-current")
@@ -80,6 +80,6 @@ describe("AppShell top navigation", () => {
     expect(opened.getAttribute("aria-expanded")).toBe("true");
     expect(
       screen.getByRole("navigation", { name: "Menu" }).querySelectorAll("a").length
-    ).toBe(5);
+    ).toBe(4);
   });
 });
