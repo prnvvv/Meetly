@@ -28,6 +28,8 @@ class JoinMessage(ClientEvent):
     participant_id: int | None = Field(default=None, ge=1)
     display_name: str = Field(min_length=1, max_length=120)
     password: str | None = Field(default=None, max_length=128)
+    # Clerk session token. Required unless the server runs in demo auth mode.
+    token: str | None = Field(default=None, max_length=8192)
 
 
 class LeaveMessage(ClientEvent):

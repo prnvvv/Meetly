@@ -6,6 +6,8 @@ the internal ``Meeting.id`` primary key stays behind the service boundary.
 
 from __future__ import annotations
 
+import json
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -97,6 +99,7 @@ def create_meeting(
         status=MeetingStatus.ACTIVE,
         meeting_link=build_meeting_link(meeting_id),
         password_hash=hash_password(password) if password else None,
+        settings=json.dumps(payload.settings) if payload.settings else None,
     )
     db.add(meeting)
     db.commit()

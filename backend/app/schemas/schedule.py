@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import AwareDatetime, BaseModel, Field, field_validator
 
-from app.schemas.meeting import MeetingResponse, Title
+from app.schemas.meeting import MeetingResponse, Title, validate_settings
 
 
 class ScheduleMeetingCreate(BaseModel):
@@ -11,6 +11,11 @@ class ScheduleMeetingCreate(BaseModel):
     # Timezone-aware ISO 8601 only: naive values are rejected by the DB layer.
     start_time: AwareDatetime
     duration: int = Field(gt=0, le=1440, description="Minutes")
+    # Optional join password; stored hashed, same rules as instant meetings.
+    password: str | None = Field(default=None, max_length=128)
+    settings: dict[str, bool] | None = None
+
+    _check_settings = field_validator("settings")(validate_settings)
 
     @field_validator("duration", mode="before")
     @classmethod
