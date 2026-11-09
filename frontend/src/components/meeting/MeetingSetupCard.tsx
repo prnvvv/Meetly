@@ -20,6 +20,8 @@ interface MeetingSetupCardProps {
   mirrorCamera: boolean;
   onCameraChange: (next: boolean) => void;
   onMicChange: (next: boolean) => void;
+  /** Draw the lady ~18% larger (used on /join); the preview keeps its size. */
+  largeIllustration?: boolean;
 }
 
 /** Right-hand card: live camera preview (or illustration), device pickers, security note. */
@@ -33,6 +35,7 @@ export function MeetingSetupCard({
   mirrorCamera,
   onCameraChange,
   onMicChange,
+  largeIllustration = false,
 }: MeetingSetupCardProps) {
   const showVideo = cameraOn && devices.stream !== null;
 
@@ -63,7 +66,7 @@ export function MeetingSetupCard({
       : "connected";
 
   return (
-    <section className="nm-card nm-card--setup" aria-labelledby="nm-setup-title">
+    <section className="nm-card nm-card--setup" data-art={largeIllustration ? "large" : undefined} aria-labelledby="nm-setup-title">
       <div className="nm-stage">
         <div className="nm-stage__inner">
           {/* Heading and the lady share one band; she is centred and sits on the preview's top edge. */}

@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { HeadingBloom } from "@/components/common/HeadingBloom";
 import { useToast } from "@/components/common/ToastProvider";
 import { ArrowLeftIcon } from "@/components/icons";
 import { AppShell } from "@/components/layout/AppShell";
 import { useFriends } from "@/hooks/useFriends";
-import { useMediaDevices } from "@/hooks/useMediaDevices";
-import { useRoomPreferences } from "@/hooks/useRoomPreferences";
+import { useMeetingSetup } from "@/hooks/useMeetingSetup";
 import { toUserMessage } from "@/lib/api-client";
 import { STORAGE_KEYS } from "@/lib/constants";
 import { buildInviteUrl, copyText } from "@/lib/utils";
@@ -33,9 +33,7 @@ interface CreatedMeeting {
 export function NewMeetingPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const devices = useMediaDevices();
-  const { preferences } = useRoomPreferences();
-  const { stop: stopDevices, refreshDevices } = devices;
+  const { cardProps } = useMeetingSetup();
 
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -45,59 +43,9 @@ export function NewMeetingPage() {
   const [settings, setSettings] = useState<MeetingSettings>(DEFAULT_MEETING_SETTINGS);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"start" | "copy" | null>(null);
-  const [devicesReady, setDevicesReady] = useState(false);
-  const [cameraPending, setCameraPending] = useState(false);
-  const [micPending, setMicPending] = useState(false);
 
   // Remembered so Start Meeting after Copy Invite Link reuses the same room.
   const createdRef = useRef<CreatedMeeting | null>(null);
-
-  // Enumeration never prompts for permission; it only tells us when the lists are real.
-  useEffect(() => {
-    let active = true;
-    void refreshDevices().then(() => {
-      if (active) setDevicesReady(true);
-    });
-    return () => {
-      active = false;
-    };
-  }, [refreshDevices]);
-
-  // Release the camera and microphone when leaving the page (including when
-  // navigating into the meeting, which acquires its own tracks).
-  useEffect(() => stopDevices, [stopDevices]);
-
-  const cameraOn = devices.isVideoOn;
-  const micOn = devices.audioJoined && !devices.isMuted;
-
-  const toggleCamera = useCallback(
-    async (next: boolean) => {
-      setCameraPending(true);
-      try {
-        await devices.setVideoOn(next);
-      } finally {
-        setCameraPending(false);
-      }
-    },
-    [devices]
-  );
-
-  const toggleMic = useCallback(
-    async (next: boolean) => {
-      if (!devices.audioJoined) {
-        if (!next) return;
-        setMicPending(true);
-        try {
-          await devices.joinAudio();
-        } finally {
-          setMicPending(false);
-        }
-        return;
-      }
-      devices.setMuted(!next);
-    },
-    [devices]
-  );
 
   const toggleFriend = useCallback((id: string) => {
     setSelectedFriends((current) => {
@@ -128,7 +76,7 @@ export function NewMeetingPage() {
       persistConfig(existing.meetingId);
       return existing;
     }
-    const meeting = await createMeeting({ title, password: secret || undefined });
+    const meeting = await createMeeting({ title, password: secret || undefined, settings: { ...settings } });
     if (secret) {
       window.sessionStorage.setItem(STORAGE_KEYS.meetingPassword(meeting.meeting_id), secret);
     }
@@ -173,26 +121,13 @@ export function NewMeetingPage() {
           <div className="nm-header__text">
             <Link href="/dashboard" className="nm-back">
               <ArrowLeftIcon size={16} />
-              Back to Home
+              Back to Dashboard
             </Link>
             <h1 className="nm-title">
               New{" "}
               <span className="relative inline-block">
                 Meeting
-                {/* Same three-ray accent as the landing page headline. */}
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 48 48"
-                  className="pointer-events-none absolute left-full top-0 ml-[0.02em] hidden h-[0.95em] w-[0.95em] -translate-y-[54%] overflow-visible sm:block"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                >
-                  <path className="bloom-ray" style={{ "--i": 0 } as React.CSSProperties} pathLength={1} d="M6.9 32 L8.1 8.1" />
-                  <path className="bloom-ray" style={{ "--i": 1 } as React.CSSProperties} pathLength={1} d="M13.1 33.6 L31.7 11.4" />
-                  <path className="bloom-ray" style={{ "--i": 2 } as React.CSSProperties} pathLength={1} d="M15.7 39.4 L38.8 33.2" />
-                </svg>
+                <HeadingBloom />
               </span>
             </h1>
             <p className="nm-subtitle">
@@ -237,17 +172,7 @@ export function NewMeetingPage() {
             <MeetingActions busy={busy} onStart={startMeeting} onCopyLink={copyInviteLink} />
           </section>
 
-          <MeetingSetupCard
-            devices={devices}
-            devicesReady={devicesReady}
-            cameraOn={cameraOn}
-            cameraPending={cameraPending}
-            micOn={micOn}
-            micPending={micPending}
-            mirrorCamera={preferences.mirrorSelf}
-            onCameraChange={toggleCamera}
-            onMicChange={toggleMic}
-          />
+          <MeetingSetupCard {...cardProps} />
         </div>
       </div>
       <FriendsDialog

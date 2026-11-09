@@ -13,6 +13,9 @@ interface InvitePeopleSectionProps {
   onToggle: (id: string) => void;
   onClear: () => void;
   onOpenMore: () => void;
+  /** Section copy; defaults are the New Meeting wording. */
+  title?: string;
+  subtitle?: string;
 }
 
 /** Horizontally scrolling friend row. Picking a friend only marks them; nothing is sent. */
@@ -24,6 +27,8 @@ export function InvitePeopleSection({
   onToggle,
   onClear,
   onOpenMore,
+  title = "Invite People",
+  subtitle = "Bring your people into the conversation.",
 }: InvitePeopleSectionProps) {
   const scroller = useRef<HTMLUListElement | null>(null);
   const [edges, setEdges] = useState({ start: true, end: true });
@@ -58,9 +63,9 @@ export function InvitePeopleSection({
       <div className="nm-section__head nm-section__head--row">
         <div>
           <h3 className="nm-section__title" id="nm-invite-title">
-            Invite People
+            {title}
           </h3>
-          <p className="nm-section__sub">Bring your people into the conversation.</p>
+          <p className="nm-section__sub">{subtitle}</p>
         </div>
         <div className="nm-invite__tools">
           {count > 0 ? (

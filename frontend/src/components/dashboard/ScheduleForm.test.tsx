@@ -46,27 +46,28 @@ function submit() {
 }
 
 describe("ScheduleForm", () => {
-  it("blocks submission when the topic is empty", async () => {
+  it("schedules an untitled meeting under a default name", async () => {
+    vi.mocked(scheduleMeeting).mockClear();
+    vi.mocked(scheduleMeeting).mockResolvedValue({ meeting_id: "839452761" } as never);
     renderForm();
     submit();
 
-    expect(
-      await screen.findByText("Give your meeting a title.")
-    ).toBeTruthy();
-    expect(vi.mocked(scheduleMeeting)).not.toHaveBeenCalled();
-    expect(push).not.toHaveBeenCalled();
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard"));
+    expect(vi.mocked(scheduleMeeting)).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Scheduled Meeting" })
+    );
   });
 
-  it("posts the schedule and navigates to the meetings list", async () => {
-    vi.mocked(scheduleMeeting).mockResolvedValue(undefined as never);
+  it("posts the schedule and returns to the dashboard", async () => {
+    vi.mocked(scheduleMeeting).mockResolvedValue({ meeting_id: "839452761" } as never);
     renderForm();
 
-    fireEvent.change(screen.getByLabelText("Topic"), {
+    fireEvent.change(screen.getByLabelText(/^Meeting topic/), {
       target: { value: "Sprint retro" },
     });
     submit();
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/meetings"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard"));
     expect(vi.mocked(scheduleMeeting)).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Sprint retro",
@@ -82,12 +83,55 @@ describe("ScheduleForm", () => {
     );
     renderForm();
 
-    fireEvent.change(screen.getByLabelText("Topic"), {
+    fireEvent.change(screen.getByLabelText(/^Meeting topic/), {
       target: { value: "Sprint retro" },
     });
     submit();
 
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(push).not.toHaveBeenCalled();
+  });
+
+  it("sends the optional password and the chosen duration preset", async () => {
+    vi.mocked(scheduleMeeting).mockResolvedValue({ meeting_id: "839452761" } as never);
+    renderForm();
+
+    fireEvent.change(screen.getByLabelText(/^Meeting topic/), { target: { value: "Review" } });
+    fireEvent.change(screen.getByLabelText(/^Password/), { target: { value: "secret123" } });
+    fireEvent.click(screen.getByRole("radio", { name: "90 min" }));
+    submit();
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard"));
+    expect(vi.mocked(scheduleMeeting)).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Review", duration: 90, password: "secret123" })
+    );
+  });
+
+  it("creates one meeting per occurrence when repeating", async () => {
+    vi.mocked(scheduleMeeting).mockClear();
+    vi.mocked(scheduleMeeting).mockResolvedValue({ meeting_id: "839452761" } as never);
+    renderForm();
+
+    fireEvent.change(screen.getByLabelText(/^Meeting topic/), { target: { value: "Standup" } });
+    fireEvent.change(screen.getByLabelText("Repeat"), { target: { value: "weekly" } });
+    fireEvent.change(screen.getByLabelText("Times"), { target: { value: "3" } });
+    submit();
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard"));
+    const calls = vi.mocked(scheduleMeeting).mock.calls.map(([payload]) => new Date(payload.start_time).getTime());
+    expect(calls).toHaveLength(3);
+    expect(calls[1] - calls[0]).toBeGreaterThanOrEqual(6 * 24 * 3600 * 1000);
+  });
+
+  it("rejects a start time in the past", async () => {
+    vi.mocked(scheduleMeeting).mockClear();
+    renderForm();
+
+    fireEvent.change(screen.getByLabelText(/^Meeting topic/), { target: { value: "Old" } });
+    fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2020-01-01" } });
+    submit();
+
+    expect(await screen.findByText("Pick a start time in the future.")).toBeTruthy();
+    expect(vi.mocked(scheduleMeeting)).not.toHaveBeenCalled();
   });
 });
