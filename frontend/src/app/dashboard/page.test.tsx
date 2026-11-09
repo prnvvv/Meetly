@@ -98,7 +98,7 @@ describe("DashboardPage", () => {
     });
     renderPage();
 
-    const upcoming = screen.getByRole("region", { name: "Upcoming" });
+    const upcoming = screen.getByRole("region", { name: "Scheduled" });
     const recent = screen.getByRole("region", { name: "Recent" });
     expect(within(upcoming).getAllByRole("listitem")).toHaveLength(3);
     expect(within(recent).getAllByRole("listitem")).toHaveLength(3);
@@ -106,7 +106,7 @@ describe("DashboardPage", () => {
     expect(screen.queryByText("Past 4")).toBeNull();
   });
 
-  it("shows how many meetings sit behind View all when a panel is capped", () => {
+  it("has no View all links, since there is no separate meetings list page", () => {
     dashboardData.mockReturnValue({
       upcoming: list(meetings(40, true)),
       recent: list(meetings(2, false)),
@@ -114,22 +114,16 @@ describe("DashboardPage", () => {
     });
     renderPage();
 
-    const upcoming = screen.getByRole("region", { name: "Upcoming" });
-    expect(within(upcoming).getByRole("link", { name: "View all (40+)" }).getAttribute("href")).toBe(
-      "/meetings"
-    );
-    const recent = screen.getByRole("region", { name: "Recent" });
-    expect(within(recent).getByRole("link", { name: "View all" }).getAttribute("href")).toBe(
-      "/meetings?tab=recent"
-    );
+    expect(screen.queryAllByRole("link", { name: /View all/ })).toHaveLength(0);
+    expect(document.querySelector('a[href^="/meetings"]:not([href^="/meetings/"])')).toBeNull();
   });
 
   it("shows designed empty states with the specified copy and actions", () => {
     dashboardData.mockReturnValue({ upcoming: list([]), recent: list([]), refresh: vi.fn() });
     renderPage();
 
-    const upcoming = screen.getByRole("region", { name: "Upcoming" });
-    expect(within(upcoming).getByText("No upcoming meetings")).toBeTruthy();
+    const upcoming = screen.getByRole("region", { name: "Scheduled" });
+    expect(within(upcoming).getByText("No scheduled meetings")).toBeTruthy();
     expect(within(upcoming).getByText("Pick a date on the calendar to plan one.")).toBeTruthy();
     expect(within(upcoming).getByRole("link", { name: "Schedule" }).getAttribute("href")).toBe(
       "/schedule"
@@ -143,14 +137,6 @@ describe("DashboardPage", () => {
     );
   });
 
-  it("points each View all link at the right Meetings tab", () => {
-    dashboardData.mockReturnValue({ upcoming: list([]), recent: list([]), refresh: vi.fn() });
-    renderPage();
-
-    const hrefs = screen.getAllByRole("link", { name: "View all" }).map((a) => a.getAttribute("href"));
-    expect(hrefs).toEqual(["/meetings", "/meetings?tab=recent"]);
-  });
-
   it("shows an error state with a retry, not a blank panel, when loading fails", () => {
     dashboardData.mockReturnValue({
       upcoming: { items: [], loading: false, error: "Cannot reach the meeting service." },
@@ -159,7 +145,7 @@ describe("DashboardPage", () => {
     });
     renderPage();
 
-    const upcoming = screen.getByRole("region", { name: "Upcoming" });
+    const upcoming = screen.getByRole("region", { name: "Scheduled" });
     expect(within(upcoming).getByText("Cannot reach the meeting service.")).toBeTruthy();
     expect(within(upcoming).getByRole("button", { name: /try again/i })).toBeTruthy();
   });

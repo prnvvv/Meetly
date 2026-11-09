@@ -33,7 +33,8 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>
+      {/* Browser extensions (e.g. Grammarly) inject attributes on <body> before hydration. */}
+      <body suppressHydrationWarning>
         <ClerkProvider localization={authLocalization}>
           <ToastProvider>{children}</ToastProvider>
         </ClerkProvider>
