@@ -6,24 +6,18 @@ import { STORAGE_KEYS } from "@/lib/constants";
 /** Tile arrangement modes; each one genuinely changes the rendered layout. */
 export type RoomLayoutMode = "auto" | "gallery" | "speaker";
 
-/** How video fills a tile. */
-export type VideoFitMode = "fill" | "fit";
-
 export interface RoomPreferences {
   layout: RoomLayoutMode;
   /** Mirror the local camera preview (display-only). */
   mirrorSelf: boolean;
-  videoFit: VideoFitMode;
 }
 
 export const DEFAULT_ROOM_PREFERENCES: RoomPreferences = {
   layout: "auto",
   mirrorSelf: true,
-  videoFit: "fill",
 };
 
 const LAYOUTS: RoomLayoutMode[] = ["auto", "gallery", "speaker"];
-const FITS: VideoFitMode[] = ["fill", "fit"];
 
 function sanitize(raw: unknown): RoomPreferences {
   const value = (raw ?? {}) as Partial<RoomPreferences>;
@@ -35,9 +29,6 @@ function sanitize(raw: unknown): RoomPreferences {
       typeof value.mirrorSelf === "boolean"
         ? value.mirrorSelf
         : DEFAULT_ROOM_PREFERENCES.mirrorSelf,
-    videoFit: FITS.includes(value.videoFit as VideoFitMode)
-      ? (value.videoFit as VideoFitMode)
-      : DEFAULT_ROOM_PREFERENCES.videoFit,
   };
 }
 
@@ -52,7 +43,7 @@ function read(): RoomPreferences {
 }
 
 /**
- * Room view preferences (layout, mirroring, video fit),
+ * Room view preferences (layout, mirroring),
  * persisted to localStorage so the choice survives refreshes and later
  * meetings. Every field drives real rendering behaviour.
  */
@@ -60,7 +51,6 @@ export function useRoomPreferences(): {
   preferences: RoomPreferences;
   setLayout: (layout: RoomLayoutMode) => void;
   setMirrorSelf: (mirror: boolean) => void;
-  setVideoFit: (fit: VideoFitMode) => void;
 } {
   const [preferences, setPreferences] = useState<RoomPreferences>(read);
 
@@ -89,10 +79,6 @@ export function useRoomPreferences(): {
     ),
     setMirrorSelf: useCallback(
       (mirrorSelf: boolean) => update({ mirrorSelf }),
-      [update]
-    ),
-    setVideoFit: useCallback(
-      (videoFit: VideoFitMode) => update({ videoFit }),
       [update]
     ),
   };
