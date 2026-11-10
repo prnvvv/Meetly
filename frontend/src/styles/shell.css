@@ -172,8 +172,8 @@
   flex: 1;
   min-width: 0;
   /* faint dotted grid, the same paper texture as the landing sections */
-  background-image: radial-gradient(#e6e6e6 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-image: var(--pattern-dots);
+  background-size: var(--pattern-dot-size) var(--pattern-dot-size);
 }
 
 .app-main__inner {
