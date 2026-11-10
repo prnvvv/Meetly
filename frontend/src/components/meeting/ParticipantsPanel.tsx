@@ -14,7 +14,8 @@ import {
   VideoOffIcon,
   XIcon,
 } from "@/components/icons";
-import { buildInviteUrl, copyText, cx, getInitials } from "@/lib/utils";
+import { ParticipantAvatar } from "@/components/meeting/ParticipantAvatar";
+import { buildInviteUrl, copyText, cx } from "@/lib/utils";
 import type { ParticipantSummary } from "@/types/participant";
 
 interface ParticipantsPanelProps {
@@ -149,9 +150,13 @@ export function ParticipantsPanel({
             const canAct = isHost && !you;
             return (
               <div className="participant-row" key={participant.id}>
-                <span className="participant-row__avatar" aria-hidden="true">
-                  {getInitials(participant.display_name)}
-                </span>
+                <ParticipantAvatar
+                  name={participant.display_name}
+                  variant={participant.id > 0 ? participant.id : undefined}
+                  size={36}
+                  accent={false}
+                  className="participant-row__avatar"
+                />
                 <div className="participant-row__body">
                   <div className="participant-row__name">
                     <span>{participant.display_name}</span>
