@@ -87,6 +87,7 @@ interface RoomMenuItemProps {
   danger?: boolean;
   disabled?: boolean;
   icon?: ReactNode;
+  className?: string;
 }
 
 /** One row inside a room popover. */
@@ -97,6 +98,7 @@ export function RoomMenuItem({
   danger,
   disabled,
   icon,
+  className,
 }: RoomMenuItemProps) {
   return (
     <button
@@ -107,7 +109,8 @@ export function RoomMenuItem({
       className={cx(
         "room-menu__item",
         danger && "room-menu__item--danger",
-        disabled && "room-menu__item--disabled"
+        disabled && "room-menu__item--disabled",
+        className
       )}
       onClick={() => {
         if (disabled) return;
