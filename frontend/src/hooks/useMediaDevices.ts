@@ -17,6 +17,10 @@ export interface MediaDevicesState {
   isVideoOn: boolean;
   /** False when no microphone track could be acquired (missing or blocked). */
   audioAvailable: boolean;
+  /** True while microphone permission / capture is being requested. */
+  audioPending: boolean;
+  /** True while camera permission / capture is being requested. */
+  videoPending: boolean;
   /** False when no camera track could be acquired (missing or blocked). */
   videoAvailable: boolean;
   /** Friendly message when camera/microphone could not be acquired. */
@@ -156,8 +160,20 @@ function audioConstraint(deviceId: string | null): MediaTrackConstraints | boole
   return deviceId ? { deviceId: { exact: deviceId } } : true;
 }
 
-function videoConstraint(deviceId: string | null): MediaTrackConstraints | boolean {
-  return deviceId ? { deviceId: { exact: deviceId } } : true;
+function videoConstraint(
+  deviceId: string | null,
+  extra?: MediaTrackConstraints
+): MediaTrackConstraints | boolean {
+  if (!deviceId) return extra ?? true;
+  return { ...extra, deviceId: { exact: deviceId } };
+}
+
+export interface MediaDevicesOptions {
+  /**
+   * Extra camera constraints (e.g. an ideal resolution). Callers that omit
+   * this keep the browser's default capture, exactly as before.
+   */
+  videoConstraints?: MediaTrackConstraints;
 }
 
 function canEnumerate(): boolean {
@@ -191,7 +207,7 @@ export function supportsSpeakerSelection(): boolean {
  * `stop()` releases every track and resets the join flags so a retry
  * starts from the same off-by-default state.
  */
-export function useMediaDevices(): MediaDevicesState {
+export function useMediaDevices(options: MediaDevicesOptions = {}): MediaDevicesState {
   const streamRef = useRef<MediaStream | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [audioJoined, setAudioJoined] = useState(false);
@@ -199,6 +215,8 @@ export function useMediaDevices(): MediaDevicesState {
   const [isVideoOn, setIsVideoOn] = useState(false);
   const [audioAvailable, setAudioAvailable] = useState(true);
   const [videoAvailable, setVideoAvailable] = useState(true);
+  const [audioPending, setAudioPending] = useState(false);
+  const [videoPending, setVideoPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [audioInputDevices, setAudioInputDevices] = useState<MediaDeviceInfo[]>([]);
@@ -228,6 +246,10 @@ export function useMediaDevices(): MediaDevicesState {
   const audioJoinedRef = useRef(false);
   const mutedRef = useRef(true);
   const videoOnRef = useRef(false);
+  const videoConstraintsRef = useRef(options.videoConstraints);
+  useEffect(() => {
+    videoConstraintsRef.current = options.videoConstraints;
+  });
   const joinPendingRef = useRef(false);
   const cameraPendingRef = useRef(false);
 
@@ -303,7 +325,7 @@ export function useMediaDevices(): MediaDevicesState {
         const constraints: MediaStreamConstraints =
           kind === "audio"
             ? { audio: audioConstraint(id) }
-            : { video: videoConstraint(id) };
+            : { video: videoConstraint(id, videoConstraintsRef.current) };
         return navigator.mediaDevices.getUserMedia(constraints);
       };
 
@@ -363,6 +385,7 @@ export function useMediaDevices(): MediaDevicesState {
       return false;
     }
     joinPendingRef.current = true;
+    setAudioPending(true);
     try {
       const track = await requestTrack("audio", audioInputIdRef.current);
       track.enabled = true;
@@ -381,6 +404,7 @@ export function useMediaDevices(): MediaDevicesState {
       return false;
     } finally {
       joinPendingRef.current = false;
+      setAudioPending(false);
     }
   }, [mergeTrack, refreshDevices, requestTrack]);
 
@@ -403,6 +427,7 @@ export function useMediaDevices(): MediaDevicesState {
       return false;
     }
     cameraPendingRef.current = true;
+    setVideoPending(true);
     try {
       const track = await requestTrack("video", videoInputIdRef.current);
       track.enabled = true;
@@ -419,6 +444,7 @@ export function useMediaDevices(): MediaDevicesState {
       return false;
     } finally {
       cameraPendingRef.current = false;
+      setVideoPending(false);
     }
   }, [mergeTrack, refreshDevices, requestTrack]);
 
@@ -536,6 +562,8 @@ export function useMediaDevices(): MediaDevicesState {
     isVideoOn,
     audioAvailable,
     videoAvailable,
+    audioPending,
+    videoPending,
     error,
     audioInputDevices,
     videoInputDevices,

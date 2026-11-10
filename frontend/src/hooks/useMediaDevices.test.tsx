@@ -275,6 +275,40 @@ describe("useMediaDevices", () => {
     expect(getUserMedia).toHaveBeenCalledTimes(1);
   });
 
+  it("passes caller-supplied camera constraints, and stays {video:true} without them", async () => {
+    const ideal = { width: { ideal: 960 }, height: { ideal: 540 } };
+    const { result } = renderHook(() => useMediaDevices({ videoConstraints: ideal }));
+    await act(async () => undefined);
+    await act(async () => {
+      await result.current.setVideoOn(true);
+    });
+    expect(getUserMedia.mock.calls[0][0]).toEqual({ video: ideal });
+  });
+
+  it("exposes a pending flag while the camera request is in flight", async () => {
+    let release: (stream: unknown) => void = () => undefined;
+    getUserMedia.mockImplementationOnce(
+      () => new Promise((resolve) => { release = resolve; })
+    );
+    const { result } = renderHook(() => useMediaDevices());
+    await act(async () => undefined);
+    expect(result.current.videoPending).toBe(false);
+
+    let done: Promise<void> = Promise.resolve();
+    act(() => {
+      done = result.current.setVideoOn(true);
+    });
+    expect(result.current.videoPending).toBe(true);
+    expect(result.current.isVideoOn).toBe(false); // never optimistic
+
+    await act(async () => {
+      release(fakeStream([], [fakeTrack("video")]));
+      await done;
+    });
+    expect(result.current.videoPending).toBe(false);
+    expect(result.current.isVideoOn).toBe(true);
+  });
+
   it("setVideoOn starts the camera on demand and reuses the track", async () => {
     const { result } = renderHook(() => useMediaDevices());
     await act(async () => undefined);
