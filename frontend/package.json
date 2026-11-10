@@ -13,7 +13,7 @@
     "demo-user": "node scripts/create-demo-user.mjs"
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.9.24",
+    "@clerk/nextjs": "^7.9.25",
     "gsap": "^3.15.1",
     "next": "16.4.5",
     "react": "19.3.1",
