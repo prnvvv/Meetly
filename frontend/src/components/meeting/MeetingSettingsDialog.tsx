@@ -14,7 +14,6 @@ import { deviceLabel } from "@/hooks/useMediaDevices";
 import type {
   RoomLayoutMode,
   RoomPreferences,
-  VideoFitMode,
 } from "@/hooks/useRoomPreferences";
 import { cx } from "@/lib/utils";
 import type { SettingsTab } from "@/components/meeting/ControlBar";
@@ -43,7 +42,6 @@ interface MeetingSettingsDialogProps {
   fullscreenSupported: boolean;
   onSetLayout: (layout: RoomLayoutMode) => void;
   onSetMirrorSelf: (mirror: boolean) => void;
-  onSetVideoFit: (fit: VideoFitMode) => void;
   onToggleFullscreen: () => void;
   onClose: () => void;
 }
@@ -234,7 +232,6 @@ export function MeetingSettingsDialog({
   fullscreenSupported,
   onSetLayout,
   onSetMirrorSelf,
-  onSetVideoFit,
   onToggleFullscreen,
   onClose,
 }: MeetingSettingsDialogProps) {
@@ -373,18 +370,6 @@ export function MeetingSettingsDialog({
                 />
                 <span>Mirror my video</span>
               </label>
-              <div className="field">
-                <span className="field__label">Video framing</span>
-                <ChoiceRow<VideoFitMode>
-                  ariaLabel="Video framing"
-                  value={preferences.videoFit}
-                  onChange={onSetVideoFit}
-                  options={[
-                    { key: "fill", label: "Fill", hint: "Crop to the tile" },
-                    { key: "fit", label: "Fit", hint: "Show the whole frame" },
-                  ]}
-                />
-              </div>
             </div>
           ) : null}
 

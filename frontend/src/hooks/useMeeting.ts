@@ -62,6 +62,8 @@ export interface MeetingSession {
   audioJoined: boolean;
   /** False when the microphone could not be acquired (missing or blocked). */
   audioAvailable: boolean;
+  audioPending: boolean;
+  videoPending: boolean;
   /** False when the camera could not be acquired (missing or blocked). */
   videoAvailable: boolean;
   /** Ephemeral reactions currently floating over participant tiles. */
@@ -93,6 +95,19 @@ export interface MeetingReaction {
 const REACTION_TTL_MS = 4_000;
 
 /**
+ * In the room the camera is asked for a widescreen-leaning, mid-size frame:
+ * it fills the stage better than the 640x480 many browsers default to, while
+ * staying light enough for a peer-to-peer mesh. These are `ideal` hints only,
+ * so a camera that cannot do it still returns its own native shape, and the
+ * stage adapts to whatever aspect ratio actually arrives.
+ */
+const ROOM_VIDEO_CONSTRAINTS: MediaTrackConstraints = {
+  width: { ideal: 960 },
+  height: { ideal: 540 },
+  frameRate: { ideal: 30 },
+};
+
+/**
  * Owns the meeting session: REST validation, the signaling socket, local
  * media and the WebRTC mesh. The server is authoritative for host status,
  * membership and meeting state — this hook never invents them.
@@ -121,7 +136,7 @@ export function useMeeting({
     selfIdRef.current = selfId;
   }, [selfId]);
 
-  const media = useMediaDevices();
+  const media = useMediaDevices({ videoConstraints: ROOM_VIDEO_CONSTRAINTS });
 
   // `media` is a fresh object every render; these callbacks are stable, so
   // depend on them instead of on the wrapper.
@@ -491,6 +506,8 @@ export function useMeeting({
     isVideoOn: media.isVideoOn,
     audioJoined: media.audioJoined,
     audioAvailable: media.audioAvailable ?? true,
+    audioPending: media.audioPending ?? false,
+    videoPending: media.videoPending ?? false,
     videoAvailable: media.videoAvailable ?? true,
     reactions,
     mediaError: media.error,

@@ -108,6 +108,57 @@ describe("ControlBar", () => {
     expect(onLeave).toHaveBeenCalledTimes(1);
   });
 
+  it("marks mic and camera as active only when they are really live", () => {
+    renderBar({ isMuted: false, isVideoOn: true });
+    const mic = screen.getByRole("button", { name: "Mute microphone" });
+    const camera = screen.getByRole("button", { name: "Turn camera off" });
+    expect(mic.className).toContain("control--active");
+    expect(camera.className).toContain("control--active");
+  });
+
+  it("shows mic and camera as off when muted or stopped", () => {
+    renderBar({ isMuted: true, isVideoOn: false });
+    expect(
+      screen.getByRole("button", { name: "Unmute microphone" }).className
+    ).toContain("control--off");
+    expect(
+      screen.getByRole("button", { name: "Turn camera on" }).className
+    ).toContain("control--off");
+  });
+
+  it("never shows the camera as on when the device is unavailable", () => {
+    renderBar({ isVideoOn: true, videoAvailable: false });
+    const camera = screen.getByRole("button", { name: "Turn camera off" });
+    expect(camera.className).toContain("control--off");
+    expect(camera.className).toContain("control--unavailable");
+    expect(screen.getByText("Start Video")).toBeTruthy();
+  });
+
+  it("lets the host end the meeting for everyone instead of just leaving", () => {
+    const onEndMeeting = vi.fn();
+    const { onLeave } = renderBar({ isHost: true, onEndMeeting });
+    fireEvent.click(
+      screen.getByRole("button", { name: "End meeting for everyone" })
+    );
+    expect(onEndMeeting).toHaveBeenCalledTimes(1);
+    expect(onLeave).not.toHaveBeenCalled();
+  });
+
+  it("shows a busy state while camera or mic permission is pending", () => {
+    renderBar({ isVideoOn: false, videoPending: true, audioPending: true });
+    const camera = screen.getByRole("button", { name: "Turn camera on" });
+    const mic = screen.getByRole("button", { name: "Mute microphone" });
+    expect(camera.getAttribute("aria-busy")).toBe("true");
+    expect(mic.getAttribute("aria-busy")).toBe("true");
+  });
+
+  it("is not busy by default", () => {
+    renderBar();
+    expect(
+      screen.getByRole("button", { name: "Turn camera off" }).getAttribute("aria-busy")
+    ).toBeNull();
+  });
+
   it("toggles the participants panel", () => {
     const { onToggleParticipants } = renderBar();
     fireEvent.click(screen.getByRole("button", { name: "Show participants" }));

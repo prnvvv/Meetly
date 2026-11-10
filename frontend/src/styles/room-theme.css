@@ -1,0 +1,1290 @@
+/* ------------------------------------------------------------------
+   Meeting room — dark dotted theme.
+
+   Everything is scoped to `.room`, so no other page is affected. The shared
+   `--color-*` / `--room-*` tokens are re-pointed to a dark palette locally,
+   which re-themes every room component (panel, popovers, dialogs, settings)
+   in one place. Imported at the top of meeting.css.
+   ------------------------------------------------------------------ */
+
+.room {
+  /* Palette */
+  --rt-bg: #101114;
+  --rt-surface: #18191d;
+  --rt-surface-card: #1a1b1f;
+  --rt-float-shadow: 0 18px 44px -22px rgba(0, 0, 0, 0.85);
+  --rt-elevated: #202126;
+  --rt-elevated-hover: #2a2b31;
+  --rt-border: #303137;
+  --rt-border-strong: #43444c;
+  --rt-text: #f7f7f8;
+  --rt-text-2: #a1a1aa;
+  --rt-text-3: #71717a;
+  --rt-active-bg: #f4f4f5;
+  --rt-active-fg: #101113;
+  --rt-off-bg: #26272c;
+  --rt-off-fg: #ff9a95;
+  --rt-danger: #e53935;
+  --rt-danger-hover: #d32f2f;
+  --rt-success: #3fbf86;
+
+  /* Dotted texture (same 22px rhythm as the light app shell) */
+  /* Same dotted-paper pattern as the dashboard (globals.css tokens), only
+     recoloured. --pattern-dots must be re-declared here because custom
+     properties inherit their already-substituted value from :root. */
+  --pattern-dot: rgba(255, 255, 255, 0.07);
+  --pattern-dot-size: 22px;
+  --pattern-dots: radial-gradient(var(--pattern-dot) 1px, transparent 1px);
+  --rt-dots: var(--pattern-dots);
+  --rt-dot-size: var(--pattern-dot-size);
+  --rt-tile-bg: #131419;
+  /* Meetly is monochrome: "active" is a soft off-white tint, never a new hue. */
+  --rt-accent-bg: rgba(255, 255, 255, 0.12);
+  --rt-accent-border: rgba(255, 255, 255, 0.3);
+
+  /* Shape / size */
+  --rt-radius-tile: 28px;
+  --rt-radius-panel: 14px;
+  --rt-control-size: 52px;
+  --rt-control-size-compact: 44px;
+  --rt-icon-size: 20px;
+  --rt-gap: 12px;
+
+  /* Motion */
+  --rt-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --rt-fast: 150ms var(--rt-ease);
+  --rt-medium: 240ms var(--rt-ease);
+
+  --rt-focus-ring: 0 0 0 2px var(--rt-bg), 0 0 0 4px var(--rt-text);
+
+  /* Re-point the shared tokens for everything rendered inside the room. */
+  --room-bg: var(--rt-bg);
+  --room-surface: var(--rt-surface);
+  --room-surface-alt: var(--rt-elevated);
+  --room-border: var(--rt-border);
+  --room-text: var(--rt-text);
+  --room-text-secondary: var(--rt-text-2);
+  --room-overlay: rgba(16, 17, 19, 0.82);
+  --room-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.8);
+
+  --color-bg: var(--rt-bg);
+  --color-surface: var(--rt-surface);
+  --color-surface-alt: var(--rt-elevated);
+  --color-border: var(--rt-border);
+  --color-border-strong: var(--rt-border-strong);
+  --color-text: var(--rt-text);
+  --color-text-secondary: var(--rt-text-2);
+  --color-text-muted: var(--rt-text-3);
+  --color-text-inverse: var(--rt-active-fg);
+  --color-primary: var(--rt-active-bg);
+  --color-primary-hover: #ffffff;
+  --color-primary-active: #e4e4e7;
+  --color-primary-soft: var(--rt-elevated);
+  --color-primary-soft-hover: var(--rt-elevated-hover);
+  --color-danger: var(--rt-danger);
+  --color-danger-hover: var(--rt-danger-hover);
+  --color-danger-soft: rgba(229, 57, 53, 0.14);
+  --shadow-md: 0 12px 28px -16px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 24px 48px -24px rgba(0, 0, 0, 0.85);
+
+  color-scheme: dark;
+  background-color: var(--rt-bg);
+  background-image: var(--rt-dots);
+  background-size: var(--rt-dot-size) var(--rt-dot-size);
+  color: var(--rt-text);
+}
+
+.room :focus-visible {
+  outline: none;
+  box-shadow: var(--rt-focus-ring);
+}
+
+/* ------------------------------------------------------------------
+   Participant stage
+   ------------------------------------------------------------------ */
+
+.room__stage {
+  background-color: var(--rt-bg);
+  background-image: var(--rt-dots);
+  background-size: var(--rt-dot-size) var(--rt-dot-size);
+  background-position: 0 0;
+}
+
+.stage__grid {
+  gap: var(--rt-gap);
+}
+
+.stage--focus {
+  gap: var(--rt-gap);
+}
+
+.tile {
+  container-type: size;
+  background-color: var(--rt-tile-bg);
+  background-image: var(--rt-dots);
+  background-size: var(--rt-dot-size) var(--rt-dot-size);
+  background-position: center;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--rt-radius-tile);
+  animation: tile-in var(--rt-medium) both;
+  transition: border-color var(--rt-fast), box-shadow var(--rt-fast);
+}
+
+@keyframes tile-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+/* Active speaker: a quiet off-white ring plus the equalizer in the name tag. */
+.tile--speaking {
+  border-color: rgba(247, 247, 248, 0.85);
+  box-shadow: 0 0 0 1px rgba(247, 247, 248, 0.85);
+}
+
+.tile--pinned {
+  border-color: var(--rt-border-strong);
+  box-shadow: 0 0 0 1px var(--rt-border-strong);
+}
+
+.tile__video {
+  background: var(--rt-surface);
+}
+
+.tile__placeholder {
+  flex-direction: column;
+  background: transparent;
+  /* Keep the avatar clear of the bottom-left status pill. */
+  padding-bottom: 34px;
+}
+
+/* Soft inner vignette so footer labels stay legible on live video. */
+.tile--video::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 38%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Avatar ------------------------------------------------------------- */
+
+.p-avatar {
+  /* Scales with the tile (container query units) so one avatar fits a 1-up
+     stage and a 25-up gallery alike. */
+  --p-size: clamp(48px, 44cqmin, 280px);
+  position: relative;
+  display: inline-block;
+  width: var(--p-size);
+  height: var(--p-size);
+  flex: none;
+  animation: avatar-in var(--rt-medium) both;
+}
+
+@keyframes avatar-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+.p-avatar__disc {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f6f5f1;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5),
+    0 10px 28px -10px rgba(0, 0, 0, 0.75);
+}
+
+/* Illustrations keep their aspect ratio (the crops are square), centred. */
+.p-avatar__disc img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  user-select: none;
+}
+
+.p-avatar__disc--photo img {
+  object-fit: cover;
+}
+
+/* The shared HeadingBloom accent (same component and ray animation as the
+   New Meeting / Join headings). It positions itself against this zero-size
+   anchor, so the em size here sets the accent size. */
+.p-avatar__accent {
+  position: absolute;
+  top: 20%;
+  right: -3%;
+  width: 0;
+  height: 0;
+  font-size: calc(var(--p-size) * 0.46);
+  color: var(--rt-text);
+  pointer-events: none;
+}
+
+.p-avatar__accent svg,
+.p-host__accent svg {
+  /* The global `svg { max-width: 100% }` would clamp the bloom to its
+     zero-width anchor. */
+  max-width: none;
+  display: block !important;
+}
+
+.p-avatar__accent svg {
+  stroke-width: 3.6;
+}
+
+.participant-row .p-avatar {
+  background: none;
+  width: var(--p-size);
+  height: var(--p-size);
+  flex: 0 0 var(--p-size);
+  animation: none;
+}
+
+/* Status pill (bottom-left) ----------------------------------------- */
+
+.tile__footer {
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.p-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  max-width: calc(100% - 80px);
+  height: 30px;
+  padding: 0 13px;
+  border-radius: 12px;
+  background: rgba(14, 14, 16, 0.88);
+  color: var(--rt-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  line-height: 1;
+  transition: background-color var(--rt-fast), color var(--rt-fast);
+}
+
+/* Speaking inverts the tag (off-white on charcoal -> charcoal on off-white). */
+.p-status--speaking {
+  background: var(--rt-active-bg);
+  color: var(--rt-active-fg);
+}
+
+.p-eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+
+.p-eq i {
+  width: 2.5px;
+  height: 100%;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.p-indicators {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.p-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 12px;
+  background: rgba(14, 14, 16, 0.88);
+  color: var(--rt-text);
+}
+
+.p-indicator--muted,
+.p-indicator--camera-off {
+  color: var(--rt-off-fg);
+}
+
+.p-status__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Host badge (top-left) ---------------------------------------------- */
+
+.p-host {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px 3px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--rt-active-bg);
+  color: var(--rt-active-fg);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  box-shadow: 0 4px 12px -6px rgba(0, 0, 0, 0.7);
+}
+
+.p-host {
+  position: relative;
+  padding-right: 18px;
+}
+
+/* Zero-size anchor for the shared HeadingBloom accent (see ParticipantAvatar). */
+.p-host__accent {
+  position: absolute;
+  top: 66%;
+  right: 17px;
+  width: 0;
+  height: 0;
+  font-size: 12px;
+  color: var(--rt-active-fg);
+}
+
+.p-host__accent svg {
+  stroke-width: 4.5;
+}
+
+.tile__pin {
+  background: var(--rt-elevated);
+  border: 1px solid var(--rt-border-strong);
+  color: var(--rt-text);
+}
+
+.tile__reactions {
+  bottom: 52px;
+}
+
+.stage__pager-button {
+  background: var(--rt-elevated);
+  border-color: var(--rt-border);
+  color: var(--rt-text);
+}
+
+.stage__empty-title {
+  color: var(--rt-text);
+}
+
+/* ------------------------------------------------------------------
+   Panels
+   ------------------------------------------------------------------ */
+
+.room-panel {
+  border-left-color: var(--rt-border);
+  box-shadow: -24px 0 48px -28px rgba(0, 0, 0, 0.8);
+}
+
+.room-panel__backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.dialog-backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.dialog {
+  background: var(--rt-elevated);
+  border-color: var(--rt-border-strong);
+}
+
+/* ------------------------------------------------------------------
+   Camera framing: the stage adapts to the video, never the reverse
+   ------------------------------------------------------------------ */
+
+/* The tile takes the camera's own aspect ratio and is the
+   largest such box that fits its grid cell. The whole webcam frame shows,
+   undistorted, with no crop. (--tile-ar is the real videoWidth/videoHeight.) */
+.stage__cell {
+  container-type: size;
+  align-items: center;
+  justify-content: center;
+}
+
+.stage__cell .tile--adaptive {
+  width: min(100cqw, calc(100cqh * var(--tile-ar)));
+  height: min(100cqh, calc(100cqw / var(--tile-ar)));
+}
+
+/* Secondary buttons inside room dialogs use the room's border tone. */
+.room .btn--secondary {
+  background: var(--rt-elevated);
+  border-color: var(--rt-border-strong);
+  color: var(--rt-text);
+}
+
+.room .btn--secondary:hover:not(:disabled) {
+  background: var(--rt-elevated-hover);
+  border-color: #575862;
+}
+
+/* ------------------------------------------------------------------
+   Pinned / speaker view: the main tile adapts to its video as well
+   ------------------------------------------------------------------ */
+
+.stage__main {
+  container-type: size;
+  align-items: center;
+  justify-content: center;
+}
+
+/* `.tile--featured` (meeting.css) pins width with !important, so the adaptive
+   size has to be at least as strong. */
+.stage__main .tile--adaptive,
+.stage__main .tile--featured.tile--adaptive {
+  flex: none;
+  width: min(100cqw, calc(100cqh * var(--tile-ar))) !important;
+  height: min(100cqh, calc(100cqw / var(--tile-ar)));
+}
+
+/* ------------------------------------------------------------------
+   Narrow tiles (portrait cameras, big galleries): keep the name readable
+   ------------------------------------------------------------------ */
+
+@container (max-width: 230px) {
+  .p-indicator--camera-off {
+    display: none;
+  }
+
+  .p-status {
+    max-width: calc(100% - 38px);
+  }
+
+  .p-indicator {
+    width: 26px;
+    height: 26px;
+  }
+}
+
+@container (max-width: 150px) {
+  .tile__footer {
+    padding: 6px;
+  }
+
+  .p-status {
+    padding: 0 8px;
+    font-size: 0.6875rem;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Room layout: header · canvas · control dock
+   ------------------------------------------------------------------
+   A plain flex column. The header and the dock row take the height they
+   need; the canvas takes the rest (min-height: 0 so it can shrink and the
+   participant grid can measure it). Nothing is absolutely positioned, so
+   nothing can overlap the canvas. */
+
+.room__header {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 20px 8px;
+  background: none;
+  border: 0;
+  backdrop-filter: none;
+}
+
+.room__brand {
+  gap: 8px;
+  color: var(--rt-text);
+}
+
+.room__brand .brand__name {
+  font-size: 1.2rem;
+}
+
+/* Meeting facts: one compact, quiet group */
+.room__info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 5px 14px 5px 6px;
+  border: 1px solid var(--rt-border);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 0.78rem;
+  color: var(--rt-text-2);
+}
+
+.room__security {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  border: 0;
+  background: var(--rt-elevated);
+  color: var(--rt-text);
+}
+
+.room__host {
+  min-width: 0;
+  max-width: 26ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+  color: var(--rt-text);
+}
+
+.room__sep {
+  width: 1px;
+  height: 14px;
+  flex: none;
+  background: var(--rt-border-strong);
+}
+
+.room__id {
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  color: var(--rt-text-2);
+}
+
+.room__chip--live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px 0 7px;
+  border-radius: var(--radius-pill);
+  background: rgba(229, 57, 53, 0.14);
+  border: 1px solid rgba(229, 57, 53, 0.38);
+  color: var(--rt-off-fg);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  cursor: default;
+}
+
+.room__chip--live::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rt-danger);
+  animation: room-pulse 2s ease-in-out infinite;
+}
+
+.room__connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.room__connection::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rt-success);
+}
+
+.room__connection[data-state="connecting"]::before,
+.room__connection[data-state="reconnecting"]::before {
+  background: var(--rt-text-2);
+  animation: room-pulse 1.2s ease-in-out infinite;
+}
+
+.room__connection[data-state="disconnected"]::before {
+  background: var(--rt-danger);
+}
+
+.room__connection--reconnecting {
+  color: var(--rt-text);
+}
+
+.room__connection--failed {
+  color: var(--rt-off-fg);
+}
+
+@keyframes room-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Utilities: rounded pills */
+.room__header-actions {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.room__header-button {
+  height: 36px;
+  min-width: 36px;
+  justify-content: center;
+  padding: 0 14px;
+  border: 1px solid var(--rt-border);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--rt-text);
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: background-color var(--rt-fast), border-color var(--rt-fast);
+}
+
+.room__header-button:hover {
+  background: var(--rt-elevated);
+  border-color: var(--rt-border-strong);
+}
+
+.room__header-button:active {
+  transform: scale(0.97);
+}
+
+.room__header-button--active {
+  background: var(--rt-accent-bg);
+  border-color: var(--rt-accent-border);
+}
+
+.room__header-button svg {
+  stroke-width: 2;
+}
+
+/* Notices: slim chips between the header and the canvas; zero height when
+   there are none. */
+.room__notices {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0 20px;
+}
+
+.room__notices:empty {
+  display: none;
+}
+
+.room-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 8px 6px 14px;
+  border: 1px solid var(--rt-border-strong);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--rt-text-2);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.3;
+  animation: tile-in var(--rt-medium) both;
+}
+
+.room-notice:not(:has(.room-notice__action)) {
+  padding-right: 16px;
+}
+
+.room-notice svg {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  stroke-width: 2;
+}
+
+.room-notice--warning {
+  border-color: rgba(245, 190, 90, 0.4);
+  color: #f2c879;
+}
+
+.room-notice--error {
+  border-color: rgba(229, 57, 53, 0.45);
+  color: var(--rt-off-fg);
+}
+
+.room-notice__action {
+  height: 26px;
+  margin-left: 4px;
+  padding: 0 12px;
+  font-size: 0.72rem;
+}
+
+.room-notice__spinner {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid rgba(242, 200, 121, 0.3);
+  border-top-color: currentColor;
+  animation: room-spin 700ms linear infinite;
+}
+
+@keyframes room-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The canvas */
+.room__stage {
+  padding: 8px 20px 4px;
+}
+
+/* The control dock: its own reserved row, centred */
+.room__controls {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  padding: 10px 12px calc(16px + env(safe-area-inset-bottom));
+}
+
+.dock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--rt-border);
+  border-radius: 24px;
+  background: rgba(26, 27, 31, 0.92);
+  box-shadow: var(--rt-float-shadow);
+}
+
+.dock__group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Tools sit between hairlines, quieter than the media pair. */
+.dock__group--tools {
+  margin: 0 2px;
+  padding: 0 8px;
+  border-inline: 1px solid var(--rt-border);
+}
+
+.dock__end {
+  display: flex;
+}
+
+.control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--rt-text-2);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--rt-fast), border-color var(--rt-fast),
+    color var(--rt-fast), box-shadow var(--rt-medium), transform var(--rt-fast);
+}
+
+.control:hover {
+  color: var(--rt-text);
+  background: var(--rt-elevated);
+}
+
+.control:active {
+  transform: scale(0.96);
+}
+
+.control__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+
+.control__icon svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  stroke-width: 2;
+}
+
+/* tool: icon-only; the caption is the tooltip / accessible name */
+.control--tool {
+  width: 46px;
+}
+
+.control .control__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.control[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  padding: 5px 10px;
+  border-radius: 9px;
+  background: var(--rt-active-bg);
+  color: var(--rt-active-fg);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  transition: opacity var(--rt-fast), transform var(--rt-fast);
+}
+
+.control[data-tip]:hover::after,
+.control[data-tip]:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.control[data-tip][aria-expanded="true"]::after {
+  display: none;
+}
+
+/* media: mic and camera — labelled, dark, the dock's focal pair.
+   On = white icon on neutral dark. Off = red icon (and the caption flips). */
+.control--media {
+  width: 50px;
+  background: var(--rt-elevated);
+  border-color: var(--rt-border);
+  color: var(--rt-text);
+}
+
+.control--media:hover {
+  background: var(--rt-elevated-hover);
+  border-color: var(--rt-border-strong);
+}
+
+.control--active .control__icon {
+  color: #fff;
+}
+
+.control--off .control__icon {
+  color: var(--rt-off-fg);
+}
+
+.control--off.control--media {
+  border-color: rgba(229, 57, 53, 0.35);
+}
+
+/* A tool whose panel is open (e.g. Participants): restrained Meetly accent */
+.control--tool.control--active {
+  background: var(--rt-accent-bg);
+  border-color: var(--rt-accent-border);
+  color: #fff;
+}
+
+/* End / Leave */
+.control--end {
+  width: 62px;
+  background: var(--rt-danger);
+  border-color: var(--rt-danger);
+  color: #fff;
+}
+
+.control--end:hover {
+  background: var(--rt-danger-hover);
+  border-color: var(--rt-danger-hover);
+  color: #fff;
+}
+
+.control--unavailable {
+  border-style: dashed;
+  border-color: var(--rt-border-strong);
+}
+
+.control:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.control:focus-visible,
+.control__caret:focus-visible {
+  outline: none;
+  box-shadow: var(--rt-focus-ring);
+}
+
+.control__spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(247, 247, 248, 0.25);
+  border-top-color: var(--rt-text);
+  animation: room-spin 700ms linear infinite;
+}
+
+.control--busy {
+  cursor: progress;
+}
+
+/* Device-options caret: attached to the media control as one segmented unit */
+.dock .room-popover-anchor {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.dock .room-popover-anchor .control--media {
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+  border-right-width: 0;
+}
+
+.control__caret {
+  position: static;
+  transform: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid var(--rt-border);
+  border-left-color: rgba(255, 255, 255, 0.06);
+  border-radius: 6px 16px 16px 6px;
+  background: var(--rt-elevated);
+  color: var(--rt-text-2);
+  cursor: pointer;
+  transition: background-color var(--rt-fast), color var(--rt-fast),
+    border-color var(--rt-fast);
+}
+
+.control__caret svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2;
+}
+
+.control__caret:hover {
+  background: var(--rt-elevated-hover);
+  color: var(--rt-text);
+}
+
+.room-popover-anchor:has(.control--off) .control__caret {
+  border-color: rgba(229, 57, 53, 0.35);
+  border-left-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Popovers & menus open above the dock */
+.room-popover {
+  bottom: calc(100% + 14px);
+  border-radius: 18px;
+  background: var(--rt-elevated);
+  border-color: var(--rt-border-strong);
+  box-shadow: var(--room-shadow);
+}
+
+.room-menu__item:hover,
+.room-menu__item:focus-visible {
+  background: var(--rt-elevated-hover);
+}
+
+.room-menu__item:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--rt-text-3);
+}
+
+.room-menu__item--danger {
+  color: var(--rt-off-fg);
+}
+
+.room-menu__item--danger:hover {
+  background: rgba(229, 57, 53, 0.16);
+}
+
+.room-menu__mobile-only,
+.room-menu__item--mobile {
+  display: none;
+}
+
+/* ------------------------------------------------------------------
+   Waiting canvas: avatar · accent · message · invite
+   ------------------------------------------------------------------ */
+
+/* Alone with the camera off: the avatar is a fixed, comfortable size
+   (about 180-210px on desktop) and the group is centred as one unit. */
+.tile--solo .tile__placeholder {
+  gap: 0;
+  padding-bottom: 30px;
+}
+
+.tile--solo .p-avatar {
+  --p-size: clamp(112px, 31cqmin, 200px);
+}
+
+.solo-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: clamp(16px, 4cqmin, 30px);
+  padding: 0 16px;
+  text-align: center;
+  animation: hint-in 520ms var(--rt-ease) 120ms both;
+}
+
+@keyframes hint-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.solo-hint__title {
+  margin: 0;
+  font-size: clamp(1.25rem, 3.6cqmin, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: var(--rt-text);
+}
+
+.solo-hint__text {
+  margin: clamp(6px, 1.4cqmin, 10px) 0 0;
+  font-size: clamp(0.875rem, 2.3cqmin, 1.125rem);
+  line-height: 1.4;
+  color: var(--rt-text-2);
+}
+
+.solo-hint__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  margin-top: clamp(14px, 3cqmin, 22px);
+  padding: 0 18px;
+  border: 1px solid var(--rt-border-strong);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--rt-text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--rt-fast), border-color var(--rt-fast),
+    color var(--rt-fast);
+}
+
+.solo-hint__button:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.solo-hint__button[data-copied] {
+  border-color: rgba(63, 191, 134, 0.55);
+  color: var(--rt-success);
+}
+
+.solo-hint__button svg {
+  stroke-width: 2;
+}
+
+/* Short canvases (landscape phones, tiny windows): the avatar alone is enough */
+@container (max-height: 400px) {
+  .solo-hint__text {
+    display: none;
+  }
+}
+
+@container (max-height: 330px) {
+  .solo-hint {
+    display: none;
+  }
+}
+
+/* Full-room states (ended / removed / error): one people illustration */
+.room-overlay-screen {
+  gap: 18px;
+}
+
+.room-overlay-screen__title {
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------
+   Responsive
+   ------------------------------------------------------------------ */
+
+@media (min-width: 1024px) {
+  /* The docked participants panel owns the right edge; the header and dock
+     centre in what is left. */
+  .room--panel .room__header,
+  .room--panel .room__notices {
+    padding-right: calc(360px + 20px);
+  }
+
+  .room--panel .room__controls {
+    padding-right: calc(360px + 12px);
+  }
+}
+
+@media (max-width: 860px) {
+  .room__header {
+    padding: 10px 14px 6px;
+  }
+
+  .room__stage {
+    padding: 6px 12px 4px;
+  }
+}
+
+@media (max-width: 640px) {
+  .room {
+    --rt-dot-size: 20px;
+  }
+
+  .room__header {
+    padding: 10px 12px 4px;
+    gap: 8px;
+  }
+
+  .room__brand .brand__name {
+    font-size: 1.05rem;
+  }
+
+  .room__info {
+    order: 3;
+    flex: 1 1 100%;
+    gap: 8px;
+    font-size: 0.72rem;
+  }
+
+  .room__header-button {
+    height: 34px;
+    min-width: 34px;
+    padding: 0 10px;
+  }
+
+  .room__header-button--wide .room__header-button-label {
+    display: none;
+  }
+
+  .room__stage {
+    padding: 6px 10px 4px;
+  }
+
+  .room__notices {
+    padding: 0 10px;
+  }
+
+  .room__controls {
+    padding: 8px 8px calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .dock {
+    gap: 4px;
+    padding: 5px;
+    border-radius: 22px;
+  }
+
+  .dock__group {
+    gap: 4px;
+  }
+
+  .dock__group--tools {
+    padding: 0 4px;
+  }
+
+  .control {
+    height: 44px;
+  }
+
+  .control--tool {
+    width: 44px;
+  }
+
+  .control--media {
+    width: 46px;
+  }
+
+  .control--end {
+    width: 54px;
+  }
+
+  .control__caret {
+    width: 22px;
+    height: 44px;
+  }
+
+  /* Lower-priority controls fold into the More menu. */
+  .control--secondary,
+  .room-popover-anchor--secondary {
+    display: none;
+  }
+
+  .room-menu__mobile-only {
+    display: block;
+  }
+
+  .room-menu__item--mobile {
+    display: flex;
+  }
+
+  .room-popover--start {
+    left: -8px;
+  }
+
+  .p-status {
+    height: 26px;
+    padding: 0 10px;
+    font-size: 0.6875rem;
+  }
+
+  .tile__footer {
+    padding: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .p-avatar,
+  .solo-hint,
+  .room-notice,
+  .room__chip--live::before,
+  .room__connection::before,
+  .control,
+  .control__caret,
+  .control--tool::after,
+  .p-status {
+    animation: none;
+    transition: none;
+  }
+
+  .control__spinner,
+  .room-notice__spinner {
+    animation-duration: 2s;
+  }
+}

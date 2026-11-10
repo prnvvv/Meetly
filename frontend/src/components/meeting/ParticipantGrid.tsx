@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { VideoTile } from "@/components/meeting/VideoTile";
 import { useElementSize } from "@/hooks/useElementSize";
 import type { RoomLayoutMode } from "@/hooks/useRoomPreferences";
@@ -16,7 +17,12 @@ export interface StageTile {
   stream: MediaStream | null;
   reactions: string[];
   isSelf: boolean;
+  /** Real uploaded profile photo, when the participant has one. */
+  imageUrl?: string | null;
 }
+
+/** Shape of a camera-off (avatar) tile when others are present. */
+const AVATAR_TILE_ASPECT = 16 / 9;
 
 interface ParticipantGridProps {
   tiles: StageTile[];
@@ -24,7 +30,8 @@ interface ParticipantGridProps {
   activeSpeakerId: number | null;
   pinnedId: number | null;
   mirroredSelf: boolean;
-  videoFit: "fill" | "fit";
+  /** Shown on the only tile while its camera is off ("waiting for others"). */
+  soloHint?: ReactNode;
   /** Hover menu rendered inside each tile. */
   renderMenu?: (tile: StageTile) => ReactNode;
 }
@@ -56,11 +63,27 @@ export function ParticipantGrid({
   activeSpeakerId,
   pinnedId,
   mirroredSelf,
-  videoFit,
   renderMenu,
+  soloHint,
 }: ParticipantGridProps) {
   const [stageRef, size] = useElementSize<HTMLDivElement>();
   const [page, setPage] = useState(0);
+  // Real video aspect ratio per participant, reported by each tile. Updated
+  // only when a value actually changes, so layout never causes render loops.
+  const [aspects, setAspects] = useState<Record<number, number>>({});
+  const reportAspect = useCallback((id: number, aspect: number | null) => {
+    setAspects((current) => {
+      const previous = current[id];
+      if (aspect === null) {
+        if (previous === undefined) return current;
+        const rest = { ...current };
+        delete rest[id];
+        return rest;
+      }
+      if (previous !== undefined && Math.abs(previous - aspect) < 0.001) return current;
+      return { ...current, [id]: aspect };
+    });
+  }, []);
 
   const mode: "gallery" | "speaker" = useMemo(() => {
     if (layout === "gallery") return "gallery";
@@ -80,9 +103,16 @@ export function ParticipantGrid({
   const focusedId = focused?.id ?? null;
   const filmstrip = focused ? tiles.filter((tile) => tile.id !== focusedId) : tiles;
 
+  // Camera-off tiles in a multi-person room are landscape cards; alone, the
+  // single tile is the waiting canvas and fills the stage.
+  const fallbackAspect = tiles.length > 1 ? AVATAR_TILE_ASPECT : null;
+
   const fit = useMemo(
-    () => fitGrid(tiles.length, size.width, size.height),
-    [tiles.length, size.width, size.height]
+    () =>
+      fitGrid(tiles.length, size.width, size.height, {
+        aspects: tiles.map((tile) => aspects[tile.id] ?? fallbackAspect),
+      }),
+    [tiles, aspects, fallbackAspect, size.width, size.height]
   );
 
   // The page index is clamped on read, so shrinking tile counts can never
@@ -94,7 +124,7 @@ export function ParticipantGrid({
   const renderTile = (tile: StageTile, extraClass?: string) => (
     <VideoTile
       key={tile.id}
-      name={tile.isSelf ? `${tile.name} (You)` : tile.name}
+      name={tile.isSelf ? (tile.isHost ? "You (Host)" : "You") : tile.name}
       isMuted={tile.isMuted}
       isHost={tile.isHost}
       speaking={tile.id === activeSpeakerId}
@@ -102,11 +132,15 @@ export function ParticipantGrid({
       isVideoOn={tile.isVideoOn}
       videoMuted={tile.isSelf}
       mirrored={tile.isSelf && mirroredSelf}
-      fit={videoFit}
       isPinned={tile.id === pinnedId}
       reactions={tile.reactions}
+      avatarVariant={tile.id > 0 ? tile.id : undefined}
+      avatarImageUrl={tile.imageUrl}
+      onAspectChange={(aspect) => reportAspect(tile.id, aspect)}
+      fallbackAspect={fallbackAspect ?? undefined}
+      placeholderExtra={tiles.length === 1 ? soloHint : undefined}
       menu={renderMenu?.(tile)}
-      className={extraClass}
+      className={cx(extraClass, tiles.length === 1 && "tile--solo")}
     />
   );
 
@@ -176,7 +210,7 @@ export function ParticipantGrid({
             disabled={safePage === 0}
             onClick={() => setPage((current) => Math.max(0, current - 1))}
           >
-            ‹
+            <ChevronLeftIcon size={16} />
           </button>
           <span className="stage__pager-label">
             {safePage + 1} / {fit.pageCount}
@@ -188,7 +222,7 @@ export function ParticipantGrid({
             disabled={safePage >= fit.pageCount - 1}
             onClick={() => setPage((current) => current + 1)}
           >
-            ›
+            <ChevronRightIcon size={16} />
           </button>
         </div>
       ) : null}

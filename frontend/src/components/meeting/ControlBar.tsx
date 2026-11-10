@@ -10,7 +10,7 @@ import {
   MicIcon,
   MicOffIcon,
   MoreHorizontalIcon,
-  PhoneOffIcon,
+  EndCallIcon,
   SettingsIcon,
   ShieldIcon,
   SmileIcon,
@@ -20,6 +20,11 @@ import {
   VideoOffIcon,
   ChevronUpIcon,
 } from "@/components/icons";
+import { EndMeetingButton } from "@/components/meeting/EndMeetingButton";
+import {
+  CONTROL_ICON_SIZE,
+  MediaControlButton,
+} from "@/components/meeting/MediaControlButton";
 import {
   RoomMenuDivider,
   RoomMenuItem,
@@ -28,7 +33,6 @@ import {
 } from "@/components/meeting/RoomPopover";
 import { ReactionPicker } from "@/components/meeting/ReactionPicker";
 import type { RoomLayoutMode } from "@/hooks/useRoomPreferences";
-import { cx } from "@/lib/utils";
 
 export type SettingsTab = "video" | "audio" | "meeting" | "general";
 
@@ -50,6 +54,10 @@ interface ControlBarProps {
   audioAvailable: boolean;
   /** False when the camera could not be acquired (blocked or missing). */
   videoAvailable: boolean;
+  /** Microphone permission / capture request in flight. */
+  audioPending?: boolean;
+  /** Camera permission / capture request in flight. */
+  videoPending?: boolean;
   participantsOpen: boolean;
   isHost: boolean;
   layout: RoomLayoutMode;
@@ -87,6 +95,8 @@ export function ControlBar({
   audioJoined,
   audioAvailable,
   videoAvailable,
+  audioPending = false,
+  videoPending = false,
   participantsOpen,
   isHost,
   layout,
@@ -106,7 +116,7 @@ export function ControlBar({
   onLeave,
 }: ControlBarProps) {
   const micLive = audioJoined && audioAvailable;
-  const micIcon = micLive && !isMuted ? <MicIcon size={20} /> : <MicOffIcon size={20} />;
+  const micIcon = micLive && !isMuted ? <MicIcon size={CONTROL_ICON_SIZE} /> : <MicOffIcon size={CONTROL_ICON_SIZE} />;
   const audioName = !audioJoined
     ? "Join Audio"
     : isMuted
@@ -119,19 +129,20 @@ export function ControlBar({
 
   return (
     <div className="room__controls" role="toolbar" aria-label="Meeting controls">
-      <div className="room__controls-group">
+      <div className="dock">
+      <div className="dock__group dock__group--media">
         <RoomPopover
           label="Audio options"
           align="start"
           trigger={(triggerProps) => (
             <>
-              <button
-                type="button"
-                className={cx(
-                  "control",
-                  !micLive && "control--off",
-                  !audioAvailable && "control--unavailable"
-                )}
+              <MediaControlButton
+                variant="media"
+                tone={micLive && !isMuted ? "active" : "off"}
+                unavailable={!audioAvailable}
+                busy={audioPending}
+                icon={micIcon}
+                label={audioVisible}
                 aria-pressed={audioJoined ? isMuted : undefined}
                 aria-label={audioName}
                 title={
@@ -142,10 +153,7 @@ export function ControlBar({
                       : "Microphone unavailable — click to retry"
                 }
                 onClick={onToggleMute}
-              >
-                <span className="control__button">{micIcon}</span>
-                <span className="control__label">{audioVisible}</span>
-              </button>
+              />
               <button
                 type="button"
                 className="control__caret"
@@ -198,13 +206,19 @@ export function ControlBar({
           align="start"
           trigger={(triggerProps) => (
             <>
-              <button
-                type="button"
-                className={cx(
-                  "control",
-                  !videoLive && "control--off",
-                  !videoAvailable && "control--unavailable"
-                )}
+              <MediaControlButton
+                variant="media"
+                tone={videoLive ? "active" : "off"}
+                unavailable={!videoAvailable}
+                busy={videoPending}
+                icon={
+                  videoLive ? (
+                    <VideoIcon size={CONTROL_ICON_SIZE} />
+                  ) : (
+                    <VideoOffIcon size={CONTROL_ICON_SIZE} />
+                  )
+                }
+                label={videoVisible}
                 aria-pressed={!isVideoOn}
                 aria-label={isVideoOn ? "Turn camera off" : "Turn camera on"}
                 title={
@@ -215,12 +229,7 @@ export function ControlBar({
                     : "Camera unavailable"
                 }
                 onClick={onToggleVideo}
-              >
-                <span className="control__button">
-                  {videoLive ? <VideoIcon size={20} /> : <VideoOffIcon size={20} />}
-                </span>
-                <span className="control__label">{videoVisible}</span>
-              </button>
+              />
               <button
                 type="button"
                 className="control__caret"
@@ -268,37 +277,34 @@ export function ControlBar({
           )}
         </RoomPopover>
 
-        <button
-          type="button"
-          className={cx("control", participantsOpen && "control--active")}
+      </div>
+
+      <div className="dock__group dock__group--tools">
+        <MediaControlButton
+          tone={participantsOpen ? "active" : "neutral"}
+          icon={<UsersIcon size={CONTROL_ICON_SIZE} />}
+          label="Participants"
           aria-pressed={participantsOpen}
           aria-label="Show participants"
           title="Participants"
           onClick={onToggleParticipants}
-        >
-          <span className="control__button">
-            <UsersIcon size={20} />
-          </span>
-          <span className="control__label">Participants</span>
-        </button>
+        />
 
         <RoomPopover
           label="Reactions"
+          className="room-popover-anchor--secondary"
           trigger={(triggerProps) => (
-            <button
-              type="button"
-              className="control"
+            <MediaControlButton
+              secondary
+              tone={triggerProps.open ? "active" : "neutral"}
+              icon={<SmileIcon size={CONTROL_ICON_SIZE} />}
+              label="React"
               aria-label="Open reactions"
               title="React"
               aria-expanded={triggerProps["aria-expanded"]}
               aria-haspopup={triggerProps["aria-haspopup"]}
               onClick={triggerProps.onToggle}
-            >
-              <span className="control__button">
-                <SmileIcon size={20} />
-              </span>
-              <span className="control__label">React</span>
-            </button>
+            />
           )}
         >
           {(close) => (
@@ -314,21 +320,19 @@ export function ControlBar({
         {isHost ? (
           <RoomPopover
             label="Host tools"
+            className="room-popover-anchor--secondary"
             trigger={(triggerProps) => (
-              <button
-                type="button"
-                className="control"
+              <MediaControlButton
+                secondary
+                tone={triggerProps.open ? "active" : "neutral"}
+                icon={<ShieldIcon size={CONTROL_ICON_SIZE} />}
+                label="Host Tools"
                 aria-label="Open host tools"
                 title="Host Tools"
                 aria-expanded={triggerProps["aria-expanded"]}
                 aria-haspopup={triggerProps["aria-haspopup"]}
                 onClick={triggerProps.onToggle}
-              >
-                <span className="control__button">
-                  <ShieldIcon size={20} />
-                </span>
-                <span className="control__label">Host Tools</span>
-              </button>
+              />
             )}
           >
             {(close) => (
@@ -355,7 +359,7 @@ export function ControlBar({
                 <RoomMenuDivider />
                 <RoomMenuItem
                   danger
-                  icon={<PhoneOffIcon size={15} />}
+                  icon={<EndCallIcon size={15} />}
                   onSelect={() => {
                     close();
                     onEndMeeting?.();
@@ -372,24 +376,45 @@ export function ControlBar({
           label="More options"
           align="end"
           trigger={(triggerProps) => (
-            <button
-              type="button"
-              className="control"
+            <MediaControlButton
+              tone={triggerProps.open ? "active" : "neutral"}
+              icon={<MoreHorizontalIcon size={CONTROL_ICON_SIZE} />}
+              label="More"
               aria-label="Open more options"
               title="More"
               aria-expanded={triggerProps["aria-expanded"]}
               aria-haspopup={triggerProps["aria-haspopup"]}
               onClick={triggerProps.onToggle}
-            >
-              <span className="control__button">
-                <MoreHorizontalIcon size={20} />
-              </span>
-              <span className="control__label">More</span>
-            </button>
+            />
           )}
         >
           {(close) => (
             <>
+              <div className="room-menu__mobile-only">
+                <RoomMenuLabel>React</RoomMenuLabel>
+                <ReactionPicker
+                  onReact={(emoji) => {
+                    onReact(emoji);
+                    close();
+                  }}
+                />
+                {isHost ? (
+                  <>
+                    <RoomMenuDivider />
+                    <RoomMenuLabel>Host controls</RoomMenuLabel>
+                    <RoomMenuItem
+                      icon={<MicOffIcon size={15} />}
+                      onSelect={() => {
+                        close();
+                        onMuteAll?.();
+                      }}
+                    >
+                      Mute everyone
+                    </RoomMenuItem>
+                  </>
+                ) : null}
+                <RoomMenuDivider />
+              </div>
               <RoomMenuItem
                 icon={<SettingsIcon size={15} />}
                 onSelect={() => {
@@ -452,23 +477,27 @@ export function ControlBar({
               <RoomMenuItem danger onSelect={onLeave}>
                 Leave meeting
               </RoomMenuItem>
+              {isHost ? (
+                <RoomMenuItem
+                  danger
+                  className="room-menu__item--mobile"
+                  onSelect={() => {
+                    close();
+                    onEndMeeting?.();
+                  }}
+                >
+                  End meeting for all
+                </RoomMenuItem>
+              ) : null}
             </>
           )}
         </RoomPopover>
       </div>
 
-      <button
-        type="button"
-        className="control control--danger room__controls-end"
-        aria-label="Leave meeting"
-        title="Leave"
-        onClick={onLeave}
-      >
-        <span className="control__button">
-          <PhoneOffIcon size={20} />
-        </span>
-        <span className="control__label">End</span>
-      </button>
+      <div className="dock__end">
+        <EndMeetingButton onEndMeeting={onEndMeeting} onLeave={onLeave} />
+      </div>
+      </div>
     </div>
   );
 }

@@ -23,6 +23,14 @@ export interface FitOptions {
   minCellHeight?: number;
   /** Widest grid we ever build, even if space allows more. */
   maxColumns?: number;
+  /**
+   * Real width / height of each tile's video, in tile order. `null` (or a
+   * missing entry) means the tile has no video and simply fills its cell, as
+   * an avatar does. When given, the column count is chosen to maximise the
+   * area the tiles actually cover, so a 4:3 webcam and a portrait phone are
+   * laid out for their true shapes instead of an assumed 16:9.
+   */
+  aspects?: Array<number | null | undefined>;
 }
 
 const DEFAULTS = {
@@ -69,6 +77,7 @@ export function fitGrid(
   const preferred = columnsForCount(total);
   const searchCeiling = Math.min(maxColumns, capColumns, total);
 
+  const aspects = options.aspects;
   let best: { columns: number; rows: number; score: number } | null = null;
 
   for (let columns = 1; columns <= searchCeiling; columns += 1) {
@@ -79,12 +88,28 @@ export function fitGrid(
     const cellHeight = (height - gap * (rows - 1)) / rows;
     if (cellWidth <= 0 || cellHeight <= 0) continue;
 
-    const aspectError = Math.abs(
-      Math.log(cellWidth / cellHeight / TARGET_ASPECT)
-    );
-    const waste = columns * rows - total;
-    const score =
-      aspectError + waste * 0.08 + Math.abs(columns - preferred) * 0.05;
+    let score: number;
+    if (aspects) {
+      // Maximise covered area (lower score is better). Each video tile is the
+      // largest box of its own aspect that fits the cell.
+      let covered = 0;
+      for (let index = 0; index < total; index += 1) {
+        const ratio = aspects[index];
+        if (ratio && Number.isFinite(ratio) && ratio > 0) {
+          const w = Math.min(cellWidth, cellHeight * ratio);
+          covered += w * (w / ratio);
+        } else {
+          covered += cellWidth * cellHeight;
+        }
+      }
+      score = -covered / (width * height) + Math.abs(columns - preferred) * 0.01;
+    } else {
+      const aspectError = Math.abs(
+        Math.log(cellWidth / cellHeight / TARGET_ASPECT)
+      );
+      const waste = columns * rows - total;
+      score = aspectError + waste * 0.08 + Math.abs(columns - preferred) * 0.05;
+    }
 
     if (!best || score < best.score) best = { columns, rows, score };
   }
