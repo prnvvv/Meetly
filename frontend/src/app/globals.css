@@ -94,6 +94,12 @@
   --content-max: 1480px;
 
   /* Motion */
+  /* Dotted-paper texture shared by the app shell and the meeting room.
+     Themes recolour it by overriding --pattern-dot. */
+  --pattern-dot: #e6e6e6;
+  --pattern-dot-size: 22px;
+  --pattern-dots: radial-gradient(var(--pattern-dot) 1px, transparent 1px);
+
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --transition-fast: 150ms var(--ease-out);
   --transition: 220ms var(--ease-out);
