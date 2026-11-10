@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -11,9 +12,19 @@ import {
 } from "react";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { useToast } from "@/components/common/ToastProvider";
-import { AlertIcon, MicIcon, MicOffIcon, PinIcon, XIcon } from "@/components/icons";
+import { HeadingBloom } from "@/components/common/HeadingBloom";
+import {
+  AlertIcon,
+  CheckIcon,
+  LinkIcon,
+  MicIcon,
+  MicOffIcon,
+  PinIcon,
+  XIcon,
+} from "@/components/icons";
 import { ControlBar, type SettingsTab } from "@/components/meeting/ControlBar";
 import { MeetingSettingsDialog } from "@/components/meeting/MeetingSettingsDialog";
+import { ParticipantAvatar } from "@/components/meeting/ParticipantAvatar";
 import { MeetingTopBar } from "@/components/meeting/MeetingTopBar";
 import { ParticipantGrid, type StageTile } from "@/components/meeting/ParticipantGrid";
 import { ParticipantsPanel } from "@/components/meeting/ParticipantsPanel";
@@ -36,6 +47,9 @@ import {
   formatTime,
 } from "@/lib/utils";
 import type { ParticipantSummary } from "@/types/participant";
+
+// Dark dotted room theme; loaded after the shared stylesheets so it wins the cascade.
+import "@/styles/room-theme.css";
 
 /** sessionStorage is not observable; re-read on any re-render instead. */
 const subscribeToSessionName = () => () => {};
@@ -63,22 +77,32 @@ function isTypingTarget(target: EventTarget | null): boolean {
   );
 }
 
+/** Full-room state (ended, removed, error): one illustration, one heading, one action. */
 function RoomScreen({
   title,
   body,
+  avatar,
   children,
 }: {
   title: string;
   body: string;
+  /** Which of the existing people illustrations to show (wraps around). */
+  avatar: number;
   children: React.ReactNode;
 }) {
+  const words = title.split(" ");
+  const last = words.pop();
   return (
     <div className="room room-loading">
       <div className="room-overlay-screen">
-        <span className="room-overlay-screen__icon room-overlay-screen__icon--danger">
-          <AlertIcon size={24} />
-        </span>
-        <div className="room-overlay-screen__title">{title}</div>
+        <ParticipantAvatar name="Meetly" variant={avatar} size={120} accent={false} />
+        <h1 className="room-overlay-screen__title">
+          {words.join(" ")}{" "}
+          <span className="relative inline-block">
+            {last}
+            <HeadingBloom />
+          </span>
+        </h1>
         <div className="room-overlay-screen__text">{body}</div>
         {children}
       </div>
@@ -92,6 +116,9 @@ export default function MeetingRoomPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useCurrentUser();
+  const { user: clerkUser } = useUser();
+  // Only a photo the user actually uploaded; Clerk's generated default is skipped.
+  const localImageUrl = clerkUser?.hasImage ? clerkUser.imageUrl : null;
   const { meeting, participants, loading, error, notFound, refresh } =
     useMeetingRoom(meetingId);
 
@@ -155,8 +182,16 @@ export default function MeetingRoomPage() {
     remoteStreams: session.remoteStreams,
   });
 
+  const [inviteCopied, setInviteCopied] = useState(false);
+  useEffect(() => {
+    if (!inviteCopied) return;
+    const timer = window.setTimeout(() => setInviteCopied(false), 2200);
+    return () => window.clearTimeout(timer);
+  }, [inviteCopied]);
+
   const copyInvite = async () => {
     const ok = await copyText(buildInviteUrl(meetingId));
+    setInviteCopied(ok);
     toast(
       ok ? "Invite link copied" : "Could not copy the invite link",
       ok ? "success" : "error"
@@ -265,6 +300,7 @@ export default function MeetingRoomPage() {
   if (notFound) {
     return (
       <RoomScreen
+        avatar={0}
         title="Meeting not found"
         body="We could not find that meeting. Check the link and try again."
       >
@@ -277,7 +313,7 @@ export default function MeetingRoomPage() {
 
   if (error) {
     return (
-      <RoomScreen title="Could not open the meeting" body={error}>
+      <RoomScreen avatar={1} title="Could not open the meeting" body={error}>
         <button
           type="button"
           className="btn btn--primary"
@@ -295,6 +331,7 @@ export default function MeetingRoomPage() {
   if (meeting && (meeting.status === "ended" || meeting.status === "cancelled")) {
     return (
       <RoomScreen
+        avatar={2}
         title="This meeting has ended"
         body={`${meeting.title} is no longer running.`}
       >
@@ -316,6 +353,7 @@ export default function MeetingRoomPage() {
   if (session.phase === "ended") {
     return (
       <RoomScreen
+        avatar={2}
         title="This meeting has ended"
         body="The meeting is no longer running."
       >
@@ -329,6 +367,7 @@ export default function MeetingRoomPage() {
   if (session.phase === "removed") {
     return (
       <RoomScreen
+        avatar={1}
         title="You were removed"
         body="The host removed you from this meeting."
       >
@@ -342,6 +381,7 @@ export default function MeetingRoomPage() {
   if (session.phase === "rejected" || session.phase === "failed") {
     return (
       <RoomScreen
+        avatar={0}
         title="Could not join the meeting"
         body={
           session.failure ?? "Something went wrong while joining the meeting."
@@ -367,6 +407,7 @@ export default function MeetingRoomPage() {
   ) {
     return (
       <RoomScreen
+        avatar={1}
         title="Could not connect"
         body="The meeting service is unreachable. Check your connection and try again."
       >
@@ -396,6 +437,15 @@ export default function MeetingRoomPage() {
   const scheduledNotice = meeting.status === "scheduled";
   const connectionLost =
     session.phase === "joined" && session.connection === "disconnected";
+  const reconnecting =
+    session.phase === "joined" && session.connection === "reconnecting";
+  const audioVideoOffNotice =
+    joined &&
+    roster.length > 1 && // alone, the waiting canvas already says what to do
+    !session.audioJoined &&
+    !session.isVideoOn &&
+    !session.mediaError;
+
 
   const selfKey = session.selfId ?? -1;
   const tiles: StageTile[] = [
@@ -408,6 +458,7 @@ export default function MeetingRoomPage() {
       stream: session.localStream,
       reactions: reactionsByParticipant.get(selfKey) ?? [],
       isSelf: true,
+      imageUrl: localImageUrl,
     },
     ...others.map((participant) => ({
       id: participant.id,
@@ -467,13 +518,17 @@ export default function MeetingRoomPage() {
   );
 
   return (
-    <div className={cx("room", panelOpen && "room--panel")} ref={roomRef}>
+    <div
+      className={cx("room", panelOpen && "room--panel")}
+      ref={roomRef}
+    >
       <span className="visually-hidden" role="status" aria-live="polite">
         {`${connectionLabel(session.connection)}. ${roster.length} in the meeting.`}
       </span>
 
       <MeetingTopBar
         title={meeting.title}
+        hostName={roster.find((participant) => participant.is_host)?.display_name}
         meetingId={meeting.meeting_id}
         connection={session.connection}
         participantCount={roster.length}
@@ -486,42 +541,51 @@ export default function MeetingRoomPage() {
         onToggleFullscreen={toggleFullscreen}
       />
 
-      {scheduledNotice ? (
-        <div className="room-notice">
-          <AlertIcon size={16} />
-          Scheduled for {formatDateShort(meeting.start_time)} at{" "}
-          {formatTime(meeting.start_time)}
-        </div>
-      ) : null}
+      <div className="room__notices">
+        {scheduledNotice ? (
+          <div className="room-notice">
+            <AlertIcon size={16} />
+            Scheduled for {formatDateShort(meeting.start_time)} at{" "}
+            {formatTime(meeting.start_time)}
+          </div>
+        ) : null}
 
-      {connectionLost ? (
-        <div className="room-notice room-notice--error">
-          <AlertIcon size={16} />
-          Connection lost.
-          <button
-            type="button"
-            className="room__chip room-notice__action"
-            onClick={session.reconnect}
-          >
-            Reconnect
-          </button>
-        </div>
-      ) : null}
+        {connectionLost ? (
+          <div className="room-notice room-notice--error">
+            <AlertIcon size={16} />
+            Connection lost.
+            <button
+              type="button"
+              className="room__chip room-notice__action"
+              onClick={session.reconnect}
+            >
+              Reconnect
+            </button>
+          </div>
+        ) : null}
 
-      {session.mediaError ? (
-        <div className="room-notice">
-          <AlertIcon size={16} />
-          {session.mediaError}
-        </div>
-      ) : null}
+        {reconnecting ? (
+          <div className="room-notice room-notice--warning" role="status">
+            <span className="room-notice__spinner" aria-hidden="true" />
+            Reconnecting…
+          </div>
+        ) : null}
 
-      {joined && !session.audioJoined && !session.isVideoOn ? (
-        <div className="room-notice room-notice--info">
-          <MicOffIcon size={16} />
-          Your microphone and camera are off. Click Join Audio or Start Video
-          when you&apos;re ready.
-        </div>
-      ) : null}
+        {session.mediaError ? (
+          <div className="room-notice room-notice--warning" role="status">
+            <AlertIcon size={16} />
+            {session.mediaError}
+          </div>
+        ) : null}
+
+        {audioVideoOffNotice ? (
+          <div className="room-notice room-notice--info">
+            <MicOffIcon size={16} />
+            Your microphone and camera are off. Click Join Audio or Start Video
+            when you&apos;re ready.
+          </div>
+        ) : null}
+      </div>
 
       <main className="room__stage">
         <ParticipantGrid
@@ -530,8 +594,24 @@ export default function MeetingRoomPage() {
           activeSpeakerId={activeSpeakerId}
           pinnedId={pinnedId}
           mirroredSelf={prefs.preferences.mirrorSelf}
-          videoFit={prefs.preferences.videoFit}
           renderMenu={renderTileMenu}
+          soloHint={
+            <div className="solo-hint">
+              <h2 className="solo-hint__title">Waiting for others to join</h2>
+              <p className="solo-hint__text">Share the invite link to get started</p>
+              <button
+                type="button"
+                className="solo-hint__button"
+                data-copied={inviteCopied || undefined}
+                onClick={() => void copyInvite()}
+              >
+                {inviteCopied ? <CheckIcon size={16} /> : <LinkIcon size={16} />}
+                <span aria-live="polite">
+                  {inviteCopied ? "Copied" : "Copy invite link"}
+                </span>
+              </button>
+            </div>
+          }
         />
       </main>
 
@@ -540,6 +620,8 @@ export default function MeetingRoomPage() {
         isVideoOn={session.isVideoOn}
         audioJoined={session.audioJoined}
         audioAvailable={session.audioAvailable}
+        audioPending={session.audioPending}
+        videoPending={session.videoPending}
         videoAvailable={session.videoAvailable}
         participantsOpen={panelOpen}
         isHost={session.isHost}
@@ -571,7 +653,6 @@ export default function MeetingRoomPage() {
         fullscreenSupported={fullscreenSupported}
         onSetLayout={prefs.setLayout}
         onSetMirrorSelf={prefs.setMirrorSelf}
-        onSetVideoFit={prefs.setVideoFit}
         onToggleFullscreen={toggleFullscreen}
         onClose={() => setSettingsTab(null)}
       />
