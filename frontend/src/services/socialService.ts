@@ -80,3 +80,15 @@ export const acceptInvitation = (id: number) =>
 
 export const declineInvitation = (id: number) =>
   apiRequest<InvitationAccepted>(`/api/invitations/${id}/decline`, { method: "POST" });
+
+export interface MeetingInvitationRow {
+  id: number;
+  status: "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED" | "EXPIRED";
+  created_at: string;
+  responded_at: string | null;
+  person: { user_id: number; username: string; display_name: string };
+}
+
+/** Invitations for a meeting: the host sees all of them, a participant only their own. */
+export const listMeetingInvitations = (meetingId: string) =>
+  apiRequest<MeetingInvitationRow[]>(`/api/meetings/${enc(meetingId)}/invitations`);

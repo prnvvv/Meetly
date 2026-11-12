@@ -28,6 +28,7 @@ import { MeetingSettingsDialog } from "@/components/meeting/MeetingSettingsDialo
 import { ParticipantAvatar } from "@/components/meeting/ParticipantAvatar";
 import { MeetingTopBar } from "@/components/meeting/MeetingTopBar";
 import { ParticipantGrid, type StageTile } from "@/components/meeting/ParticipantGrid";
+import { InvitePeopleDialog } from "@/components/meeting/InvitePeopleDialog";
 import { ParticipantsPanel } from "@/components/meeting/ParticipantsPanel";
 import { WaitingRoomScreen } from "@/components/meeting/WaitingRoomScreen";
 import { useActiveSpeakerId } from "@/hooks/useActiveSpeaker";
@@ -125,6 +126,7 @@ export default function MeetingRoomPage() {
     useMeetingRoom(meetingId);
 
   const [panelOpen, setPanelOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [pinnedId, setPinnedId] = useState<number | null>(null);
@@ -565,6 +567,7 @@ export default function MeetingRoomPage() {
         fullscreenSupported={fullscreenSupported}
         onToggleParticipants={toggleParticipants}
         onCopyInvite={() => void copyInvite()}
+        onInvitePeople={() => setInviteOpen(true)}
         onToggleFullscreen={toggleFullscreen}
       />
 
@@ -712,6 +715,13 @@ export default function MeetingRoomPage() {
           />
         </>
       ) : null}
+
+      <InvitePeopleDialog
+        open={inviteOpen}
+        meetingId={meetingId}
+        waitingRoomEnabled={session.waitingRoom.enabled}
+        onClose={() => setInviteOpen(false)}
+      />
 
       <ConfirmDialog
         open={confirmEnd}

@@ -586,3 +586,98 @@ def test_password_still_checked_before_the_lobby(client, stack):
     ws.send_json({"type": "join", "meeting_id": meeting, "display_name": "G", "token": token("guest")})
     assert until(ws, "error")["code"] == "UNAUTHORIZED_ACTION"
     assert entry_state(client, meeting, "guest") is None
+
+
+# ---- invitations never bypass the meeting's own rules --------------------------------------------
+
+
+def _friends(client, a, b):
+    from tests.test_social import make_friends
+
+    return make_friends(client, a, b)
+
+
+def test_an_accepted_invitation_still_goes_through_the_waiting_room(client, stack):
+    _, friend = _friends(client, "host", "friend")
+    meeting = new_meeting(client)
+    host_in(stack, client, meeting)
+    assert client.post(f"/api/meetings/{meeting}/invitations", json={"user_ids": [friend]}, headers=H("host")).status_code == 200
+    inv = client.get("/api/invitations", headers=H("friend")).json()[0]
+    assert client.post(f"/api/invitations/{inv['id']}/accept", headers=H("friend")).json()["joinable_now"] is True
+    guest = connect(stack, client, "friend", meeting)
+    assert until(guest, "waiting")["type"] == "waiting"  # invited and accepted, but still must be admitted
+    assert entry_state(client, meeting, "friend") == "WAITING"
+
+
+def test_an_invitation_does_not_replace_the_meeting_password(client, stack):
+    _, friend = _friends(client, "host", "friend")
+    meeting = new_meeting(client, waiting=None, password="open-sesame")
+    client.post(f"/api/meetings/{meeting}/invitations", json={"user_ids": [friend]}, headers=H("host"))
+    inv = client.get("/api/invitations", headers=H("friend")).json()[0]
+    assert inv["meeting"]["has_password"] is True
+    client.post(f"/api/invitations/{inv['id']}/accept", headers=H("friend"))
+    ws = stack.enter_context(client.websocket_connect(f"/ws/meetings/{meeting}"))
+    ws.send_json({"type": "join", "meeting_id": meeting, "display_name": "F", "token": token("friend")})
+    assert until(ws, "error")["message"] == "Incorrect meeting password"
+    assert client.post(f"/api/meetings/{meeting}/join", json={"display_name": "F"}, headers=H("friend")).status_code == 403
+
+
+# ---- more waiting-room edge cases -----------------------------------------------------------------
+
+
+def test_the_lobby_survives_the_host_disconnecting_and_returning(client, stack):
+    meeting = new_meeting(client)
+    host = host_in(stack, client, meeting)
+    uid(client, "guest")
+    guest = connect(stack, client, "guest", meeting, "Gina")
+    until(guest, "waiting")
+    until(host, "waiting_room_updated")
+    host.close()  # the host drops while someone is waiting
+    quiet(guest)  # the guest simply keeps waiting; nothing is decided
+    assert entry_state(client, meeting, "guest") == "WAITING"
+    host2 = connect(stack, client, "host", meeting)
+    until(host2, "joined")
+    assert [e["display_name"] for e in until(host2, "waiting_room_updated")["entries"]] == ["Gina"]
+    act(client, meeting, wait_room(client, meeting)["entries"][0]["id"], "admit")
+    assert until(guest, "admitted")
+
+
+def test_joining_an_ended_meeting_is_refused_before_any_waiting(client, stack):
+    meeting = new_meeting(client)
+    uid(client, "guest")
+    assert client.delete(f"/api/meetings/{meeting}", headers=H("host")).status_code == 200
+    ws = connect(stack, client, "guest", meeting)
+    assert until(ws, "error")["code"] == "MEETING_ENDED"
+    assert entry_state(client, meeting, "guest") is None
+
+
+def test_a_meeting_that_has_not_started_cannot_be_joined_so_nobody_waits(client, stack):
+    from datetime import datetime, timedelta, timezone
+
+    when = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
+    r = client.post("/api/schedules", json={"title": "Later", "start_time": when, "duration": 30,
+                                            "settings": {"waitingRoom": True}}, headers=H("host"))
+    meeting = r.json()["meeting_id"]
+    uid(client, "guest")
+    ws = connect(stack, client, "guest", meeting)
+    assert until(ws, "error")["message"] == "Meeting is not joinable"
+    assert entry_state(client, meeting, "guest") is None
+
+
+def test_the_host_admits_someone_who_is_reconnecting(client, stack):
+    meeting = new_meeting(client)
+    host = host_in(stack, client, meeting)
+    uid(client, "guest")
+    first = connect(stack, client, "guest", meeting)
+    until(first, "waiting")
+    until(host, "waiting_room_updated")
+    first.close()  # the guest drops (page reload) ...
+    until(host, "waiting_room_updated")
+    second = connect(stack, client, "guest", meeting)  # ... and is back, waiting again
+    until(second, "waiting")
+    eid = wait_room(client, meeting)["entries"][0]["id"]
+    act(client, meeting, eid, "admit")  # the host admits while the new socket is connected
+    assert until(second, "admitted")
+    send_join(second, "guest", meeting)
+    assert until(second, "joined")
+    assert entry_state(client, meeting, "guest") == "JOINED"

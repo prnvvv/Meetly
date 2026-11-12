@@ -4,6 +4,7 @@ import {
   CopyIcon,
   MaximizeIcon,
   MinimizeIcon,
+  PlusIcon,
   ShieldIcon,
   UsersIcon,
   VideoIcon,
@@ -26,6 +27,8 @@ interface MeetingTopBarProps {
   fullscreenSupported: boolean;
   onToggleParticipants: () => void;
   onCopyInvite: () => void;
+  /** Opens the Invite people dialog (copy link + invite friends). */
+  onInvitePeople?: () => void;
   onToggleFullscreen: () => void;
 }
 
@@ -60,6 +63,7 @@ export function MeetingTopBar({
   fullscreenSupported,
   onToggleParticipants,
   onCopyInvite,
+  onInvitePeople,
   onToggleFullscreen,
 }: MeetingTopBarProps) {
   return (
@@ -113,6 +117,19 @@ export function MeetingTopBar({
             </span>
           ) : null}
         </button>
+
+        {onInvitePeople ? (
+          <button
+            type="button"
+            className="room__header-button room__header-button--wide"
+            onClick={onInvitePeople}
+            aria-label="Invite people"
+            title="Invite people"
+          >
+            <PlusIcon size={15} />
+            <span className="room__header-button-label">Invite</span>
+          </button>
+        ) : null}
 
         <button
           type="button"
