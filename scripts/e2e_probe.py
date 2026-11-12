@@ -4,7 +4,11 @@ Exercises every REST endpoint and every WebSocket flow the frontend depends on,
 including the cases the frontend handles: invalid ids, ended meetings, host
 actions, room isolation, reconnect identity and error codes.
 
-Usage: python scripts/e2e_probe.py [base_url]
+Usage: python scripts/e2e_probe.py [base_url] [--token <jwt>]
+
+If --token is provided, it is used as a Bearer token for REST API calls
+and included in WebSocket join messages. The backend must be running in
+clerk auth mode or the token must be valid for the current configuration.
 """
 
 from __future__ import annotations
@@ -12,15 +16,10 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+import os
 
 import httpx
 import websockets
-
-BASE = (sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000").rstrip("/")
-WS_BASE = BASE.replace("http://", "ws://").replace("https://", "wss://")
-
-PASSED: list[str] = []
-FAILED: list[str] = []
 
 
 def check(name: str, condition: bool, detail: str = "") -> None:
@@ -34,6 +33,16 @@ def check(name: str, condition: bool, detail: str = "") -> None:
 
 def section(title: str) -> None:
     print(f"\n=== {title} ===")
+
+
+PASSED: list[str] = []
+FAILED: list[str] = []
+
+BASE = (sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000").rstrip("/")
+WS_BASE = BASE.replace("http://", "ws://").replace("https://", "wss://")
+AUTH_TOKEN = os.getenv("AUTH_TOKEN") or (sys.argv[2] if len(sys.argv) > 2 else "")
+
+extra_headers = {"Authorization": f"Bearer {AUTH_TOKEN}"} if AUTH_TOKEN else {}
 
 
 async def recv_until(ws, wanted: set[str], timeout: float = 5.0) -> list[dict]:
@@ -75,7 +84,7 @@ async def drain(ws, timeout: float = 0.6) -> list[dict]:
 
 
 async def main() -> int:
-    async with httpx.AsyncClient(base_url=BASE, timeout=20.0) as c:
+    async with httpx.AsyncClient(base_url=BASE, timeout=20.0, headers=extra_headers) as c:
         # ---------------------------------------------------- users
         section("GET /api/users/me")
         r = await c.get("/api/users/me")
@@ -241,7 +250,8 @@ async def main() -> int:
         url = f"{WS_BASE}/ws/meetings/{mid}"
         host = await websockets.connect(url)
         await host.send(json.dumps({"type": "join", "meeting_id": mid,
-                                    "participant_id": None, "display_name": "HostUser"}))
+                                    "participant_id": None, "display_name": "HostUser",
+                                    "token": AUTH_TOKEN}))
         msgs = await recv_until(host, {"joined", "error"})
         joined = next((m for m in msgs if m["type"] == "joined"), None)
         check("host receives joined", joined is not None, str(msgs))
@@ -250,7 +260,8 @@ async def main() -> int:
 
         guest = await websockets.connect(url)
         await guest.send(json.dumps({"type": "join", "meeting_id": mid,
-                                     "participant_id": None, "display_name": "GuestUser"}))
+                                     "participant_id": None, "display_name": "GuestUser",
+                                     "token": AUTH_TOKEN}))
         gmsgs = await recv_until(guest, {"joined", "error"})
         gjoined = next((m for m in gmsgs if m["type"] == "joined"), None)
         check("guest receives joined", gjoined is not None, str(gmsgs))
@@ -280,7 +291,7 @@ async def main() -> int:
 
         section("WebSocket: media_state propagation")
         await guest.send(json.dumps({"type": "media_state", "participant_id": guest_pid,
-                                     "is_muted": True, "is_video_on": False}))
+                                      "is_muted": True, "is_video_on": False}))
         upd = await recv_until(host, {"participant_updated", "error"})
         mu = next((m for m in upd if m["type"] == "participant_updated"), None)
         check("media_state broadcasts participant_updated", mu is not None, str(upd))
@@ -294,7 +305,7 @@ async def main() -> int:
 
         section("WebSocket: screen_share propagation")
         await guest.send(json.dumps({"type": "screen_share", "participant_id": guest_pid,
-                                     "active": True}))
+                                      "active": True}))
         upd = await recv_until(host, {"participant_updated", "error"})
         ss = next((m for m in upd if m["type"] == "participant_updated"), None)
         check("screen_share broadcasts participant_updated", ss is not None, str(upd))
@@ -303,8 +314,8 @@ async def main() -> int:
 
         section("WebSocket: signaling routing (offer/answer/ice)")
         await host.send(json.dumps({"type": "offer", "sender_id": host_pid,
-                                    "target_id": guest_pid,
-                                    "payload": {"type": "offer", "sdp": "v=0-probe"}}))
+                                      "target_id": guest_pid,
+                                      "payload": {"type": "offer", "sdp": "v=0-probe"}}))
         got = await recv_until(guest, {"offer", "error"})
         off = next((m for m in got if m["type"] == "offer"), None)
         check("offer routed to target", off is not None, str(got))
@@ -314,15 +325,15 @@ async def main() -> int:
                   off["sender_id"] == host_pid and off["target_id"] == guest_pid, str(off))
 
         await guest.send(json.dumps({"type": "answer", "sender_id": guest_pid,
-                                     "target_id": host_pid,
-                                     "payload": {"type": "answer", "sdp": "v=0-answer"}}))
+                                      "target_id": host_pid,
+                                      "payload": {"type": "answer", "sdp": "v=0-answer"}}))
         got = await recv_until(host, {"answer", "error"})
         check("answer routed back", any(m["type"] == "answer" for m in got), str(got))
 
         await host.send(json.dumps({"type": "ice_candidate", "sender_id": host_pid,
-                                    "target_id": guest_pid,
-                                    "payload": {"candidate": "c:probe", "sdpMid": "0",
-                                                "sdpMLineIndex": 0}}))
+                                      "target_id": guest_pid,
+                                      "payload": {"candidate": "c:probe", "sdpMid": "0",
+                                                  "sdpMLineIndex": 0}}))
         got = await recv_until(guest, {"ice_candidate", "error"})
         ice = next((m for m in got if m["type"] == "ice_candidate"), None)
         check("ice candidate routed", ice is not None, str(got))
@@ -332,13 +343,13 @@ async def main() -> int:
 
         section("WebSocket: spoofing is rejected")
         await guest.send(json.dumps({"type": "media_state", "participant_id": host_pid,
-                                     "is_muted": True, "is_video_on": True}))
+                                      "is_muted": True, "is_video_on": True}))
         errs = await recv_until(guest, {"error"})
         check("cannot spoof another participant_id",
               any(m["type"] == "error" and m["code"] == "UNAUTHORIZED_ACTION" for m in errs), str(errs))
 
         await guest.send(json.dumps({"type": "offer", "sender_id": host_pid,
-                                     "target_id": host_pid, "payload": {"sdp": "x"}}))
+                                      "target_id": host_pid, "payload": {"sdp": "x"}}))
         errs = await recv_until(guest, {"error"})
         check("cannot spoof signaling sender_id",
               any(m["type"] == "error" and m["code"] == "UNAUTHORIZED_ACTION" for m in errs), str(errs))
@@ -348,12 +359,13 @@ async def main() -> int:
         other_id = other.json()["meeting_id"]
         ows = await websockets.connect(f"{WS_BASE}/ws/meetings/{other_id}")
         await ows.send(json.dumps({"type": "join", "meeting_id": other_id,
-                                   "participant_id": None, "display_name": "Outsider"}))
+                                    "participant_id": None, "display_name": "Outsider",
+                                    "token": AUTH_TOKEN}))
         omsgs = await recv_until(ows, {"joined", "error"})
         ojoined = next((m for m in omsgs if m["type"] == "joined"), None)
         outsider_pid = ojoined["participant_id"] if ojoined else None
         await ows.send(json.dumps({"type": "offer", "sender_id": outsider_pid,
-                                   "target_id": guest_pid, "payload": {"sdp": "leak"}}))
+                                     "target_id": guest_pid, "payload": {"sdp": "leak"}}))
         got = await recv_until(guest, {"offer", "error"})
         check("cross-room signaling never reaches target",
               not any(m["type"] == "offer" for m in got), str(got))
@@ -361,7 +373,7 @@ async def main() -> int:
 
         section("WebSocket: host controls")
         await guest.send(json.dumps({"type": "mute_participant", "participant_id": guest_pid,
-                                     "target_id": host_pid, "is_muted": True}))
+                                      "target_id": host_pid, "is_muted": True}))
         errs = await recv_until(guest, {"error", "host_action"})
         if HOST_IS_HOST:
             acted = any(m["type"] == "host_action" for m in errs)
@@ -376,7 +388,8 @@ async def main() -> int:
         await asyncio.sleep(0.4)
         again = await websockets.connect(url)
         await again.send(json.dumps({"type": "join", "meeting_id": mid,
-                                     "participant_id": guest_pid, "display_name": "GuestUser"}))
+                                      "participant_id": guest_pid, "display_name": "GuestUser",
+                                      "token": AUTH_TOKEN}))
         rmsgs = await recv_until(again, {"joined", "error"})
         rejoined = next((m for m in rmsgs if m["type"] == "joined"), None)
         check("reconnect rejoins with the same participant id",
@@ -444,7 +457,7 @@ async def main() -> int:
             check("unknown message type gets INVALID_MESSAGE",
                   any(m["type"] == "error" and m["code"] == "INVALID_MESSAGE" for m in got), str(got))
             await w.send(json.dumps({"type": "media_state", "participant_id": 1,
-                                     "is_muted": True, "is_video_on": True}))
+                                      "is_muted": True, "is_video_on": True}))
             got = await recv_until(w, {"error"})
             check("action before join gets NOT_A_PARTICIPANT",
                   any(m["type"] == "error" and m["code"] == "NOT_A_PARTICIPANT" for m in got), str(got))
@@ -462,12 +475,14 @@ async def main() -> int:
         section("WebSocket: duplicate join on one connection is idempotent")
         w = await websockets.connect(f"{WS_BASE}/ws/meetings/{fresh_id}")
         await w.send(json.dumps({"type": "join", "meeting_id": fresh_id,
-                                 "participant_id": None, "display_name": "Duper"}))
+                                 "participant_id": None, "display_name": "Duper",
+                                 "token": AUTH_TOKEN}))
         first = await recv_until(w, {"joined"})
         j1 = next((m for m in first if m["type"] == "joined"), None)
         rows_before = (await c.get(f"/api/meetings/{fresh_id}/participants")).json()
         await w.send(json.dumps({"type": "join", "meeting_id": fresh_id,
-                                 "participant_id": j1["participant_id"], "display_name": "Duper"}))
+                                 "participant_id": j1["participant_id"], "display_name": "Duper",
+                                 "token": AUTH_TOKEN}))
         await asyncio.sleep(0.5)
         rows_after = (await c.get(f"/api/meetings/{fresh_id}/participants")).json()
         check("re-join with own id does not create a duplicate row",
