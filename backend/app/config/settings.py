@@ -89,6 +89,12 @@ class Settings:
         # FIELD_ENCRYPTION_KEY_VERSION encrypts, every listed version decrypts.
         self.field_encryption_keys: str = _env("FIELD_ENCRYPTION_KEYS")
         self.field_encryption_key_version: str = _env("FIELD_ENCRYPTION_KEY_VERSION", "1")
+        # Separate keys for the HMAC blind index (never reuse the encryption key).
+        self.field_blind_index_keys: str = _env("FIELD_BLIND_INDEX_KEYS")
+        self.field_blind_index_key_version: str = _env("FIELD_BLIND_INDEX_KEY_VERSION", "1")
+        # off: plaintext only (today). dual: plaintext + ciphertext + blind index.
+        # encrypted: the plaintext column holds only a placeholder (after an approved cutover).
+        self.email_encryption_mode: str = _env("EMAIL_ENCRYPTION_MODE", "off").lower()
         self.frontend_url: str = os.getenv(
             "FRONTEND_URL",
             "http://localhost:3000,http://192.168.1.10:3000",
@@ -118,6 +124,26 @@ class Settings:
         self.clerk_authorized_parties: list[str] = [
             p.strip() for p in os.getenv("CLERK_AUTHORIZED_PARTIES", "").split(",") if p.strip()
         ]
+
+    def validate_email_encryption(self) -> list[str]:
+        """Problems with the email-encryption configuration (any environment)."""
+        if self.email_encryption_mode not in ("off", "dual", "encrypted"):
+            return ["EMAIL_ENCRYPTION_MODE must be off, dual or encrypted"]
+        if self.email_encryption_mode == "off":
+            return []
+        from app.security.blind_index import BlindIndex, BlindIndexConfigError
+        from app.security.crypto import CryptoConfigError, FieldCipher
+
+        problems: list[str] = []
+        try:
+            FieldCipher.from_settings(self.field_encryption_keys, self.field_encryption_key_version)
+        except CryptoConfigError as exc:
+            problems.append(f"email encryption: {exc}")
+        try:
+            BlindIndex.from_settings(self.field_blind_index_keys, self.field_blind_index_key_version)
+        except BlindIndexConfigError as exc:
+            problems.append(f"email blind index: {exc}")
+        return problems
 
     @property
     def is_production(self) -> bool:

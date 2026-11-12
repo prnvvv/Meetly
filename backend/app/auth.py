@@ -29,6 +29,7 @@ from app.config import settings
 from app.database.database import utc_now
 from app.database.rls import bind_session as bind_rls
 from app.database.session import get_db
+from app.services import account_email
 from app.models.user import DEMO_USER_EMAIL, DEMO_USER_ID, DEMO_USER_NAME, User
 
 logger = logging.getLogger(__name__)
@@ -113,22 +114,48 @@ def _ensure_profile_quietly(db: Session, user: User) -> None:
         logger.warning("Could not create profile: %s", type(exc).__name__)
 
 
+def _create_user(db: Session, name: str, email: str, clerk_id: str, now) -> User:
+    """Insert the account (email stored per EMAIL_ENCRYPTION_MODE). Safe under concurrent first requests."""
+    import uuid
+
+    from app.security.blind_index import InvalidEmail
+
+    for attempt in range(2):
+        user = User(
+            name=name,
+            email=f"pending-{uuid.uuid4().hex}@{account_email.MASK_DOMAIN}",
+            clerk_id=clerk_id,
+            last_login_at=now,
+        )
+        db.add(user)
+        try:
+            db.flush()  # the row id is needed to bind the encrypted email to the row
+            if attempt == 0:
+                try:
+                    account_email.set_email(user, email)
+                except InvalidEmail:
+                    user.email = account_email.masked_placeholder(user.id)
+            else:  # the address clashed with another account: sign in without a stored email
+                user.email = account_email.masked_placeholder(user.id)
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            existing = db.execute(select(User).where(User.clerk_id == clerk_id)).scalar_one_or_none()
+            if existing is not None:  # two first requests raced: the other one created the row
+                return existing
+            continue  # e.g. the email already belongs to another account: retry without it
+        db.refresh(user)
+        _ensure_profile_quietly(db, user)
+        return user
+    raise AuthError("Could not create the account")
+
+
 def _user_for_clerk_id(db: Session, clerk_id: str) -> User:
     user = db.execute(select(User).where(User.clerk_id == clerk_id)).scalar_one_or_none()
     now = utc_now()
     if user is None:
         name, email = _profile_from_clerk(clerk_id)
-        user = User(name=name, email=email, clerk_id=clerk_id, last_login_at=now)
-        db.add(user)
-        try:
-            db.commit()
-        except IntegrityError:
-            # Two first requests raced: the other one created the row.
-            db.rollback()
-            user = db.execute(select(User).where(User.clerk_id == clerk_id)).scalar_one()
-        else:
-            db.refresh(user)
-            _ensure_profile_quietly(db, user)
+        user = _create_user(db, name, email, clerk_id, now)
     elif user.last_login_at is None or now - user.last_login_at > LAST_LOGIN_REFRESH:
         user.last_login_at = now
         db.commit()

@@ -376,3 +376,25 @@ def test_a_user_cannot_read_another_users_data_through_the_app_code(ctx, data):
         assert db.get(User, a) is None
         # even a deliberately forged filter cannot reach other rows
         assert db.execute(text(f'SELECT count(*) FROM "{ctx.schema}".friendships')).scalar() == 0
+
+
+def test_encrypted_email_columns_on_postgres(ctx, data):
+    """The blind-index uniqueness is real on PostgreSQL, and the columns obey the same RLS as the row."""
+    from sqlalchemy.exc import IntegrityError
+
+    a, b = data["a"], data["b"]
+    with ctx.owner() as db:
+        db.execute(text(f'UPDATE "{ctx.schema}".users SET email_ciphertext = :c, email_key_version = \'1\', '
+                        f'email_blind_index = :i, email_bidx_version = \'1\' WHERE id = :u'),
+                   {"c": "enc:v1:1:AAAA", "i": "a" * 64, "u": a})
+        db.commit()
+        with pytest.raises(IntegrityError):  # a second account cannot take the same (blind-indexed) address
+            db.execute(text(f'UPDATE "{ctx.schema}".users SET email_blind_index = :i WHERE id = :u'), {"i": "a" * 64, "u": b})
+            db.commit()
+        db.rollback()
+        # many accounts without an encrypted email are fine (partial index)
+        assert db.execute(text(f'SELECT count(*) FROM "{ctx.schema}".users WHERE email_blind_index IS NULL')).scalar() >= 4
+    # as the app role: you see only your own ciphertext, and cannot overwrite someone else's
+    assert [r[0] for r in ctx.sql(a, "SELECT email_ciphertext FROM {S}.users")] == ["enc:v1:1:AAAA"]
+    assert ctx.sql(b, "SELECT count(*) FROM {S}.users WHERE email_ciphertext IS NOT NULL")[0][0] == 0
+    assert ctx.sql(b, "UPDATE {S}.users SET email_ciphertext = 'x' WHERE id = :o", o=a) == 0

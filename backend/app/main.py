@@ -20,7 +20,7 @@ async def _lifespan(application: FastAPI):
     # Without this a fresh database answers every database route with
     # "no such table" instead of starting from an empty schema. Failures
     # propagate so a broken database is not served silently.
-    problems = settings.validate_for_production()
+    problems = settings.validate_for_production() + settings.validate_email_encryption()
     if problems:
         raise RuntimeError("Unsafe production configuration: " + "; ".join(problems))
     await run_in_threadpool(init_db)
