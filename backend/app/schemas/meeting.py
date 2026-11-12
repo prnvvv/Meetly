@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
 
 from app.models.meeting import MeetingStatus
 
@@ -69,6 +69,16 @@ class MeetingResponse(BaseModel):
     meeting_link: str
     created_at: datetime
     settings: dict[str, bool] = Field(default_factory=dict)
+    # Server-enforced waiting room. Existing meetings are false.
+    waiting_room_enabled: bool = False
+    admission_mode: str = "host_approval"
+
+    @model_validator(mode="after")
+    def _settings_reflect_waiting_room(self) -> "MeetingResponse":
+        """The legacy ``settings.waitingRoom`` key was never enforced; report the truth."""
+        if self.waiting_room_enabled or "waitingRoom" in self.settings:
+            self.settings = {**self.settings, "waitingRoom": self.waiting_room_enabled}
+        return self
 
     @field_validator("settings", mode="before")
     @classmethod

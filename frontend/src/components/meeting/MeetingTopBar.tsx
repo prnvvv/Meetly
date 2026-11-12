@@ -18,6 +18,8 @@ interface MeetingTopBarProps {
   meetingId: string;
   connection: "connecting" | "connected" | "reconnecting" | "disconnected";
   participantCount: number;
+  /** Host only: people waiting to be admitted (shown as a badge on the participants button). */
+  waitingCount?: number;
   isLive: boolean;
   participantsOpen: boolean;
   isFullscreen: boolean;
@@ -51,6 +53,7 @@ export function MeetingTopBar({
   meetingId,
   connection,
   participantCount,
+  waitingCount = 0,
   isLive,
   participantsOpen,
   isFullscreen,
@@ -98,12 +101,17 @@ export function MeetingTopBar({
             participantsOpen && "room__header-button--active"
           )}
           aria-pressed={participantsOpen}
-          aria-label={`Show participants, ${participantCount} in the meeting`}
+          aria-label={`Show participants, ${participantCount} in the meeting${waitingCount > 0 ? `, ${waitingCount} waiting` : ""}`}
           title="Participants"
           onClick={onToggleParticipants}
         >
           <UsersIcon size={16} />
           <span className="room__header-button-label">{participantCount}</span>
+          {waitingCount > 0 ? (
+            <span className="room__header-badge" aria-hidden="true">
+              +{waitingCount}
+            </span>
+          ) : null}
         </button>
 
         <button

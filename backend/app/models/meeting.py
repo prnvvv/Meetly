@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Enum,
     ForeignKey,
@@ -12,6 +13,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    false,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -76,6 +78,15 @@ class Meeting(Base):
     password_hash: Mapped[str | None] = mapped_column(String(255), default=None)
     # JSON object of the host's meeting settings (lockMeeting, waitingRoom, ...).
     settings: Mapped[str | None] = mapped_column(Text, default=None)
+    # Waiting room (enforced by the server). Defaults OFF so every existing meeting
+    # keeps its current admission behaviour; the legacy settings.waitingRoom JSON key
+    # was never enforced and is NOT migrated into this column.
+    waiting_room_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false()
+    )
+    admission_mode: Mapped[str] = mapped_column(
+        String(24), default="host_approval", server_default="host_approval"
+    )
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
 
     host: Mapped[User] = relationship(

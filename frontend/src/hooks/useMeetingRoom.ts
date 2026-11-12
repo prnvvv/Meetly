@@ -33,7 +33,13 @@ export function useMeetingRoom(meetingId: string): MeetingRoomState {
     (): Promise<RoomPayload> =>
       Promise.all([
         getMeeting(meetingId),
-        getParticipants(meetingId, true),
+        // Someone who has not joined yet (an invited friend, a guest in the waiting
+        // room) is not allowed to list participants. The live list arrives over the
+        // socket once they are in, so a 403 here just means "empty for now".
+        getParticipants(meetingId, true).catch((cause: unknown) => {
+          if ((cause as { status?: number }).status === 403) return [] as Participant[];
+          throw cause;
+        }),
       ]).then(([found, people]) => ({
         meeting: found,
         participants: people,

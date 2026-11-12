@@ -4,6 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
+  useRef,
   useCallback,
   useEffect,
   useMemo,
@@ -28,6 +29,7 @@ import { ParticipantAvatar } from "@/components/meeting/ParticipantAvatar";
 import { MeetingTopBar } from "@/components/meeting/MeetingTopBar";
 import { ParticipantGrid, type StageTile } from "@/components/meeting/ParticipantGrid";
 import { ParticipantsPanel } from "@/components/meeting/ParticipantsPanel";
+import { WaitingRoomScreen } from "@/components/meeting/WaitingRoomScreen";
 import { useActiveSpeakerId } from "@/hooks/useActiveSpeaker";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFullscreen } from "@/hooks/useFullscreen";
@@ -181,6 +183,18 @@ export default function MeetingRoomPage() {
     localStream: session.localStream,
     remoteStreams: session.remoteStreams,
   });
+
+  // Host: tell them when someone new starts waiting (the panel may be closed).
+  const seenWaiting = useRef<Set<number>>(new Set());
+  const waitingEntries = session.waitingRoom.entries;
+  useEffect(() => {
+    if (!session.isHost) return;
+    for (const entry of waitingEntries) {
+      if (seenWaiting.current.has(entry.id)) continue;
+      seenWaiting.current.add(entry.id);
+      toast(`${entry.display_name} is waiting to join`, "success");
+    }
+  }, [waitingEntries, session.isHost, toast]);
 
   const [inviteCopied, setInviteCopied] = useState(false);
   useEffect(() => {
@@ -364,6 +378,18 @@ export default function MeetingRoomPage() {
     );
   }
 
+  if (session.phase === "waiting") {
+    return (
+      <WaitingRoomScreen
+        title={session.waitingInfo?.title ?? meeting.title}
+        hostName={session.waitingInfo?.hostName ?? null}
+        connection={session.connection}
+        onLeave={leaveRoom}
+        onReconnect={session.reconnect}
+      />
+    );
+  }
+
   if (session.phase === "removed") {
     return (
       <RoomScreen
@@ -532,6 +558,7 @@ export default function MeetingRoomPage() {
         meetingId={meeting.meeting_id}
         connection={session.connection}
         participantCount={roster.length}
+        waitingCount={isLocalHost ? session.waitingRoom.entries.length : 0}
         isLive={meeting.status === "active"}
         participantsOpen={panelOpen}
         isFullscreen={isFullscreen}
@@ -681,6 +708,7 @@ export default function MeetingRoomPage() {
             }
             onMuteAll={session.isHost ? muteAll : undefined}
             onEndMeeting={session.isHost ? () => setConfirmEnd(true) : undefined}
+            waitingRoom={session.isHost ? session.waitingRoom : undefined}
           />
         </>
       ) : null}

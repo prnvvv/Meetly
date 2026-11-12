@@ -12,13 +12,16 @@ export interface Meeting {
   status: MeetingStatus;
   meeting_link: string;
   created_at: string;
+  /** Server-enforced waiting room. Absent on older API responses (treated as off). */
+  waiting_room_enabled?: boolean;
+  admission_mode?: string;
 }
 
 export interface MeetingCreatePayload {
   title: string;
   description?: string;
   password?: string;
-  /** Host settings saved with the meeting (only `lockMeeting` is enforced server-side). */
+  /** Host settings saved with the meeting (`lockMeeting` and `waitingRoom` are enforced server-side). */
   settings?: Record<string, boolean>;
 }
 

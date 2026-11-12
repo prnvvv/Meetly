@@ -9,6 +9,7 @@ import "@/styles/meeting.css";
 import "@/styles/new-meeting.css";
 import "@/styles/profile.css";
 import "@/styles/social.css";
+import "@/styles/waiting-room.css";
 import { authLocalization } from "@/lib/clerk-appearance";
 import { ToastProvider } from "@/components/common/ToastProvider";
 

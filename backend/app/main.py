@@ -74,6 +74,10 @@ def _include_routers(application: FastAPI) -> None:
 
     application.include_router(user_channel_router)
 
+    from app.routers.waiting_room import router as waiting_room_router
+
+    application.include_router(waiting_room_router)
+
     from app.routers.social import routers as social_routers
 
     for social_router in social_routers:

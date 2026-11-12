@@ -36,8 +36,9 @@ from app.schemas.websocket import (
     parse_client_message,
 )
 from app.services import participant_service
+from app.services import waiting_room_service
 from app.utils.password import verify_password
-from app.websocket import meeting_gateway
+from app.websocket import meeting_gateway, waiting_room_events
 from app.websocket.manager import ConnectionManager, get_manager
 
 logger = logging.getLogger(__name__)
@@ -61,6 +62,7 @@ class RealtimeSession:
         "is_host",
         "joined",
         "closing",
+        "waiting",
     )
 
     def __init__(self, meeting_id: str) -> None:
@@ -74,6 +76,8 @@ class RealtimeSession:
         self.is_host: bool = False
         self.joined: bool = False
         self.closing: bool = False
+        # True while this connection sits in the waiting room (not yet in the meeting).
+        self.waiting: bool = False
 
 
 @router.websocket("/ws/meetings/{meeting_id}")
@@ -161,6 +165,8 @@ async def _dispatch(
             await _handle_join(websocket, session, manager, db, message)
         elif isinstance(message, PingMessage):
             await websocket.send_json({"type": "pong"})
+        elif session.waiting and isinstance(message, LeaveMessage):
+            await _handle_lobby_leave(websocket, session, manager, db)
         elif not session.joined:
             await _send_error(
                 websocket,
@@ -262,6 +268,24 @@ async def _handle_join(
         )
         return
 
+    if user_id is not None and getattr(meeting, "waiting_room_enabled", False):
+        admission = await run_in_threadpool(
+            waiting_room_service.request_entry, db, meeting, user_id, message.display_name
+        )
+        if admission.action == "wait":
+            await _enter_lobby(websocket, session, manager, db, meeting, user_id)
+            return
+        if admission.action in ("rejected", "removed"):
+            await _send_error(
+                websocket,
+                ErrorCode.NOT_ADMITTED,
+                "The host did not let you into this meeting"
+                if admission.action == "rejected"
+                else "You were removed from this meeting",
+            )
+            session.closing = True
+            return
+
     existing = await _resolve_participant(
         db,
         meeting=meeting,
@@ -284,6 +308,11 @@ async def _handle_join(
     session.participant_id = participant_id
     session.is_host = is_host
     session.joined = True
+    if session.waiting and user_id is not None:
+        session.waiting = False
+        await manager.lobby_remove(session.meeting_id, user_id, websocket)
+    if user_id is not None and getattr(meeting, "waiting_room_enabled", False):
+        await run_in_threadpool(waiting_room_service.mark_joined, db, meeting.id, user_id)
 
     await manager.connect(
         websocket,
@@ -329,6 +358,49 @@ async def _handle_join(
         },
         exclude={participant_id},
     )
+
+    if is_host and getattr(meeting, "waiting_room_enabled", False):
+        await waiting_room_events.push_host_update(manager, db, meeting)
+
+
+async def _enter_lobby(
+    websocket: WebSocket,
+    session: RealtimeSession,
+    manager: ConnectionManager,
+    db: Session,
+    meeting: Any,
+    user_id: int,
+) -> None:
+    """Park this connection in the waiting room and tell the host."""
+    session.waiting = True
+    session.user_id = user_id
+    session.meeting_pk = meeting.id
+    await manager.lobby_add(session.meeting_id, user_id, websocket)
+    host_name = await run_in_threadpool(waiting_room_service.host_name, db, meeting)
+    await websocket.send_json(
+        {"type": "waiting", "meeting": {"title": meeting.title, "host_name": host_name}}
+    )
+    await waiting_room_events.push_host_update(manager, db, meeting)
+
+
+async def _handle_lobby_leave(
+    websocket: WebSocket,
+    session: RealtimeSession,
+    manager: ConnectionManager,
+    db: Session,
+) -> None:
+    """A waiting person chose to leave."""
+    meeting = await run_in_threadpool(meeting_gateway.get_meeting, db, session.meeting_id)
+    if session.user_id is not None and session.meeting_pk is not None:
+        await manager.lobby_remove(session.meeting_id, session.user_id, websocket)
+        await run_in_threadpool(
+            waiting_room_service.mark_left, db, session.meeting_pk, session.user_id
+        )
+    session.waiting = False
+    session.closing = True
+    if meeting is not None:
+        await waiting_room_events.push_host_update(manager, db, meeting)
+    await websocket.close()
 
 
 async def _resolve_participant(
@@ -423,6 +495,10 @@ async def _handle_leave(
 
     await manager.disconnect(session.meeting_id, participant_id, websocket)
     await run_in_threadpool(participant_service.mark_participant_left, db, participant_id)
+    if session.user_id is not None and session.meeting_pk is not None:
+        await run_in_threadpool(
+            waiting_room_service.mark_left, db, session.meeting_pk, session.user_id
+        )
 
     await manager.broadcast(
         session.meeting_id,
@@ -651,9 +727,13 @@ async def _handle_remove_participant(
     )
 
     await manager.disconnect_and_close(session.meeting_id, target_id)
-    await run_in_threadpool(
+    removed = await run_in_threadpool(
         participant_service.mark_participant_removed, db, target_id
     )
+    if removed is not None and removed.user_id is not None:
+        await run_in_threadpool(
+            waiting_room_service.mark_removed, db, session.meeting_pk, removed.user_id
+        )
 
     await manager.broadcast(
         session.meeting_id,
@@ -723,6 +803,7 @@ async def _handle_end_meeting(
 
     await run_in_threadpool(meeting_gateway.end_meeting, db, session.meeting_id)
 
+    await waiting_room_events.notify_meeting_ended(manager, session.meeting_id)
     await manager.broadcast(
         session.meeting_id,
         {"type": "meeting_ended", "meeting_id": session.meeting_id},
@@ -778,6 +859,21 @@ async def _cleanup(
     db: Session,
     websocket: WebSocket,
 ) -> None:
+    if session.waiting and session.user_id is not None and session.meeting_pk is not None:
+        # Only the socket that is still registered gives up its place; a fast
+        # reconnect has already replaced it and must not be marked as left.
+        if await manager.lobby_remove(session.meeting_id, session.user_id, websocket):
+            await run_in_threadpool(
+                waiting_room_service.mark_left_if_waiting, db, session.meeting_pk, session.user_id
+            )
+            meeting = await run_in_threadpool(
+                meeting_gateway.get_meeting, db, session.meeting_id
+            )
+            if meeting is not None:
+                await waiting_room_events.push_host_update(manager, db, meeting)
+        session.waiting = False
+        return
+
     if not session.joined or session.participant_id is None:
         return
 

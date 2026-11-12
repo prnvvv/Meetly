@@ -13,9 +13,12 @@ from app.models.social import (
     UserBlock,
 )
 from app.models.user import User
+from app.models.waiting_room import WaitingRoomEntry, WaitingState
 
 __all__ = [
     "User",
+    "WaitingRoomEntry",
+    "WaitingState",
     "UserProfile",
     "FriendRequest",
     "FriendRequestStatus",
