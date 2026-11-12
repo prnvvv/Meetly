@@ -34,32 +34,28 @@ Start, schedule and join browser-based video meetings, with profiles, friends, i
 
 <br><br>
 
-<img src="frontend/public/images/readme/Screenshot%20(5).png" alt="Meetly dashboard with quick actions, month calendar, scheduled and recent meetings" width="100%">
-
-<sub><b>Dashboard.</b> Start an instant meeting, join by ID or link, or schedule one. The month calendar, upcoming meetings and history sit alongside.</sub>
-
-<br><br>
-
 <table>
   <tr>
-    <td width="50%" align="center">
-      <img src="frontend/public/images/readme/Screenshot%20(6).png" alt="Join a meeting page with device setup" width="100%">
+    <td width="50%" align="center" valign="top">
+      <img src="frontend/public/images/readme/Screenshot%20(5).png" alt="Meetly dashboard with quick actions, month calendar, scheduled and recent meetings" width="100%">
+      <br><sub><b>Dashboard.</b> Start, join or schedule a meeting, with the month calendar, upcoming meetings and history alongside.</sub>
     </td>
-    <td width="50%" align="center">
-      <img src="frontend/public/images/readme/Screenshot%20(9).png" alt="Schedule a meeting page" width="100%">
+    <td width="50%" align="center" valign="top">
+      <img src="frontend/public/images/readme/Screenshot%20(6).png" alt="Join a meeting page with device setup" width="100%">
+      <br><sub><b>Join a meeting.</b> Paste an invite link or code, add a password if needed, and check camera, microphone and speaker first.</sub>
     </td>
   </tr>
   <tr>
-    <td align="center"><sub><b>Join a meeting.</b> Paste an invite link or code, add a password if needed, and check camera, microphone and speaker first.</sub></td>
-    <td align="center"><sub><b>Schedule a meeting.</b> Topic, date, time zone, duration, optional password and repeat, with friends to invite.</sub></td>
+    <td width="50%" align="center" valign="top">
+      <img src="frontend/public/images/readme/Screenshot%20(9).png" alt="Schedule a meeting page" width="100%">
+      <br><sub><b>Schedule a meeting.</b> Topic, date, time zone, duration, optional password and repeat, with friends to invite.</sub>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="frontend/public/images/readme/Screenshot%20(10).png" alt="Live meeting room with the control bar" width="100%">
+      <br><sub><b>Meeting room.</b> Live status, invite and copy-link actions, participants, reactions and the control bar.</sub>
+    </td>
   </tr>
 </table>
-
-<br>
-
-<img src="frontend/public/images/readme/Screenshot%20(10).png" alt="Live meeting room with the control bar" width="100%">
-
-<sub><b>Meeting room.</b> Live status, invite and copy-link actions, participant list, reactions and the control bar for mic, camera and leaving.</sub>
 
 </div>
 
