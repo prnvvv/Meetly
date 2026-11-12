@@ -96,8 +96,8 @@ jobs:
           python -m alembic downgrade base
           python -m alembic upgrade head
 
-      - name: Row Level Security tests (real role, real policies)
-        run: python -m pytest tests/test_rls_postgres.py -v --tb=short
+      - name: Row Level Security and empty-room sweeper tests (real PostgreSQL)
+        run: python -m pytest tests/test_rls_postgres.py tests/test_lifecycle_postgres.py -v --tb=short
 
   frontend:
     name: Frontend tests
