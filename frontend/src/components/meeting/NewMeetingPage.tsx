@@ -38,7 +38,8 @@ export function NewMeetingPage() {
 
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
-  const { friends, loading: friendsLoading } = useFriends();
+  const { friends, loading: friendsLoading, error: friendsError, reload: reloadFriends } = useFriends();
+  const [invitedFriends, setInvitedFriends] = useState<ReadonlySet<string>>(() => new Set());
   const [selectedFriends, setSelectedFriends] = useState<ReadonlySet<string>>(() => new Set());
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [settings, setSettings] = useState<MeetingSettings>(DEFAULT_MEETING_SETTINGS);
@@ -72,6 +73,11 @@ export function NewMeetingPage() {
     const outcome = await inviteSelectedFriends(meetingId, selectedFriends);
     const message = describeInviteOutcome(outcome);
     if (message) toast(message.text, message.kind);
+    if (outcome.invitedIds.length > 0) {
+      // They hold an invitation now: show them as invited and stop offering them again.
+      setInvitedFriends((current) => new Set([...current, ...outcome.invitedIds]));
+      setSelectedFriends((current) => new Set([...current].filter((id) => !outcome.invitedIds.includes(id))));
+    }
   }
 
   /** Creates the meeting once per (title, password) pair and returns its id. */
@@ -167,11 +173,15 @@ export function NewMeetingPage() {
             <InvitePeopleSection
               friends={friends}
               loading={friendsLoading}
+              error={friendsError}
+              onRetry={reloadFriends}
               selectedIds={selectedFriends}
+              invitedIds={invitedFriends}
               disabled={disabled}
               onToggle={toggleFriend}
               onClear={clearFriends}
               onOpenMore={() => setFriendsOpen(true)}
+              onCopyLink={() => void copyInviteLink()}
             />
             <EssentialMeetingSettings
               settings={settings}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   SignInButton,
   SignUpButton,
@@ -27,6 +27,7 @@ import { toUserMessage } from "@/lib/api-client";
 import { acceptInvitation, declineInvitation } from "@/services/socialService";
 import type { AppNotification } from "@/types/social";
 import { APP_NAME } from "@/lib/constants";
+import { FRIENDS_PANEL_EVENT, type FriendsPanelTab } from "@/lib/friendsPanel";
 import { clerkAppearance } from "@/lib/clerk-appearance";
 import { cx } from "@/lib/utils";
 
@@ -56,6 +57,17 @@ export function TopNav({ onMenuToggle, menuOpen, onNavigate }: TopNavProps) {
   const notifications = useNotifications(!!isSignedIn);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [friendsTab, setFriendsTab] = useState<FriendsTab>("friends");
+  // Other pages (e.g. the invite picker's empty state) can ask for the Friends panel.
+  useEffect(() => {
+    const onOpen = (event: Event) => {
+      const tab = (event as CustomEvent<{ tab?: FriendsPanelTab }>).detail?.tab ?? "find";
+      setFriendsTab(tab);
+      setFriendsOpen(true);
+    };
+    window.addEventListener(FRIENDS_PANEL_EVENT, onOpen);
+    return () => window.removeEventListener(FRIENDS_PANEL_EVENT, onOpen);
+  }, []);
+
   const joinInvitation = async (n: AppNotification) => {
     if (n.entity_id == null) return;
     try {

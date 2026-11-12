@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckIcon, SearchIcon } from "@/components/icons";
 import type { Friend } from "@/lib/friends";
-import { FriendAvatar } from "./FriendAvatar";
+import { ParticipantAvatar } from "./ParticipantAvatar";
 
 interface FriendsDialogProps {
   open: boolean;
@@ -92,7 +92,7 @@ export function FriendsDialog({
                     className={selected ? "nm-pick nm-pick--selected" : "nm-pick"}
                     onClick={() => onToggle(friend.id)}
                   >
-                    <FriendAvatar friend={friend} size={40} />
+                    <ParticipantAvatar name={friend.name} seed={friend.username} imageUrl={friend.avatarUrl} size={40} accent={false} />
                     <span className="nm-pick__text">
                       <span className="nm-pick__name">{friend.name}</span>
                       <span className="nm-pick__status">@{friend.username}</span>

@@ -4,6 +4,8 @@ import { inviteToMeeting } from "@/services/socialService";
 export interface InviteOutcome {
   /** People who were newly invited (or re-invited). */
   invited: number;
+  /** Friend ids (as strings) that now hold an invitation, including ones sent earlier. */
+  invitedIds: string[];
   /** People the server refused (not a friend any more, blocked, ...). */
   skipped: number;
   error: string | null;
@@ -18,13 +20,16 @@ export async function inviteSelectedFriends(
   friendIds: ReadonlySet<string> | string[]
 ): Promise<InviteOutcome> {
   const ids = [...friendIds].map(Number).filter((n) => Number.isInteger(n) && n > 0);
-  if (ids.length === 0) return { invited: 0, skipped: 0, error: null };
+  if (ids.length === 0) return { invited: 0, invitedIds: [], skipped: 0, error: null };
   try {
     const result = await inviteToMeeting(meetingId, ids);
     const skipped = result.results.filter((r) => r.result === "unavailable").length;
-    return { invited: result.invited, skipped, error: null };
+    const invitedIds = result.results
+      .filter((r) => r.result !== "unavailable")
+      .map((r) => String(r.user_id));
+    return { invited: result.invited, invitedIds, skipped, error: null };
   } catch (error) {
-    return { invited: 0, skipped: ids.length, error: toUserMessage(error) };
+    return { invited: 0, invitedIds: [], skipped: ids.length, error: toUserMessage(error) };
   }
 }
 

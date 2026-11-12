@@ -8,7 +8,7 @@ describe("inviteSelectedFriends", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("sends nothing when no friend is picked", async () => {
-    expect(await inviteSelectedFriends("123456789", new Set())).toEqual({ invited: 0, skipped: 0, error: null });
+    expect(await inviteSelectedFriends("123456789", new Set())).toEqual({ invited: 0, invitedIds: [], skipped: 0, error: null });
     expect(inviteToMeeting).not.toHaveBeenCalled();
   });
 
@@ -23,7 +23,7 @@ describe("inviteSelectedFriends", () => {
     });
     const outcome = await inviteSelectedFriends("123456789", new Set(["4", "5", "nope"]));
     expect(inviteToMeeting).toHaveBeenCalledWith("123456789", [4, 5]);
-    expect(outcome).toEqual({ invited: 1, skipped: 1, error: null });
+    expect(outcome).toEqual({ invited: 1, invitedIds: ["4"], skipped: 1, error: null });
   });
 
   it("never throws when the API fails", async () => {
@@ -34,8 +34,8 @@ describe("inviteSelectedFriends", () => {
   });
 
   it("describes outcomes for the toast", () => {
-    expect(describeInviteOutcome({ invited: 2, skipped: 0, error: null })).toEqual({ text: "2 friends invited", kind: "success" });
-    expect(describeInviteOutcome({ invited: 1, skipped: 0, error: null })?.text).toBe("1 friend invited");
-    expect(describeInviteOutcome({ invited: 0, skipped: 0, error: null })).toBeNull();
+    expect(describeInviteOutcome({ invited: 2, invitedIds: [], skipped: 0, error: null })).toEqual({ text: "2 friends invited", kind: "success" });
+    expect(describeInviteOutcome({ invited: 1, invitedIds: [], skipped: 0, error: null })?.text).toBe("1 friend invited");
+    expect(describeInviteOutcome({ invited: 0, invitedIds: [], skipped: 0, error: null })).toBeNull();
   });
 });

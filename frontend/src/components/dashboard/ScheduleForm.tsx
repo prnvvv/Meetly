@@ -67,7 +67,7 @@ function occurrenceStart(date: string, time: string, repeat: Repeat, index: numb
 export function ScheduleForm() {
   const router = useRouter();
   const { toast } = useToast();
-  const { friends, loading: friendsLoading } = useFriends();
+  const { friends, loading: friendsLoading, error: friendsError, reload: reloadFriends } = useFriends();
 
   const [values, setValues] = useState(() => {
     const start = defaultStart();
@@ -165,7 +165,7 @@ export function ScheduleForm() {
         invitedTotal = Math.max(invitedTotal, outcome.invited);
       }
       toast(created > 1 ? `${created} meetings scheduled` : "Meeting scheduled", "success");
-      const invited = describeInviteOutcome({ invited: invitedTotal, skipped: 0, error: inviteProblem });
+      const invited = describeInviteOutcome({ invited: invitedTotal, invitedIds: [], skipped: 0, error: inviteProblem });
       if (invited) toast(invited.text, invited.kind);
       router.push("/dashboard");
     } catch (error) {
@@ -365,11 +365,14 @@ export function ScheduleForm() {
             subtitle="Add people to your scheduled meeting."
             friends={friends}
             loading={friendsLoading}
+            error={friendsError}
+            onRetry={reloadFriends}
             selectedIds={selectedFriends}
             disabled={submitting}
             onToggle={toggleFriend}
             onClear={clearFriends}
             onOpenMore={() => setFriendsOpen(true)}
+            linkHint="You can share the meeting link as soon as it is scheduled."
           />
 
           <section className="nm-section" aria-labelledby="sm-options-title">
