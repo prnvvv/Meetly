@@ -45,6 +45,10 @@ The backend test suite runs against an isolated SQLite file and does not touch t
 - **Dependencies:** add one only when the standard library or an existing dependency cannot do the job, and say why in the pull request.
 - **Logging:** use the `logging` module in the backend; no stray `print` or `console.log`.
 
+## License
+
+By contributing you agree that your contribution is released under the project's [MIT License](LICENSE).
+
 ## Reporting security issues
 
 Do not open a public issue. See [SECURITY.md](SECURITY.md).

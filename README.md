@@ -16,6 +16,7 @@ Start, schedule and join browser-based video meetings, with profiles, friends, i
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.162-000000?logo=fastapi&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-000000?logo=postgresql&logoColor=white)
 ![WebRTC](https://img.shields.io/badge/WebRTC-peer--to--peer-000000?logo=webrtc&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/License-MIT-000000)](LICENSE)
 
 [Preview](#preview) &nbsp;·&nbsp; [Features](#features) &nbsp;·&nbsp; [Architecture](#architecture) &nbsp;·&nbsp; [Getting started](#getting-started) &nbsp;·&nbsp; [Deployment](#deployment) &nbsp;·&nbsp; [Contributing](#contributing)
 
@@ -371,4 +372,4 @@ Contributions are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) for the bra
 
 ## License
 
-No license has been chosen yet, so all rights are reserved by the repository owner. This section will be updated once a license is added.
+Released under the [MIT License](LICENSE). The license covers the Meetly source code; third-party dependencies keep their own licenses.
