@@ -1,6 +1,5 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FRIENDS_PANEL_EVENT } from "@/lib/friendsPanel";
 import type { Friend } from "@/lib/friends";
 import { InvitePeopleSection } from "./InvitePeopleSection";
 
@@ -26,34 +25,13 @@ function setup(over: Partial<React.ComponentProps<typeof InvitePeopleSection>> =
 describe("InvitePeopleSection", () => {
   afterEach(cleanup);
 
-  it("shows a proper empty state with a CTA instead of a squeezed column", () => {
+  it("shows just \"No friends yet\" when there is nothing to list", () => {
     setup({ friends: [] });
     expect(screen.getByText("No friends yet")).toBeTruthy();
-    expect(screen.getByText(/Find people by username or name/)).toBeTruthy();
-    // no friend list, arrows or More button when there is nothing to scroll
+    expect(screen.queryByRole("button", { name: "Find friends" })).toBeNull();
     expect(screen.queryByRole("list", { name: "Friends" })).toBeNull();
     expect(screen.queryByRole("button", { name: "More" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Scroll friends/ })).toBeNull();
-  });
-
-  it("the empty-state CTA asks the top bar to open the Friends panel on Find people", () => {
-    const heard = vi.fn();
-    window.addEventListener(FRIENDS_PANEL_EVENT, heard);
-    setup({ friends: [] });
-    fireEvent.click(screen.getByRole("button", { name: "Find friends" }));
-    expect((heard.mock.calls[0][0] as CustomEvent).detail).toEqual({ tab: "find" });
-    window.removeEventListener(FRIENDS_PANEL_EVENT, heard);
-  });
-
-  it("offers Copy invite link only when a link exists, otherwise explains when it will", () => {
-    const onCopyLink = vi.fn();
-    setup({ friends: [], onCopyLink });
-    fireEvent.click(screen.getByRole("button", { name: /Copy invite link/ }));
-    expect(onCopyLink).toHaveBeenCalled();
-    cleanup();
-    setup({ friends: [], linkHint: "You can share the meeting link as soon as it is scheduled." });
-    expect(screen.queryByRole("button", { name: /Copy invite link/ })).toBeNull();
-    expect(screen.getByText(/as soon as it is scheduled/)).toBeTruthy();
   });
 
   it("shows a failure state with retry when friends cannot be loaded", () => {

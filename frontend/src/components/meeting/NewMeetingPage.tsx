@@ -181,7 +181,6 @@ export function NewMeetingPage() {
               onToggle={toggleFriend}
               onClear={clearFriends}
               onOpenMore={() => setFriendsOpen(true)}
-              onCopyLink={() => void copyInviteLink()}
             />
             <EssentialMeetingSettings
               settings={settings}
