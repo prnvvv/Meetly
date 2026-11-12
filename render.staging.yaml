@@ -1,0 +1,67 @@
+# Render Blueprint for the STAGING Meetly API (its own Supabase project and Clerk development instance).
+# Step by step: docs/deployment/RENDER_SETUP.md. This is the staging twin of render.yaml.
+#
+# Read before you apply this blueprint:
+#  * Every value marked `sync: false` is entered by you in the Render dashboard. No secret is in this file.
+#  * This blueprint has NO persistent disk: the database is Supabase. The old SQLite-on-disk blueprint
+#    is kept in docs/deployment/legacy/render.sqlite.yaml for the period before the cutover.
+#  * Applying it to a service that still runs on SQLite would change that service. Do the cutover in
+#    docs/deployment/DATABASE_MIGRATION.md first.
+#  * Database migrations are NOT run by Render. An operator runs `alembic upgrade head` deliberately
+#    (docs/deployment/DATABASE_MIGRATION.md). /health/ready turns 503 if the code is ahead of the database.
+#  * ONE instance only. Live WebSocket rooms, the waiting-room lobby and (by default) rate limits live in
+#    process memory (docs/architecture/MULTI_INSTANCE_REALTIME.md). Never raise numInstances or add workers.
+services:
+  - type: web
+    name: meetly-api-staging
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter            # any paid web instance; free instances sleep, which drops every call
+    numInstances: 1
+    region: frankfurt        # choose the region closest to your Supabase project; change it to match
+    # /health/live never touches the database, so a Supabase outage cannot restart-loop the API.
+    healthCheckPath: /health/live
+    autoDeploy: false        # deploy deliberately from the dashboard after the migration step
+    maxShutdownDelaySeconds: 30   # lets rooms notice the restart and clients reconnect
+    envVars:
+      - key: APP_ENV
+        value: staging
+      - key: AUTH_MODE
+        value: clerk
+      - key: DATABASE_TARGET_ENV
+        value: staging
+      - key: DATABASE_USE_POOLER
+        value: "true"
+      - key: DATABASE_SSL_MODE
+        value: require
+      - key: WEB_CONCURRENCY
+        value: "1"
+      # --- entered in the dashboard ---
+      - key: DATABASE_EXPECTED_REF      # Supabase production project Reference ID
+        sync: false
+      - key: DATABASE_URL               # Supabase TRANSACTION pooler (port 6543)
+        sync: false
+      - key: DATABASE_DIRECT_URL        # Supabase SESSION pooler (port 5432); used by operators, optional here
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: CLERK_PUBLISHABLE_KEY      # STAGING Clerk instance (pk_test_...)
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_AUTHORIZED_PARTIES   # exact https frontend origin(s)
+        sync: false
+      - key: FRONTEND_URL               # same origin(s); CORS allow-list
+        sync: false
+      - key: FIELD_ENCRYPTION_KEYS
+        sync: false
+      - key: STUN_SERVER
+        value: stun:stun.l.google.com:19302
+      # Optional TURN relay (docs/deployment/WEBRTC_TURN_SETUP.md). Leave empty for STUN only.
+      - key: TURN_URLS
+        sync: false
+      - key: TURN_SHARED_SECRET
+        sync: false
