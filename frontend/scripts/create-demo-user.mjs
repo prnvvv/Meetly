@@ -11,7 +11,7 @@
  *   never printed or logged. Nothing in this script ships to the browser.
  * - Safe to run repeatedly: an existing user is left untouched.
  *
- * Override the defaults with DEMO_USER_EMAIL / DEMO_USER_PASSWORD.
+ * DEMO_USER_PASSWORD is required (no default password is shipped). DEMO_USER_EMAIL is optional.
  */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -37,7 +37,7 @@ loadEnvFile(join(here, "..", ".env"));
 
 const secret = process.env.CLERK_SECRET_KEY;
 const email = process.env.DEMO_USER_EMAIL ?? "demouser@gmail.com";
-const password = process.env.DEMO_USER_PASSWORD ?? "thisisdemouser";
+const password = process.env.DEMO_USER_PASSWORD;
 
 if (!secret || !secret.startsWith("sk_")) {
   console.error(
@@ -55,6 +55,11 @@ if (secret.length < 30 || /[^!-~]/.test(secret)) {
       "Clerk Dashboard -> API keys into frontend/.env.local, restart the dev " +
       "server, and run this script again.",
   );
+  process.exit(1);
+}
+
+if (!password || password.length < 12) {
+  console.error("Set DEMO_USER_PASSWORD (at least 12 characters) in the environment. No default password is provided.");
   process.exit(1);
 }
 
