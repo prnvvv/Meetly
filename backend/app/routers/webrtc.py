@@ -46,12 +46,19 @@ def turn_credentials(secret: str, user_id: int, ttl: int = DEFAULT_TTL_SECONDS, 
 
 
 def build_ice_config(user_id: int, now: float | None = None) -> IceConfig:
+    """STUN always. TURN when configured: expiring per-user credentials (``TURN_SHARED_SECRET``,
+    coturn ``use-auth-secret``) or, for managed providers, one fixed pair (``TURN_USERNAME`` and
+    ``TURN_CREDENTIAL``). Without either, STUN only: calls between most networks still work."""
     servers = [IceServer(urls=[settings.stun_server])]
     turn_urls = [u.strip() for u in settings.turn_urls.split(",") if u.strip()]
-    enabled = bool(turn_urls and settings.turn_shared_secret)
-    if enabled:
+    enabled = False
+    if turn_urls and settings.turn_shared_secret:
         username, credential = turn_credentials(settings.turn_shared_secret, user_id, settings.turn_credential_ttl, now)
         servers.append(IceServer(urls=turn_urls, username=username, credential=credential))
+        enabled = True
+    elif turn_urls and settings.turn_username and settings.turn_credential:
+        servers.append(IceServer(urls=turn_urls, username=settings.turn_username, credential=settings.turn_credential))
+        enabled = True
     return IceConfig(ice_servers=servers, ttl_seconds=settings.turn_credential_ttl, turn_enabled=enabled)
 
 

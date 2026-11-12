@@ -548,7 +548,10 @@ async def _handle_leave(
 
     session.joined = False
     session.closing = True
-    await websocket.close()
+    try:
+        await websocket.close()
+    except (WebSocketDisconnect, WebSocketDisconnected, RuntimeError):
+        pass  # the client already went away: the leave itself is recorded above
 
 
 async def _handle_signal(

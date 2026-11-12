@@ -25,4 +25,4 @@ EXPOSE $PORT
 
 # Bind to 0.0.0.0 so the platform can route traffic into the container. Run ONE
 # process: live connections and rate limits live in memory.
-CMD exec uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
+CMD exec uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*' --timeout-graceful-shutdown 20

@@ -99,6 +99,10 @@ class Settings:
         # coturn static-auth-secret. Credentials sent to browsers are derived and expire.
         self.turn_urls: str = _env("TURN_URLS")
         self.turn_shared_secret: str = _env("TURN_SHARED_SECRET")
+        # Alternative for managed TURN providers that issue one fixed username/credential pair.
+        # Used only when TURN_SHARED_SECRET is empty. The pair is handed to signed-in users only.
+        self.turn_username: str = _env("TURN_USERNAME")
+        self.turn_credential: str = _env("TURN_CREDENTIAL")
         self.turn_credential_ttl: int = max(60, _env_int("TURN_CREDENTIAL_TTL", 3600))
         self.rate_limit_backend: str = _env("RATE_LIMIT_BACKEND", "memory").lower()
         # An active meeting nobody is in (everyone left or lost connection) is ended
@@ -179,6 +183,12 @@ class Settings:
             )
         if self.rate_limit_backend not in ("memory", "database"):
             problems.append("RATE_LIMIT_BACKEND must be memory or database")
+        if self.database_url.startswith("sqlite") and os.getenv("ALLOW_SQLITE_IN_PRODUCTION", "") != "1":
+            problems.append(
+                "DATABASE_URL is empty or SQLite: production must use the Supabase pooler URL "
+                "(a missing DATABASE_URL would silently fall back to an ephemeral SQLite file). "
+                "Set ALLOW_SQLITE_IN_PRODUCTION=1 only for the legacy SQLite deployment."
+            )
         if not self.database_url.startswith("sqlite") and (
             not self.database_expected_ref or self.database_target_env != "production"
         ):

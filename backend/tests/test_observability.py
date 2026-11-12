@@ -176,7 +176,7 @@ def test_liveness_never_depends_on_the_database(client, monkeypatch):
 
 def test_readiness_reports_booleans_only(client):
     r = client.get("/health/ready")
-    assert r.status_code == 200 and r.json() == {"status": "ok", "checks": {"database": True, "encryption_config": True}}
+    assert r.status_code == 200 and r.json() == {"status": "ok", "checks": {"database": True, "schema": True, "encryption_config": True}}
 
 
 def test_readiness_fails_closed_without_leaking_why(client, monkeypatch):
@@ -213,3 +213,4 @@ def test_configure_logging_is_idempotent_and_format_follows_the_environment(monk
     assert len(mine) == 1 and not isinstance(mine[0].formatter, observability.JsonFormatter)
     root.removeHandler(mine[0])
     assert len(root.handlers) <= before + 1
+

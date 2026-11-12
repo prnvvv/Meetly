@@ -54,3 +54,16 @@ def test_pg_url_normalized():
     assert normalize_database_url("postgres://u:p@h/d").drivername == "postgresql+psycopg"
     assert normalize_database_url("postgresql://u:p@h/d").drivername == "postgresql+psycopg"
     assert normalize_database_url("sqlite:///x.db").drivername == "sqlite"
+
+
+def test_production_refuses_sqlite_or_a_missing_database_url(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    s = _prod(monkeypatch, DATABASE_URL="")
+    assert any("SQLite" in p for p in s.validate_for_production())
+    s = _prod(monkeypatch, DATABASE_URL="sqlite:////var/data/meetly.db")
+    assert any("SQLite" in p for p in s.validate_for_production())
+
+
+def test_legacy_sqlite_production_needs_an_explicit_opt_in(monkeypatch):
+    s = _prod(monkeypatch, DATABASE_URL="sqlite:////var/data/meetly.db", ALLOW_SQLITE_IN_PRODUCTION="1")
+    assert not any("SQLite" in p for p in s.validate_for_production())
