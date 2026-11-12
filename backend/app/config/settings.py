@@ -101,6 +101,10 @@ class Settings:
         self.turn_shared_secret: str = _env("TURN_SHARED_SECRET")
         self.turn_credential_ttl: int = max(60, _env_int("TURN_CREDENTIAL_TTL", 3600))
         self.rate_limit_backend: str = _env("RATE_LIMIT_BACKEND", "memory").lower()
+        # An active meeting nobody is in (everyone left or lost connection) is ended
+        # after this many minutes. 0 disables the sweeper.
+        self.empty_meeting_grace_minutes: int = max(0, _env_int("EMPTY_MEETING_GRACE_MINUTES", 10))
+        self.empty_meeting_sweep_seconds: int = max(5, _env_int("EMPTY_MEETING_SWEEP_SECONDS", 60))
         self.email_encryption_mode: str = _env("EMAIL_ENCRYPTION_MODE", "off").lower()
         self.frontend_url: str = os.getenv(
             "FRONTEND_URL",

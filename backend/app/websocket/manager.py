@@ -212,6 +212,13 @@ class ConnectionManager:
             await self._safe_close(connection.websocket)
         return connection
 
+    async def live_meeting_ids(self) -> set[str]:
+        """Meetings that currently hold at least one socket (room or waiting room)."""
+        async with self._lock:
+            return {m for m, c in self._meetings.items() if c} | {
+                m for m, c in self._lobby.items() if c
+            }
+
     async def get_meeting_participants(self, meeting_id: str) -> list[int]:
         async with self._lock:
             meeting = self._meetings.get(meeting_id) or {}

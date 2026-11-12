@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import logging
 from contextlib import asynccontextmanager
+from datetime import timedelta
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,6 +17,33 @@ from app.observability import RequestIdMiddleware, configure_logging, install_ex
 from app.security.http import BodySizeLimitMiddleware, SecurityHeadersMiddleware
 
 logger = logging.getLogger(__name__)
+
+
+def _end_empty_once(live_ids: set[str]) -> list[str]:
+    from app.database import SessionLocal
+    from app.services import lifecycle_service
+
+    with SessionLocal() as db:
+        return lifecycle_service.end_empty_meetings(
+            db,
+            grace=timedelta(minutes=settings.empty_meeting_grace_minutes),
+            live_meeting_ids=live_ids,
+        )
+
+
+async def _sweep_empty_meetings() -> None:
+    """Periodically end active meetings that nobody is in (see lifecycle_service)."""
+    from app.websocket.manager import get_manager
+
+    while True:
+        await asyncio.sleep(settings.empty_meeting_sweep_seconds)
+        try:
+            live_ids = await get_manager().live_meeting_ids()
+            await run_in_threadpool(_end_empty_once, live_ids)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("empty-meeting sweep failed")
 
 
 @asynccontextmanager
@@ -31,8 +61,16 @@ async def _lifespan(application: FastAPI):
         settings.stun_server,
         settings.cors_origins,
     )
-    yield
-    # No teardown required; the engine is shared and sessions close themselves.
+    sweeper = None
+    if settings.empty_meeting_grace_minutes > 0:
+        sweeper = asyncio.create_task(_sweep_empty_meetings())
+    try:
+        yield
+    finally:
+        if sweeper is not None:
+            sweeper.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await sweeper
 
 
 def create_app() -> FastAPI:
