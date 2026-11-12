@@ -18,8 +18,9 @@ describe("zonedWallTimeToIso", () => {
     expect(zonedWallTimeToIso(NaN, 1, 1, 1, 0, "UTC")).toBeNull();
     expect(isValidTimeZone("Europe/Paris")).toBe(true);
   });
-  it("lists zones including UTC", () => {
+  it("lists zones including UTC and the modern name for India", () => {
     expect(listTimeZones()).toContain("UTC");
+    expect(listTimeZones()).toContain("Asia/Kolkata");
   });
 });
 

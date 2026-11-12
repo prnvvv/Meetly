@@ -8,6 +8,17 @@ export function browserTimeZone(): string {
   }
 }
 
+/** Current names for zones some engines only list under a legacy alias (e.g. Asia/Calcutta). */
+const MODERN_NAMES = [
+  "Asia/Kolkata",
+  "Asia/Ho_Chi_Minh",
+  "Asia/Yangon",
+  "Europe/Kyiv",
+  "America/Nuuk",
+  "Atlantic/Faroe",
+  "Pacific/Kanton",
+];
+
 /** IANA zones for the picker, with the browser's own zone always included. */
 export function listTimeZones(): string[] {
   let zones: string[] = [];
@@ -18,7 +29,7 @@ export function listTimeZones(): string[] {
     zones = [];
   }
   const own = browserTimeZone();
-  const set = new Set(["UTC", own, ...zones]);
+  const set = new Set(["UTC", own, ...zones, ...MODERN_NAMES.filter(isValidTimeZone)]);
   return [...set].sort((a, b) => a.localeCompare(b));
 }
 
