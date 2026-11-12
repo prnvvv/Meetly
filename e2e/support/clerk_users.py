@@ -12,6 +12,7 @@ STATE = ROOT / "e2e" / ".e2e-users.json"
 USERS = [
     ("host", "e2e-host", "E2E", "Host"),
     ("guest", "e2e-guest", "E2E", "Guest"),
+    ("third", "e2e-third", "E2E", "Third"),
 ]
 
 

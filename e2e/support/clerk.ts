@@ -13,7 +13,7 @@ function secret(): string {
   return key;
 }
 
-export function testUsers(): Record<"host" | "guest", { id: string; username: string }> {
+export function testUsers(): Record<"host" | "guest" | "third", { id: string; username: string }> {
   return JSON.parse(fs.readFileSync(path.join(ROOT, "e2e", ".e2e-users.json"), "utf8"));
 }
 
