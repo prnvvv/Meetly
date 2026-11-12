@@ -1,29 +1,34 @@
+import { listFriendsPage } from "@/services/socialService";
+
 /**
- * Friends are mock data for now. `listFriends()` is the single seam to swap
- * for a real API (and `inviteFriends` for real invitations) later; the UI only
- * depends on the `Friend` shape.
+ * A friend as the invite pickers see it. Backed by the real friends API
+ * (`GET /api/friends`); `id` is the user id as a string.
  */
 export interface Friend {
   id: string;
   name: string;
-  online: boolean;
+  username: string;
+  avatarUrl: string | null;
 }
 
-const MOCK_FRIENDS: Friend[] = [
-  { id: "f-alex", name: "Alex Morgan", online: true },
-  { id: "f-sarah", name: "Sarah Johnson", online: true },
-  { id: "f-daniel", name: "Daniel Kim", online: false },
-  { id: "f-emma", name: "Emma Wilson", online: true },
-  { id: "f-ryan", name: "Ryan Cooper", online: false },
-  { id: "f-olivia", name: "Olivia Parker", online: true },
-  { id: "f-noah", name: "Noah Bennett", online: false },
-  { id: "f-mia", name: "Mia Patel", online: true },
-  { id: "f-lucas", name: "Lucas Rivera", online: false },
-  { id: "f-ava", name: "Ava Nguyen", online: true },
-];
+const PAGE = 20;
+const MAX_PAGES = 5; // up to 100 friends in the picker; search narrows beyond that
 
 export async function listFriends(): Promise<Friend[]> {
-  return MOCK_FRIENDS;
+  const friends: Friend[] = [];
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    const result = await listFriendsPage("", page * PAGE, PAGE);
+    for (const p of result.items) {
+      friends.push({
+        id: String(p.user_id),
+        name: p.display_name,
+        username: p.username,
+        avatarUrl: p.avatar_url,
+      });
+    }
+    if (!result.has_more) break;
+  }
+  return friends;
 }
 
 export function initials(name: string): string {

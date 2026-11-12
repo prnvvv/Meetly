@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toUserMessage } from "@/lib/api-client";
 import { STORAGE_KEYS } from "@/lib/constants";
 import { clampDisplayName } from "@/lib/validators";
@@ -9,14 +9,22 @@ import { useMediaDevices } from "@/hooks/useMediaDevices";
 import { useWebRTC } from "@/hooks/useWebRTC";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { getAuthToken } from "@/lib/auth-token";
+import { loadIceServers } from "@/services/iceService";
 import type { Meeting } from "@/types/meeting";
 import type { ParticipantSummary } from "@/types/participant";
-import type { ClientMessage, ServerMessage } from "@/types/realtime";
+import type { ClientMessage, ServerMessage, WaitingEntry } from "@/types/realtime";
+import {
+  admitAllGuests,
+  admitGuest,
+  rejectGuest,
+  setWaitingRoomEnabled,
+} from "@/services/waitingRoomService";
 import { wsErrorCopy } from "@/types/realtime";
 
 export type MeetingPhase =
   | "preparing"
   | "joining"
+  | "waiting"
   | "joined"
   | "rejected"
   | "failed"
@@ -45,8 +53,21 @@ export interface MeetingDeviceSettings {
   setAudioOutput: (deviceId: string) => void;
 }
 
+/** Host-only view of the waiting room (empty for everyone else). */
+export interface WaitingRoomControls {
+  enabled: boolean;
+  entries: WaitingEntry[];
+  admit: (entryId: number) => Promise<void>;
+  reject: (entryId: number) => Promise<void>;
+  admitAll: () => Promise<void>;
+  setEnabled: (enabled: boolean) => Promise<void>;
+}
+
 export interface MeetingSession {
   phase: MeetingPhase;
+  /** What a waiting guest may see about the meeting they are waiting for. */
+  waitingInfo: { title: string; hostName: string | null } | null;
+  waitingRoom: WaitingRoomControls;
   /** Failure copy for `rejected` / `failed` phases. */
   failure: string | null;
   connection: "connecting" | "connected" | "reconnecting" | "disconnected";
@@ -123,6 +144,12 @@ export function useMeeting({
   const [selfId, setSelfId] = useState<number | null>(null);
   const [isHost, setIsHost] = useState(false);
   const [participants, setParticipants] = useState<ParticipantSummary[]>([]);
+  const [waitingInfo, setWaitingInfo] = useState<{ title: string; hostName: string | null } | null>(null);
+  // `enabled` stays null until the server tells us; until then the meeting record decides.
+  const [lobby, setLobby] = useState<{ enabled: boolean | null; entries: WaitingEntry[] }>({
+    enabled: null,
+    entries: [],
+  });
 
   const phaseRef = useRef(phase);
   const nameRef = useRef(displayName);
@@ -148,9 +175,33 @@ export function useMeeting({
   } = media;
 
   const sendRef = useRef<(message: ClientMessage) => void>(() => undefined);
+  const passwordRef = useRef(password);
+  useEffect(() => {
+    passwordRef.current = password;
+  }, [password]);
+  const sendJoinRef = useRef<() => void>(() => undefined);
   const send = useCallback((message: ClientMessage) => {
     sendRef.current(message);
   }, []);
+
+  /** Announce ourselves to the room (or the waiting room). Used on every (re)connect and after admission. */
+  const sendJoin = useCallback(() => {
+    const stored = window.sessionStorage.getItem(STORAGE_KEYS.participantId(meetingId));
+    const participantId = stored ? Number(stored) : null;
+    void getAuthToken().then((token) => {
+      send({
+        type: "join",
+        meeting_id: meetingId,
+        participant_id: participantId && participantId > 0 ? participantId : null,
+        display_name: clampDisplayName(nameRef.current),
+        password: passwordRef.current?.trim() || undefined,
+        token: token ?? undefined,
+      });
+    });
+  }, [meetingId, send]);
+  useEffect(() => {
+    sendJoinRef.current = sendJoin;
+  }, [sendJoin]);
 
   const [reactions, setReactions] = useState<MeetingReaction[]>([]);
   const reactionTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
@@ -246,6 +297,22 @@ export function useMeeting({
           });
           break;
         }
+        case "waiting":
+          setWaitingInfo({ title: message.meeting.title, hostName: message.meeting.host_name });
+          setPhase("waiting");
+          break;
+        case "admitted":
+          // The host let us in: ask for the room again on this same connection.
+          setPhase("joining");
+          sendJoinRef.current();
+          break;
+        case "rejected":
+          setFailure(wsErrorCopy("NOT_ADMITTED"));
+          setPhase("rejected");
+          break;
+        case "waiting_room_updated":
+          setLobby({ enabled: message.enabled, entries: message.entries });
+          break;
         case "participant_joined":
           setParticipants((list) => {
             if (list.some((p) => p.id === message.participant.id)) return list;
@@ -320,7 +387,7 @@ export function useMeeting({
 
   const ws = useWebSocket({
     meetingId,
-    enabled: phase === "joining" || phase === "joined",
+    enabled: phase === "joining" || phase === "waiting" || phase === "joined",
     onMessage: handleMessage,
   });
 
@@ -346,6 +413,7 @@ export function useMeeting({
         setPhase(status === 404 || status === 409 ? "rejected" : "failed");
         return;
       }
+      void loadIceServers(); // TURN credentials expire, so fetch them for every join; failure keeps STUN-only
       await acquireMedia();
       if (!active) return;
       setPhase("joining");
@@ -359,28 +427,15 @@ export function useMeeting({
   // reconnect), join and re-bind our participant row. Exactly one `join` per
   // connection — a phase change must not re-announce us to the server.
   useEffect(() => {
-    const joining = phase === "joining" || phase === "joined";
+    const joining = phase === "joining" || phase === "waiting" || phase === "joined";
     if (ws.status !== "connected" || !joining) {
       joinedStatusRef.current = null;
       return;
     }
     if (joinedStatusRef.current === ws.status) return;
     joinedStatusRef.current = ws.status;
-    const stored = window.sessionStorage.getItem(
-      STORAGE_KEYS.participantId(meetingId)
-    );
-    const participantId = stored ? Number(stored) : null;
-    void getAuthToken().then((token) => {
-      send({
-        type: "join",
-        meeting_id: meetingId,
-        participant_id: participantId && participantId > 0 ? participantId : null,
-        display_name: clampDisplayName(nameRef.current),
-        password: password?.trim() || undefined,
-        token: token ?? undefined,
-      });
-    });
-  }, [ws.status, phase, meetingId, password, send]);
+    sendJoin();
+  }, [ws.status, phase, sendJoin]);
 
   // Report actual media state whenever it changes or the room is rejoined.
   useEffect(() => {
@@ -477,6 +532,9 @@ export function useMeeting({
   const leave = useCallback(() => {
     if (selfId !== null && (phase === "joining" || phase === "joined")) {
       send({ type: "leave", participant_id: selfId });
+    } else if (phase === "waiting") {
+      // A waiting guest has no participant id yet; the server only needs the intent.
+      send({ type: "leave", participant_id: 1 });
     }
     setPhase("left");
     forgetParticipant();
@@ -493,8 +551,35 @@ export function useMeeting({
 
   useEffect(() => stopMedia, [stopMedia]);
 
+  // Waiting-room controls. The server enforces host-only; a guest calling these gets 403.
+  const waitingRoom = useMemo<WaitingRoomControls>(
+    () => ({
+      enabled: lobby.enabled ?? Boolean(meeting?.waiting_room_enabled),
+      entries: lobby.entries,
+      admit: async (entryId) => {
+        await admitGuest(meetingId, entryId);
+        setLobby((cur) => ({ ...cur, entries: cur.entries.filter((e) => e.id !== entryId) }));
+      },
+      reject: async (entryId) => {
+        await rejectGuest(meetingId, entryId);
+        setLobby((cur) => ({ ...cur, entries: cur.entries.filter((e) => e.id !== entryId) }));
+      },
+      admitAll: async () => {
+        await admitAllGuests(meetingId);
+        setLobby((cur) => ({ ...cur, entries: [] }));
+      },
+      setEnabled: async (enabled) => {
+        const state = await setWaitingRoomEnabled(meetingId, enabled);
+        setLobby({ enabled: state.enabled, entries: state.entries });
+      },
+    }),
+    [lobby, meetingId, meeting?.waiting_room_enabled]
+  );
+
   return {
     phase,
+    waitingInfo,
+    waitingRoom,
     failure,
     connection: ws.status,
     isHost,

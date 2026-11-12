@@ -1,6 +1,14 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ToastProvider } from "@/components/common/ToastProvider";
 import { AppShell } from "./AppShell";
+
+const renderShell = () =>
+  render(
+    <ToastProvider>
+      <AppShell>content</AppShell>
+    </ToastProvider>
+  );
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/schedule",
@@ -27,14 +35,28 @@ vi.mock("@clerk/nextjs", () => ({
   SignUpButton: ({ children }: { children: React.ReactNode }) => children,
   Show: ({ when, children }: { when: string; children: React.ReactNode }) =>
     when === "signed-in" ? children : null,
-  UserButton: () => <span data-testid="user-button" />,
+  UserButton: Object.assign(() => <span data-testid="user-button" />, {
+    MenuItems: () => null,
+    Link: () => null,
+  }),
+  useAuth: () => ({ isSignedIn: true }),
+}));
+
+vi.mock("@/services/socialService", () => ({
+  listNotifications: vi.fn().mockResolvedValue({ items: [], unread_count: 0, next_before_id: null }),
+  markNotificationRead: vi.fn(),
+  markAllNotificationsRead: vi.fn(),
+  listFriendsPage: vi.fn().mockResolvedValue({ items: [], has_more: false }),
+  incomingRequests: vi.fn().mockResolvedValue([]),
+  outgoingRequests: vi.fn().mockResolvedValue([]),
+  listBlocked: vi.fn().mockResolvedValue({ items: [], has_more: false }),
 }));
 
 afterEach(cleanup);
 
 describe("AppShell top navigation", () => {
   it("shows the primary links and marks the current page", () => {
-    render(<AppShell>content</AppShell>);
+    renderShell();
     const primary = screen.getByRole("navigation", { name: "Primary" });
 
     for (const label of ["Home", "Schedule", "Join"]) {
@@ -49,7 +71,7 @@ describe("AppShell top navigation", () => {
   });
 
   it("offers a New meeting action and the signed-in controls", () => {
-    render(<AppShell>content</AppShell>);
+    renderShell();
 
     const cta = screen
       .getAllByRole("link", { name: /New Meeting/ })
@@ -62,15 +84,21 @@ describe("AppShell top navigation", () => {
     expect(screen.getByTestId("user-button")).toBeTruthy();
   });
 
-  it("has no buttons that lead nowhere (the old Help and Notifications icons)", () => {
-    render(<AppShell>content</AppShell>);
+  it("has no dead buttons: Help is gone, Friends and Notifications open real panels", async () => {
+    renderShell();
 
     expect(screen.queryByRole("button", { name: "Help" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Notifications" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Notifications" }));
+    expect(await screen.findByText("You are all caught up.")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Friends" }));
+    expect(await screen.findByRole("dialog", { name: "Friends" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Find people" })).toBeTruthy();
   });
 
   it("toggles the mobile menu and reports its state to assistive tech", () => {
-    render(<AppShell>content</AppShell>);
+    renderShell();
     const toggle = screen.getByRole("button", { name: "Open navigation menu" });
 
     expect(toggle.getAttribute("aria-expanded")).toBe("false");

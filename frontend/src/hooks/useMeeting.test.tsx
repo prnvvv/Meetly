@@ -31,6 +31,7 @@ const socketHolders = vi.hoisted(() => ({
 }));
 
 vi.mock("@/services/meetingService", () => ({ joinMeeting }));
+vi.mock("@/services/iceService", () => ({ loadIceServers: vi.fn().mockResolvedValue({ turn: false }) }));
 
 vi.mock("@/hooks/useMediaDevices", () => ({
   useMediaDevices: () => ({

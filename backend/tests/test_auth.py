@@ -422,8 +422,48 @@ def test_additive_migration_upgrades_an_old_database_without_touching_rows(tmp_p
 
     columns = {c["name"] for c in inspect(old).get_columns("users")}
     assert {"clerk_id", "last_login_at", "preferences"} <= columns
-    assert "settings" in {c["name"] for c in inspect(old).get_columns("meetings")}
+    assert {"settings", "waiting_room_enabled", "admission_mode"} <= {c["name"] for c in inspect(old).get_columns("meetings")}
+    assert {"email_ciphertext", "email_key_version", "email_blind_index", "email_bidx_version"} <= columns
     with old.connect() as conn:
         assert conn.execute(text("SELECT name FROM users WHERE id = 1")).scalar() == "Demo User"
         assert conn.execute(text("SELECT title FROM meetings WHERE id = 1")).scalar() == "Existing"
+        # existing meetings keep today's behaviour: the waiting room is OFF
+        assert conn.execute(text("SELECT waiting_room_enabled, admission_mode FROM meetings WHERE id = 1")).one() == (0, "host_approval")
     old.dispose()
+
+
+def test_start_up_upgrades_a_pre_alembic_sqlite_database_so_the_current_code_runs_on_it(tmp_path):
+    """Production is a SQLite file created by an older release: init-style upgrade must make it usable."""
+    from app.models import Meeting, MeetingStatus, User
+
+    path = tmp_path / "legacy.db"
+    legacy = create_engine(f"sqlite:///{path}")
+    with legacy.begin() as conn:  # the schema as it was before waiting rooms, profiles and encryption
+        conn.execute(text("CREATE TABLE users (id INTEGER PRIMARY KEY, name VARCHAR(100) NOT NULL, email VARCHAR(255) NOT NULL UNIQUE, created_at DATETIME NOT NULL, clerk_id VARCHAR(255), last_login_at DATETIME, preferences TEXT)"))
+        conn.execute(text("CREATE TABLE meetings (id INTEGER PRIMARY KEY, meeting_id VARCHAR(32) NOT NULL UNIQUE, host_id INTEGER NOT NULL, title VARCHAR(255) NOT NULL, description TEXT, start_time DATETIME NOT NULL, end_time DATETIME, duration INTEGER, status VARCHAR(16) NOT NULL, meeting_link VARCHAR(255) NOT NULL UNIQUE, password_hash VARCHAR(255), settings TEXT, created_at DATETIME NOT NULL)"))
+        conn.execute(text("CREATE TABLE participants (id INTEGER PRIMARY KEY, user_id INTEGER, meeting_id INTEGER NOT NULL, display_name VARCHAR(100) NOT NULL, is_host BOOLEAN NOT NULL DEFAULT 0, is_muted BOOLEAN NOT NULL DEFAULT 1, is_video_on BOOLEAN NOT NULL DEFAULT 0, screen_share BOOLEAN NOT NULL DEFAULT 0, joined_at DATETIME, left_at DATETIME)"))
+        conn.execute(text("INSERT INTO users (id, name, email, created_at, clerk_id) VALUES (7, 'Real User', 'real@example.com', '2026-01-01 00:00:00', 'user_real')"))
+        conn.execute(text("INSERT INTO meetings (id, meeting_id, host_id, title, start_time, status, meeting_link, settings, created_at) VALUES (3, '555000111', 7, 'Old meeting', '2026-01-01 10:00:00', 'active', 'https://x/555000111', '{\"waitingRoom\": true}', '2026-01-01 09:00:00')"))
+        conn.execute(text("INSERT INTO participants (id, user_id, meeting_id, display_name) VALUES (1, 7, 3, 'Real User'), (2, 7, 3, 'Real User (second tab)')"))
+
+    Base.metadata.create_all(legacy)  # what init_db does first: creates only the missing tables
+    apply_migrations(legacy)  # then adds the missing columns and indexes
+    apply_migrations(legacy)
+
+    with sessionmaker(bind=legacy)() as db:  # the current ORM models must work against the upgraded file
+        meeting = db.execute(select(Meeting)).scalar_one()
+        assert meeting.title == "Old meeting" and meeting.status is MeetingStatus.ACTIVE
+        assert meeting.waiting_room_enabled is False and meeting.admission_mode == "host_approval"
+        assert '"waitingRoom": true' in meeting.settings  # the legacy flag is preserved but NOT enforced
+        user = db.execute(select(User)).scalar_one()
+        assert user.email == "real@example.com" and user.email_ciphertext is None
+    with legacy.connect() as conn:
+        tables = {r[0] for r in conn.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))}
+        assert {"user_profiles", "friend_requests", "friendships", "user_blocks", "notifications",
+                "meeting_invitations", "waiting_room_entries"} <= tables
+        indexes = {r[0] for r in conn.execute(text("SELECT name FROM sqlite_master WHERE type='index'"))}
+        assert "uq_users_email_blind_index" in indexes
+        # the duplicate participant rows that already exist block the new unique index; no row was touched
+        assert "uq_participants_meeting_user" not in indexes
+        assert conn.execute(text("SELECT count(*) FROM participants")).scalar() == 2
+    legacy.dispose()

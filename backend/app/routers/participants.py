@@ -63,13 +63,16 @@ def add_meeting_participant(
     """Register the caller as a participant. Identity and host role come from the token."""
     try:
         meeting = meeting_service.require_meeting(db, meeting_id)
-        participant = participant_service.create_participant(
-            db,
-            meeting_id=meeting_id,
-            display_name=payload.display_name,
-            is_host=meeting.host_id == user.id,
-            user_id=user.id,
-        )
+        # One participant row per person per meeting: a repeat call returns it.
+        participant = participant_service.find_user_participant(db, meeting.id, user.id)
+        if participant is None:
+            participant = participant_service.create_participant(
+                db,
+                meeting_id=meeting_id,
+                display_name=payload.display_name,
+                is_host=meeting.host_id == user.id,
+                user_id=user.id,
+            )
     except (MeetingNotFoundError, InvalidRequestError) as exc:
         raise _http_error(exc) from exc
     return ParticipantOut.model_validate(participant)

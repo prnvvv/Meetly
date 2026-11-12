@@ -55,3 +55,35 @@ TODO.md
 
 main.py
 .python-version
+# Secrets, keys and certificates
+.env.production
+.env.staging
+.env.*.local
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+secrets/
+*.enc
+
+# Local database exports, backups and migration artefacts
+*.dump
+*.sql.gz
+backend/data/backups/
+backend/data/exports/
+*.bak
+*.sqlite-wal
+*.sqlite-shm
+
+# Logs
+*.log
+logs/
+
+# Per-environment files (templates are the *.example siblings)
+.env.development
+
+# e2e
+e2e/.e2e-users.json
+e2e/test-results/
+e2e/playwright-report/

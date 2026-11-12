@@ -1,21 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   SignInButton,
   SignUpButton,
   Show,
   UserButton,
+  useAuth,
 } from "@clerk/nextjs";
 import {
   MenuIcon,
   PlusIcon,
   SettingsIcon,
+  UserIcon,
+  UsersIcon,
   VideoIcon,
   XIcon,
 } from "@/components/icons";
+import { FriendsDrawer, type Tab as FriendsTab } from "@/components/social/FriendsDrawer";
+import { NotificationsMenu } from "@/components/social/NotificationsMenu";
+import { useToast } from "@/components/common/ToastProvider";
+import { useNotifications } from "@/hooks/useNotifications";
+import { toUserMessage } from "@/lib/api-client";
+import { acceptInvitation, declineInvitation } from "@/services/socialService";
+import type { AppNotification } from "@/types/social";
 import { APP_NAME } from "@/lib/constants";
+import { FRIENDS_PANEL_EVENT, type FriendsPanelTab } from "@/lib/friendsPanel";
 import { clerkAppearance } from "@/lib/clerk-appearance";
 import { cx } from "@/lib/utils";
 
@@ -39,6 +51,50 @@ interface TopNavProps {
  */
 export function TopNav({ onMenuToggle, menuOpen, onNavigate }: TopNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
+  const { isSignedIn } = useAuth();
+  const notifications = useNotifications(!!isSignedIn);
+  const [friendsOpen, setFriendsOpen] = useState(false);
+  const [friendsTab, setFriendsTab] = useState<FriendsTab>("friends");
+  // Other pages (e.g. the invite picker's empty state) can ask for the Friends panel.
+  useEffect(() => {
+    const onOpen = (event: Event) => {
+      const tab = (event as CustomEvent<{ tab?: FriendsPanelTab }>).detail?.tab ?? "find";
+      setFriendsTab(tab);
+      setFriendsOpen(true);
+    };
+    window.addEventListener(FRIENDS_PANEL_EVENT, onOpen);
+    return () => window.removeEventListener(FRIENDS_PANEL_EVENT, onOpen);
+  }, []);
+
+  const joinInvitation = async (n: AppNotification) => {
+    if (n.entity_id == null) return;
+    try {
+      const result = await acceptInvitation(n.entity_id);
+      void notifications.refresh();
+      // Password-protected meetings need the password typed on the join page first.
+      router.push(
+        result.has_password ? `/join?meeting=${result.meeting_id}` : `/meetings/${result.meeting_id}`
+      );
+    } catch (error) {
+      toast(toUserMessage(error), "error");
+      void notifications.refresh();
+    }
+  };
+  const declineInvite = async (n: AppNotification) => {
+    if (n.entity_id == null) return;
+    try {
+      await declineInvitation(n.entity_id);
+    } catch (error) {
+      toast(toUserMessage(error), "error");
+    }
+    void notifications.refresh();
+  };
+  const openFriends = (tab: FriendsTab = "friends") => {
+    setFriendsTab(tab);
+    setFriendsOpen(true);
+  };
   const isActive = (href: string) =>
     href === "/dashboard"
       ? pathname === "/dashboard" || pathname === "/"
@@ -86,6 +142,27 @@ export function TopNav({ onMenuToggle, menuOpen, onNavigate }: TopNavProps) {
               <PlusIcon size={16} />
               New Meeting
             </Link>
+            <button
+              type="button"
+              className={cx("icon-button", friendsOpen && "icon-button--active")}
+              aria-label="Friends"
+              aria-haspopup="dialog"
+              onClick={() => openFriends("friends")}
+            >
+              <UsersIcon />
+            </button>
+            <NotificationsMenu
+              items={notifications.items}
+              unread={notifications.unread}
+              loading={notifications.loading}
+              hasMore={notifications.hasMore}
+              onMarkRead={(id) => void notifications.markRead(id)}
+              onMarkAllRead={() => void notifications.markAllRead()}
+              onLoadMore={() => void notifications.loadMore()}
+              onOpenFriends={openFriends}
+              onJoinInvitation={(n) => void joinInvitation(n)}
+              onDeclineInvitation={(n) => void declineInvite(n)}
+            />
             <Link
               href="/settings"
               className={cx(
@@ -96,7 +173,15 @@ export function TopNav({ onMenuToggle, menuOpen, onNavigate }: TopNavProps) {
             >
               <SettingsIcon />
             </Link>
-            <UserButton appearance={clerkAppearance} />
+            <UserButton appearance={clerkAppearance}>
+              <UserButton.MenuItems>
+                <UserButton.Link
+                  label="Profile"
+                  href="/profile"
+                  labelIcon={<UserIcon size={16} />}
+                />
+              </UserButton.MenuItems>
+            </UserButton>
           </Show>
           <button
             type="button"
@@ -110,6 +195,15 @@ export function TopNav({ onMenuToggle, menuOpen, onNavigate }: TopNavProps) {
           </button>
         </div>
       </div>
+
+      <Show when="signed-in">
+        <FriendsDrawer
+          open={friendsOpen}
+          onClose={() => setFriendsOpen(false)}
+          changeTick={notifications.changeTick}
+          initialTab={friendsTab}
+        />
+      </Show>
 
       <div
         id="app-menu"

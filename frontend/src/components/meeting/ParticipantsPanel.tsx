@@ -14,6 +14,8 @@ import {
   VideoOffIcon,
   XIcon,
 } from "@/components/icons";
+import { WaitingRoomPanel } from "./WaitingRoomPanel";
+import type { WaitingRoomControls } from "@/hooks/useMeeting";
 import { ParticipantAvatar } from "@/components/meeting/ParticipantAvatar";
 import { buildInviteUrl, copyText, cx } from "@/lib/utils";
 import type { ParticipantSummary } from "@/types/participant";
@@ -33,6 +35,8 @@ interface ParticipantsPanelProps {
   /** Local-only pinned tile (spotlight). */
   pinnedId?: number | null;
   onTogglePin?: (participantId: number) => void;
+  /** Host only: waiting-room switch and the people waiting. */
+  waitingRoom?: WaitingRoomControls;
 }
 
 /** Host first, then you, then everyone else alphabetically. */
@@ -75,6 +79,7 @@ export function ParticipantsPanel({
   onEndMeeting,
   pinnedId = null,
   onTogglePin,
+  waitingRoom,
 }: ParticipantsPanelProps) {
   const { toast } = useToast();
 
@@ -140,6 +145,8 @@ export function ParticipantsPanel({
           </div>
         </div>
       ) : null}
+
+      {isHost && waitingRoom ? <WaitingRoomPanel controls={waitingRoom} /> : null}
 
       <div className="room-panel__body">
         {roster.length === 0 ? (

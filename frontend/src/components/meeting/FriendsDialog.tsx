@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckIcon, SearchIcon } from "@/components/icons";
 import type { Friend } from "@/lib/friends";
-import { FriendAvatar } from "./FriendAvatar";
+import { ParticipantAvatar } from "./ParticipantAvatar";
 
 interface FriendsDialogProps {
   open: boolean;
@@ -39,7 +39,11 @@ export function FriendsDialog({
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return needle ? friends.filter((f) => f.name.toLowerCase().includes(needle)) : friends;
+    return needle
+      ? friends.filter(
+          (f) => f.name.toLowerCase().includes(needle) || f.username.toLowerCase().includes(needle)
+        )
+      : friends;
   }, [friends, query]);
 
   if (!open) return null;
@@ -75,7 +79,7 @@ export function FriendsDialog({
 
         <ul className="nm-dialog__list">
           {visible.length === 0 ? (
-            <li className="nm-dialog__empty">No friends match “{query.trim()}”.</li>
+            <li className="nm-dialog__empty">{friends.length === 0 ? "You have no friends yet. Add people from the Friends panel." : `No friends match “${query.trim()}”.`}</li>
           ) : (
             visible.map((friend) => {
               const selected = selectedIds.has(friend.id);
@@ -88,10 +92,10 @@ export function FriendsDialog({
                     className={selected ? "nm-pick nm-pick--selected" : "nm-pick"}
                     onClick={() => onToggle(friend.id)}
                   >
-                    <FriendAvatar friend={friend} size={40} />
+                    <ParticipantAvatar name={friend.name} seed={friend.username} imageUrl={friend.avatarUrl} size={40} accent={false} />
                     <span className="nm-pick__text">
                       <span className="nm-pick__name">{friend.name}</span>
-                      <span className="nm-pick__status">{friend.online ? "Online" : "Offline"}</span>
+                      <span className="nm-pick__status">@{friend.username}</span>
                     </span>
                     <span className="nm-pick__box" aria-hidden="true">
                       {selected ? <CheckIcon size={13} strokeWidth={3} /> : null}

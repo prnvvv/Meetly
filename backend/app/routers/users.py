@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.database import get_db
 from app.models import User
+from app.services import account_email
 from app.schemas.user import UserPreferences, UserResponse, UserUpdate
 
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -19,7 +20,7 @@ def _to_response(user: User) -> UserResponse:
     return UserResponse(
         id=user.id,
         name=user.name,
-        email=user.email,
+        email=account_email.get_email(user) or "",
         created_at=user.created_at,
         preferences=UserPreferences.model_validate(preferences),
     )

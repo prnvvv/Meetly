@@ -4,6 +4,7 @@ import {
   CopyIcon,
   MaximizeIcon,
   MinimizeIcon,
+  PlusIcon,
   ShieldIcon,
   UsersIcon,
   VideoIcon,
@@ -18,12 +19,16 @@ interface MeetingTopBarProps {
   meetingId: string;
   connection: "connecting" | "connected" | "reconnecting" | "disconnected";
   participantCount: number;
+  /** Host only: people waiting to be admitted (shown as a badge on the participants button). */
+  waitingCount?: number;
   isLive: boolean;
   participantsOpen: boolean;
   isFullscreen: boolean;
   fullscreenSupported: boolean;
   onToggleParticipants: () => void;
   onCopyInvite: () => void;
+  /** Opens the Invite people dialog (copy link + invite friends). */
+  onInvitePeople?: () => void;
   onToggleFullscreen: () => void;
 }
 
@@ -51,12 +56,14 @@ export function MeetingTopBar({
   meetingId,
   connection,
   participantCount,
+  waitingCount = 0,
   isLive,
   participantsOpen,
   isFullscreen,
   fullscreenSupported,
   onToggleParticipants,
   onCopyInvite,
+  onInvitePeople,
   onToggleFullscreen,
 }: MeetingTopBarProps) {
   return (
@@ -98,13 +105,31 @@ export function MeetingTopBar({
             participantsOpen && "room__header-button--active"
           )}
           aria-pressed={participantsOpen}
-          aria-label={`Show participants, ${participantCount} in the meeting`}
+          aria-label={`Show participants, ${participantCount} in the meeting${waitingCount > 0 ? `, ${waitingCount} waiting` : ""}`}
           title="Participants"
           onClick={onToggleParticipants}
         >
           <UsersIcon size={16} />
           <span className="room__header-button-label">{participantCount}</span>
+          {waitingCount > 0 ? (
+            <span className="room__header-badge" aria-hidden="true">
+              +{waitingCount}
+            </span>
+          ) : null}
         </button>
+
+        {onInvitePeople ? (
+          <button
+            type="button"
+            className="room__header-button room__header-button--wide"
+            onClick={onInvitePeople}
+            aria-label="Invite people"
+            title="Invite people"
+          >
+            <PlusIcon size={15} />
+            <span className="room__header-button-label">Invite</span>
+          </button>
+        ) : null}
 
         <button
           type="button"

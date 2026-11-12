@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Integer, String, false, true
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Index, Integer, String, false, text, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.database import Base, UTCDateTime
@@ -21,6 +21,15 @@ class Participant(Base):
         CheckConstraint(
             "left_at IS NULL OR joined_at IS NULL OR left_at >= joined_at",
             name="ck_participants_time_order",
+        ),
+        # One row per signed-in person per meeting (guests without an account have none).
+        Index(
+            "uq_participants_meeting_user",
+            "meeting_id",
+            "user_id",
+            unique=True,
+            sqlite_where=text("user_id IS NOT NULL"),
+            postgresql_where=text("user_id IS NOT NULL"),
         ),
     )
 

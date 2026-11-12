@@ -24,8 +24,6 @@ def format_relative_time(dt: datetime, *, now: datetime | None = None) -> str:
         - "2 days ago"
         - "just now"
     """
-    from datetime import timedelta
-
     target = ensure_aware(dt)
     now_time = _now(now)
 

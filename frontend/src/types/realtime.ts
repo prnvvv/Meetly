@@ -137,6 +137,36 @@ export interface PongMessage {
   type: "pong";
 }
 
+/** You are in the waiting room; nothing about the room itself is sent to you. */
+export interface WaitingMessage {
+  type: "waiting";
+  meeting: { title: string; host_name: string | null };
+}
+
+/** The host let you in: send `join` again to enter the room. */
+export interface AdmittedMessage {
+  type: "admitted";
+}
+
+export interface RejectedMessage {
+  type: "rejected";
+}
+
+export interface WaitingEntry {
+  id: number;
+  display_name: string;
+  /** Verified @username (from the account, not typed by the guest). */
+  username: string | null;
+  requested_at: string;
+}
+
+/** Host only: the current waiting list. */
+export interface WaitingRoomUpdatedMessage {
+  type: "waiting_room_updated";
+  enabled: boolean;
+  entries: WaitingEntry[];
+}
+
 export type ServerMessage =
   | JoinedMessage
   | ParticipantJoinedMessage
@@ -148,7 +178,11 @@ export type ServerMessage =
   | MeetingEndedMessage
   | ReactionEventMessage
   | ErrorMessage
-  | PongMessage;
+  | PongMessage
+  | WaitingMessage
+  | AdmittedMessage
+  | RejectedMessage
+  | WaitingRoomUpdatedMessage;
 
 export type WsErrorCode =
   | "MEETING_NOT_FOUND"
@@ -158,6 +192,7 @@ export type WsErrorCode =
   | "TARGET_NOT_FOUND"
   | "INVALID_MESSAGE"
   | "UNAUTHORIZED_ACTION"
+  | "NOT_ADMITTED"
   | "INTERNAL_ERROR";
 
 /** Friendly copy for contract error codes. Never leak raw server text. */
@@ -177,6 +212,8 @@ export function wsErrorCopy(code: WsErrorCode): string {
       return "The meeting service rejected a message. Please rejoin.";
     case "UNAUTHORIZED_ACTION":
       return "That action is not allowed right now.";
+    case "NOT_ADMITTED":
+      return "The host did not let you into this meeting.";
     case "INTERNAL_ERROR":
     default:
       return "Something went wrong on the meeting server.";

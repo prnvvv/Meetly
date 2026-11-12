@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useToast } from "@/components/common/ToastProvider";
 import { EyeIcon, EyeOffIcon, LinkIcon, VideoIcon } from "@/components/icons";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -34,6 +34,13 @@ export function JoinForm() {
   const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // /join?meeting=123456789 (from an invitation) prefills the code; the password is still typed here.
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("meeting");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (code && /^\d{1,32}$/.test(code)) setValues((current) => ({ ...current, meetingId: code }));
+  }, []);
 
   const profileName = user?.name?.trim() ?? "";
   const displayName = typedName ?? profileName;

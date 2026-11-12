@@ -20,6 +20,7 @@ from app.database.database import init_db
 from app.database.session import SessionLocal
 from app.models.meeting import Meeting, MeetingStatus
 from app.models.participant import Participant
+from app.services import account_email
 from app.models.user import DEMO_USER_EMAIL, DEMO_USER_ID, DEMO_USER_NAME, User
 from app.services import history_service, participant_service
 from app.services.meeting_service import build_meeting_link
@@ -48,7 +49,7 @@ def seed_demo_user(db: Session) -> tuple[User, bool]:
     if existing is not None:
         return existing, False
 
-    by_email = db.scalars(select(User).where(User.email == DEMO_USER_EMAIL)).first()
+    by_email = account_email.find_by_email(db, DEMO_USER_EMAIL)
     if by_email is not None:
         return by_email, False
 

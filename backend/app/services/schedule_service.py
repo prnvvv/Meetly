@@ -68,6 +68,7 @@ def create_scheduled_meeting(
         meeting_link=build_meeting_link(meeting_id),
         password_hash=hash_password(password) if password else None,
         settings=json.dumps(payload.settings) if payload.settings else None,
+        waiting_room_enabled=bool((payload.settings or {}).get("waitingRoom")),
     )
     db.add(meeting)
     db.commit()
