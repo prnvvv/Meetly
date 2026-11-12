@@ -119,3 +119,51 @@ def test_second_sweep_is_a_no_op(db):
     _participant(db, m, joined_ago=timedelta(hours=2), left_ago=timedelta(hours=1))
     assert lifecycle_service.end_empty_meetings(db, grace=GRACE, now=NOW)
     assert lifecycle_service.end_empty_meetings(db, grace=GRACE, now=NOW) == []
+
+
+# ---- crash / restart: rows still "present" with no socket -------------------------------
+
+
+def _participant_row(db, meeting, **kw):
+    p = Participant(user_id=DEMO_USER_ID, meeting_id=meeting.id, display_name="p", **kw)
+    db.add(p)
+    db.commit()
+    return p
+
+
+def test_ghost_after_a_restart_is_marked_left_then_the_empty_meeting_ends(db):
+    m = _meeting(db, "100000009", started_ago=timedelta(hours=2))
+    ghost = _participant_row(db, m, joined_at=NOW - timedelta(hours=2))
+    assert lifecycle_service.end_empty_meetings(db, grace=GRACE, now=NOW) == []  # looks occupied
+    assert lifecycle_service.reconcile_ghost_participants(db, grace=GRACE, live_participant_ids=set(), now=NOW) == 1
+    db.refresh(ghost)
+    assert ghost.left_at is not None and ensure(ghost.left_at) <= NOW - GRACE + timedelta(seconds=1)
+    assert lifecycle_service.end_empty_meetings(db, grace=GRACE, now=NOW) == ["100000009"]
+
+
+def ensure(value):
+    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+
+def test_a_participant_with_a_live_socket_is_never_reconciled(db):
+    m = _meeting(db, "100000010", started_ago=timedelta(hours=2))
+    p = _participant_row(db, m, joined_at=NOW - timedelta(hours=2))
+    assert lifecycle_service.reconcile_ghost_participants(db, grace=GRACE, live_participant_ids={p.id}, now=NOW) == 0
+    db.refresh(p)
+    assert p.left_at is None
+
+
+def test_someone_who_just_reconnected_after_a_restart_is_left_alone(db):
+    m = _meeting(db, "100000011", started_ago=timedelta(hours=2))
+    p = _participant_row(db, m, joined_at=NOW - timedelta(minutes=1))  # fresh joined_at on return
+    assert lifecycle_service.reconcile_ghost_participants(db, grace=GRACE, live_participant_ids=set(), now=NOW) == 0
+    db.refresh(p)
+    assert p.left_at is None
+
+
+def test_reconcile_ignores_ended_and_scheduled_meetings(db):
+    ended = _meeting(db, "100000012", started_ago=timedelta(hours=5), status=MeetingStatus.ENDED)
+    p = _participant_row(db, ended, joined_at=NOW - timedelta(hours=5))
+    assert lifecycle_service.reconcile_ghost_participants(db, grace=GRACE, live_participant_ids=set(), now=NOW) == 0
+    db.refresh(p)
+    assert p.left_at is None

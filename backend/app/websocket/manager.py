@@ -219,6 +219,11 @@ class ConnectionManager:
                 m for m, c in self._lobby.items() if c
             }
 
+    async def live_participant_ids(self) -> set[int]:
+        """Participant ids that hold a socket in THIS process (the only process: see MULTI_INSTANCE_REALTIME.md)."""
+        async with self._lock:
+            return {pid for room in self._meetings.values() for pid in room}
+
     async def get_meeting_participants(self, meeting_id: str) -> list[int]:
         async with self._lock:
             meeting = self._meetings.get(meeting_id) or {}

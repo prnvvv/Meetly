@@ -70,3 +70,23 @@ def test_rate_limited(client, monkeypatch):
     monkeypatch.setattr(settings, "turn_urls", "")
     codes = [client.get("/api/webrtc/ice-servers", headers=H("u")).status_code for _ in range(32)]
     assert codes[:30] == [200] * 30 and 429 in codes[30:]
+
+
+def test_static_turn_credentials_for_managed_providers(client, monkeypatch):
+    monkeypatch.setattr(settings, "turn_urls", "turn:t.example.com:3478?transport=udp,turn:t.example.com:443?transport=tcp")
+    monkeypatch.setattr(settings, "turn_shared_secret", "")
+    monkeypatch.setattr(settings, "turn_username", "provider-user")
+    monkeypatch.setattr(settings, "turn_credential", "provider-pass")
+    body = client.get("/api/webrtc/ice-servers", headers=H("u")).json()
+    assert body["turn_enabled"] is True
+    turn = body["ice_servers"][1]
+    assert len(turn["urls"]) == 2  # UDP and TCP both offered
+    assert (turn["username"], turn["credential"]) == ("provider-user", "provider-pass")
+
+
+def test_half_configured_static_turn_stays_stun_only(client, monkeypatch):
+    monkeypatch.setattr(settings, "turn_urls", "turn:t.example.com:3478")
+    monkeypatch.setattr(settings, "turn_shared_secret", "")
+    monkeypatch.setattr(settings, "turn_username", "u")
+    monkeypatch.setattr(settings, "turn_credential", "")
+    assert client.get("/api/webrtc/ice-servers", headers=H("u")).json()["turn_enabled"] is False

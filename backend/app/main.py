@@ -5,6 +5,7 @@ import contextlib
 import logging
 from contextlib import asynccontextmanager
 from datetime import timedelta
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,16 +20,16 @@ from app.security.http import BodySizeLimitMiddleware, SecurityHeadersMiddleware
 logger = logging.getLogger(__name__)
 
 
-def _end_empty_once(live_ids: set[str]) -> list[str]:
+def _end_empty_once(live_ids: set[str], live_participants: set[int] | None = None) -> list[str]:
     from app.database import SessionLocal
     from app.services import lifecycle_service
 
+    grace = timedelta(minutes=settings.empty_meeting_grace_minutes)
     with SessionLocal() as db:
-        return lifecycle_service.end_empty_meetings(
-            db,
-            grace=timedelta(minutes=settings.empty_meeting_grace_minutes),
-            live_meeting_ids=live_ids,
-        )
+        if live_participants is not None:
+            # Rows left "present" by a crash or restart first, so their meeting can count as empty.
+            lifecycle_service.reconcile_ghost_participants(db, grace=grace, live_participant_ids=live_participants)
+        return lifecycle_service.end_empty_meetings(db, grace=grace, live_meeting_ids=live_ids)
 
 
 async def _sweep_empty_meetings() -> None:
@@ -38,8 +39,10 @@ async def _sweep_empty_meetings() -> None:
     while True:
         await asyncio.sleep(settings.empty_meeting_sweep_seconds)
         try:
-            live_ids = await get_manager().live_meeting_ids()
-            await run_in_threadpool(_end_empty_once, live_ids)
+            manager = get_manager()
+            live_ids = await manager.live_meeting_ids()
+            live_participants = await manager.live_participant_ids()
+            await run_in_threadpool(_end_empty_once, live_ids, live_participants)
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -129,7 +132,33 @@ def _readiness_checks() -> dict[str, bool]:
     except Exception:  # noqa: BLE001
         logger.warning("readiness: database check failed")
         database = False
-    return {"database": database, "encryption_config": not settings.validate_email_encryption()}
+    schema = database and _schema_at_head()
+    return {"database": database, "schema": schema, "encryption_config": not settings.validate_email_encryption()}
+
+
+def _schema_at_head() -> bool:
+    """On PostgreSQL the Alembic revision must equal the code's head (migrations are applied by an
+    operator, never implicitly), so a deploy that is ahead of the database reports not-ready instead
+    of failing request by request. SQLite (local/tests) is created from the models and always passes."""
+    from sqlalchemy import text
+
+    from app.database.database import engine
+
+    if engine.dialect.name == "sqlite":
+        return True
+    try:
+        from alembic.config import Config
+        from alembic.script import ScriptDirectory
+
+        cfg = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
+        cfg.set_main_option("script_location", str(Path(__file__).resolve().parents[1] / "alembic"))
+        head = ScriptDirectory.from_config(cfg).get_current_head()
+        with engine.connect() as connection:
+            current = connection.execute(text("SELECT version_num FROM alembic_version")).scalar()
+        return current == head
+    except Exception:  # noqa: BLE001
+        logger.warning("readiness: schema revision check failed")
+        return False
 
 
 def _include_routers(application: FastAPI) -> None:

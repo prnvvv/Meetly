@@ -52,6 +52,44 @@ def find_empty_active_meetings(
     return empty
 
 
+def reconcile_ghost_participants(
+    db: Session,
+    *,
+    grace: timedelta,
+    live_participant_ids: set[int] | frozenset[int] = frozenset(),
+    now: datetime | None = None,
+) -> int:
+    """Mark participants as left when their row says "present" but nothing holds their socket.
+
+    A normal disconnect already records ``left_at``. A backend crash or restart cannot, so those rows
+    stay "present" forever, show up in rosters and keep their meeting from ever counting as empty.
+    A row is only reconciled when it is older than ``grace`` (clients reconnect within seconds after a
+    restart and get a fresh ``joined_at``) and no live socket belongs to it. ``left_at`` is set to the
+    cut-off, the latest moment we can still vouch for, never to a time in the future.
+    """
+    now = ensure_aware(now or utc_now())
+    cutoff = now - grace
+    count = 0
+    rows = db.execute(
+        select(Participant, Meeting.start_time)
+        .join(Meeting, Meeting.id == Participant.meeting_id)
+        .where(Participant.left_at.is_(None), Meeting.status == MeetingStatus.ACTIVE)
+    ).all()
+    for participant, start in rows:
+        if participant.id in live_participant_ids:
+            continue
+        seen = participant.joined_at or start
+        if seen is None or ensure_aware(seen) > cutoff:
+            continue
+        participant.left_at = cutoff
+        participant.screen_share = False
+        count += 1
+    if count:
+        db.commit()
+        logger.info("reconciled %d participant(s) with no live connection", count)
+    return count
+
+
 def end_empty_meetings(
     db: Session,
     *,
