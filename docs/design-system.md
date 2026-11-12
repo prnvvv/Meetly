@@ -163,7 +163,7 @@ is exactly 900px tall.
 | | |
 | --- | --- |
 | Email | `demouser@gmail.com` |
-| Password | `thisisdemouser` |
+| Password | Chosen by you via `DEMO_USER_PASSWORD` (never committed) |
 | Valid in | The Clerk **development** instance configured by `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` in `frontend/.env.local` |
 
 Create it with Clerk's Backend API (the user is created by Clerk, nothing is
@@ -173,12 +173,12 @@ bypassed):
 cd frontend
 # 1. put the FULL secret key from Clerk Dashboard -> API keys in .env.local
 #    CLERK_SECRET_KEY=sk_test_...
-npm run demo-user
+# 2. choose a password (12+ characters) for this run only
+DEMO_USER_PASSWORD='<choose-a-password>' npm run demo-user
 ```
 
 The script is idempotent, never prints the key, and refuses to run with a
-truncated key. Override the defaults with `DEMO_USER_EMAIL` and
-`DEMO_USER_PASSWORD`.
+truncated key. `DEMO_USER_PASSWORD` is required; `DEMO_USER_EMAIL` is optional.
 
 **Current status:** the `CLERK_SECRET_KEY` in this checkout's `.env.local` is a
 redacted placeholder (14 characters ending in an ellipsis), so the account has
