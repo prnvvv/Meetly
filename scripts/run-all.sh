@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eu
 
-SCRIPT_DIR="$(dirname "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKEND_DIR="$SCRIPT_DIR/../backend"
 FRONTEND_DIR="$SCRIPT_DIR/../frontend"
 
