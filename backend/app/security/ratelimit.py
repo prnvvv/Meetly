@@ -11,10 +11,15 @@ import threading
 import time
 from collections import defaultdict, deque
 
+import logging
+
 from fastapi import Depends, HTTPException, Request, status
 
 from app.auth import get_current_user
 from app.models.user import User
+
+
+logger = logging.getLogger(__name__)
 
 
 class RateLimiter:
@@ -61,6 +66,9 @@ def rate_limit(bucket: str, limit: int, window_seconds: float):
     def dependency(request: Request, user: User = Depends(get_current_user)) -> None:
         wait = limiter.check(bucket, f"u{user.id}", limit, window_seconds)
         if wait is not None:
+            logger.warning(
+                "rate limit exceeded bucket=%s user_id=%s retry_after=%ss", bucket, user.id, int(wait) + 1
+            )
             raise HTTPException(
                 status.HTTP_429_TOO_MANY_REQUESTS,
                 "Too many requests. Please slow down.",

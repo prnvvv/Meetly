@@ -5,10 +5,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from app.config import settings
 from app.database.database import init_db
+from app.observability import RequestIdMiddleware, configure_logging, install_exception_handlers
 from app.security.http import BodySizeLimitMiddleware, SecurityHeadersMiddleware
 
 logger = logging.getLogger(__name__)
@@ -34,6 +36,7 @@ async def _lifespan(application: FastAPI):
 
 
 def create_app() -> FastAPI:
+    configure_logging(settings.app_env)
     application = FastAPI(
         title=settings.app_name,
         version="1.0.0",
@@ -51,6 +54,8 @@ def create_app() -> FastAPI:
     )
     application.add_middleware(BodySizeLimitMiddleware)
     application.add_middleware(SecurityHeadersMiddleware)
+    application.add_middleware(RequestIdMiddleware)  # outermost: every response and log line carries the id
+    install_exception_handlers(application)
 
     _include_routers(application)
 
@@ -58,7 +63,35 @@ def create_app() -> FastAPI:
     async def health() -> dict[str, str]:
         return {"status": "ok"}
 
+    @application.get("/health/live")
+    async def live() -> dict[str, str]:
+        """The process is up. Never touches the database, so a database outage cannot restart-loop the API."""
+        return {"status": "ok"}
+
+    @application.get("/health/ready")
+    async def ready() -> JSONResponse:
+        """Can this instance serve traffic: database reachable and encryption configuration valid."""
+        checks = await run_in_threadpool(_readiness_checks)
+        ok = all(checks.values())
+        return JSONResponse({"status": "ok" if ok else "unavailable", "checks": checks}, status_code=200 if ok else 503)
+
     return application
+
+
+def _readiness_checks() -> dict[str, bool]:
+    """Boolean results only: a failing check never reveals hosts, URLs or error text."""
+    from sqlalchemy import text
+
+    from app.database.database import engine
+
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        database = True
+    except Exception:  # noqa: BLE001
+        logger.warning("readiness: database check failed")
+        database = False
+    return {"database": database, "encryption_config": not settings.validate_email_encryption()}
 
 
 def _include_routers(application: FastAPI) -> None:

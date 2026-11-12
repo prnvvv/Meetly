@@ -148,7 +148,10 @@ async def meeting_socket(
                 break
 
     except WebSocketDisconnect:
-        logger.info("WebSocket disconnected meeting=%s", meeting_id)
+        logger.info(
+            "ws disconnected meeting=%s participant=%s waiting=%s",
+            meeting_id, session.participant_id, session.waiting,
+        )
     except Exception:
         logger.exception("Realtime connection failure meeting=%s", meeting_id)
         await _send_error(
@@ -329,6 +332,7 @@ async def _handle_join(
     session.participant_id = participant_id
     session.is_host = is_host
     session.joined = True
+    logger.info("ws joined meeting=%s participant=%s host=%s", session.meeting_id, participant_id, is_host)
     if session.waiting and user_id is not None:
         session.waiting = False
         await manager.lobby_remove(session.meeting_id, user_id, websocket)
@@ -396,6 +400,7 @@ async def _enter_lobby(
     session.waiting = True
     session.user_id = user_id
     session.meeting_pk = meeting.id
+    logger.info("ws waiting meeting=%s user=%s", session.meeting_id, user_id)
     await manager.lobby_add(session.meeting_id, user_id, websocket)
     host_name = await run_in_threadpool(waiting_room_service.host_name, db, meeting)
     await websocket.send_json(
@@ -834,6 +839,7 @@ async def _handle_end_meeting(
         return
 
     await run_in_threadpool(meeting_gateway.end_meeting, db, session.meeting_id)
+    logger.info("meeting ended by host meeting=%s", session.meeting_id)
 
     await waiting_room_events.notify_meeting_ended(manager, session.meeting_id)
     await manager.broadcast(

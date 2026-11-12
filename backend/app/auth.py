@@ -192,6 +192,7 @@ def get_current_user(
         bind_rls(db, user.id)  # from here on this request runs under Row Level Security
         return user
     except AuthError as exc:
+        logger.info("authentication failed: %s", exc)  # the reason text is generic; no token is ever logged
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,
             str(exc),
