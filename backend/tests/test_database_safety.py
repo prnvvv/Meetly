@@ -171,3 +171,19 @@ def test_revisions_form_one_linear_history_with_no_gaps():
     heads = set(revisions) - {d for d in revisions.values() if d}
     assert len(heads) == 1, f"multiple heads: {heads}"
     assert sum(1 for d in revisions.values() if d is None) == 1, "exactly one base revision"
+
+
+# ---- one source of truth for invitations ---------------------------------------------------------------
+
+APP = pathlib.Path(__file__).resolve().parents[1] / "app"
+
+
+def test_the_legacy_invitations_model_has_no_users_so_meeting_invitations_stay_the_only_source():
+    offenders = []
+    for path in APP.rglob("*.py"):
+        if path.name in ("invitation.py", "__init__.py") and path.parent.name == "models":
+            continue
+        text_ = path.read_text()
+        if re.search(r"from app\.models\.invitation import|models\.invitation\b|import Invitation\b|\bInvitation\(|select\(Invitation\)", text_):
+            offenders.append(str(path.relative_to(APP)))
+    assert not offenders, f"legacy Invitation model is referenced by: {offenders}; use MeetingInvitation"
