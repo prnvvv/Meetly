@@ -61,10 +61,24 @@ class ConnectionManager:
             )
         return connection
 
-    async def disconnect(self, meeting_id: str, participant_id: int) -> Connection | None:
+    async def disconnect(
+        self,
+        meeting_id: str,
+        participant_id: int,
+        websocket: WebSocket | None = None,
+    ) -> Connection | None:
+        """Remove a participant's connection.
+
+        When ``websocket`` is given, only that exact socket is removed. A
+        reconnect replaces the registered connection, and the old socket's
+        delayed cleanup must not tear the new one down.
+        """
         async with self._lock:
             meeting = self._meetings.get(meeting_id)
             if not meeting:
+                return None
+            current = meeting.get(participant_id)
+            if websocket is not None and current is not None and current.websocket is not websocket:
                 return None
             connection = meeting.pop(participant_id, None)
             if not meeting:
@@ -123,6 +137,10 @@ class ConnectionManager:
             await self.disconnect(meeting_id, participant_id)
 
         return delivered
+
+    async def is_connected(self, meeting_id: str, participant_id: int) -> bool:
+        async with self._lock:
+            return participant_id in self._meetings.get(meeting_id, {})
 
     async def disconnect_and_close(
         self,

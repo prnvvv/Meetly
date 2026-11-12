@@ -103,6 +103,10 @@ async def meeting_socket(
         await websocket.close()
         return
 
+    # A socket can stay open for hours. Never hold a pooled database connection
+    # while idle: return it after every unit of work (the session is reusable).
+    await run_in_threadpool(db.close)
+
     try:
         while True:
             raw = await websocket.receive_text()
@@ -127,6 +131,7 @@ async def meeting_socket(
                 continue
 
             await _dispatch(websocket, session, manager, db, message)
+            await run_in_threadpool(db.close)
 
             if session.closing:
                 break
@@ -141,7 +146,7 @@ async def meeting_socket(
             "An internal error occurred",
         )
     finally:
-        await _cleanup(session, manager, db)
+        await _cleanup(session, manager, db, websocket)
 
 
 async def _dispatch(
@@ -416,7 +421,7 @@ async def _handle_leave(
     if participant_id is None:
         return
 
-    await manager.disconnect(session.meeting_id, participant_id)
+    await manager.disconnect(session.meeting_id, participant_id, websocket)
     await run_in_threadpool(participant_service.mark_participant_left, db, participant_id)
 
     await manager.broadcast(
@@ -760,10 +765,18 @@ async def _handle_reaction(
     )
 
 
+def _clear_left(db: Session, participant_id: int) -> None:
+    participant = participant_service.get_participant(db, participant_id)
+    if participant is not None and participant.left_at is not None:
+        participant.left_at = None
+        db.commit()
+
+
 async def _cleanup(
     session: RealtimeSession,
     manager: ConnectionManager,
     db: Session,
+    websocket: WebSocket,
 ) -> None:
     if not session.joined or session.participant_id is None:
         return
@@ -771,11 +784,21 @@ async def _cleanup(
     connection = await manager.disconnect(
         session.meeting_id,
         session.participant_id,
+        websocket,
     )
-    if connection is not None:
+    # A fast reconnect registers a new connection for this participant while
+    # this (older) socket is still cleaning up; do not mark them as left then.
+    if connection is not None and not await manager.is_connected(
+        session.meeting_id, session.participant_id
+    ):
         await run_in_threadpool(
             participant_service.mark_participant_left, db, session.participant_id
         )
+        if await manager.is_connected(session.meeting_id, session.participant_id):
+            # Reconnected while we were writing: undo so the DB matches reality.
+            await run_in_threadpool(_clear_left, db, session.participant_id)
+            session.joined = False
+            return
         await manager.broadcast(
             session.meeting_id,
             {"type": "participant_left", "participant_id": session.participant_id},

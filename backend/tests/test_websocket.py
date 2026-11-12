@@ -1082,3 +1082,19 @@ def test_host_flag_survives_reconnect(client, db):
     socket_again.send_json({"type": "meeting_state", "participant_id": host_id})
     state = socket_again.receive_json()
     assert state["is_host"] is True, "reconnecting host must keep host status"
+
+
+
+def test_stale_socket_cleanup_does_not_remove_reconnected_connection():
+    async def scenario():
+        manager = ConnectionManager()
+        old, new = FakeWebSocket(), FakeWebSocket()
+        await manager.connect(old, meeting_id=MEETING_A, participant_id=1)
+        await manager.connect(new, meeting_id=MEETING_A, participant_id=1)
+        # The old socket's delayed cleanup must not tear down the new connection.
+        assert await manager.disconnect(MEETING_A, 1, old) is None
+        assert await manager.is_connected(MEETING_A, 1)
+        assert await manager.disconnect(MEETING_A, 1, new) is not None
+        assert not await manager.is_connected(MEETING_A, 1)
+
+    asyncio.run(scenario())
