@@ -40,23 +40,23 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-def _refuse_unsafe_downgrade(url) -> None:
-    """A downgrade drops tables. Never run one against a real server by accident."""
-    import os
+def _guard(url) -> None:
+    """Refuse to touch a database this environment is not bound to; refuse unsafe downgrades."""
     import sys
 
-    if url.get_backend_name() == "sqlite" or os.getenv("ALEMBIC_ALLOW_DOWNGRADE") == "1":
-        return
-    if "downgrade" in sys.argv:
-        raise SystemExit(
-            f"Refusing to downgrade {url.host}: it would DROP tables and delete data. "
-            "Use a throwaway database, or set ALEMBIC_ALLOW_DOWNGRADE=1 if you really mean it."
-        )
+    from app.database.target_guard import UnsafeDatabaseTarget, check_downgrade_allowed, check_target
+
+    try:
+        check_target(url, app_env=settings.app_env, command="alembic")
+        if "downgrade" in sys.argv:
+            check_downgrade_allowed(url)
+    except UnsafeDatabaseTarget as exc:
+        raise SystemExit(str(exc)) from None
 
 
 def run_migrations_online() -> None:
     url = _url()
-    _refuse_unsafe_downgrade(url)
+    _guard(url)
     kwargs = {"poolclass": pool.NullPool}
     if url.get_backend_name() != "sqlite":
         kwargs["connect_args"] = {"sslmode": settings.database_ssl_mode}

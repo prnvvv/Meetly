@@ -8,7 +8,10 @@ from pathlib import Path
 try:  # python-dotenv is already a dependency; .env is optional.
     from dotenv import load_dotenv
 
-    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+    # MEETLY_ENV_FILE selects another file (e.g. .env.staging) so one checkout can be
+    # pointed at one environment at a time without editing .env.
+    _selected = os.getenv("MEETLY_ENV_FILE", "").strip() or ".env"
+    load_dotenv(Path(__file__).resolve().parents[2] / _selected)
 except ImportError:  # pragma: no cover
     pass
 
@@ -61,6 +64,9 @@ class Settings:
         # Session pooler / direct connection used only by Alembic and the data
         # migration (the transaction pooler cannot run DDL reliably).
         self.database_direct_url: str = _env("DATABASE_DIRECT_URL")
+        # Binds this environment to one database identity (see database/target_guard.py).
+        self.database_target_env: str = _env("DATABASE_TARGET_ENV").lower()
+        self.database_expected_ref: str = _env("DATABASE_EXPECTED_REF")
         self.database_pool_size: int = _env_int("DATABASE_POOL_SIZE", 5)
         self.database_max_overflow: int = _env_int("DATABASE_MAX_OVERFLOW", 5)
         # "require" encrypts; "verify-full" also validates the server certificate.
@@ -128,6 +134,12 @@ class Settings:
             problems.append("CLERK_PUBLISHABLE_KEY (or CLERK_JWKS_URL) is required")
         if not self.clerk_authorized_parties:
             problems.append("CLERK_AUTHORIZED_PARTIES must list the frontend origin(s)")
+        if not self.database_url.startswith("sqlite") and (
+            not self.database_expected_ref or self.database_target_env != "production"
+        ):
+            problems.append(
+                "DATABASE_EXPECTED_REF and DATABASE_TARGET_ENV=production are required in production"
+            )
         if not self.database_url.startswith("sqlite") and self.database_ssl_mode == "disable":
             problems.append("DATABASE_SSL_MODE must not be 'disable' in production")
         for origin in self.cors_origins:

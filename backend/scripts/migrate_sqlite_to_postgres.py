@@ -57,6 +57,18 @@ def main() -> int:
     if not settings.database_direct_url:
         raise SystemExit("Set DATABASE_DIRECT_URL (session pooler or direct) in backend/.env")
 
+    from app.database.target_guard import UnsafeDatabaseTarget, check_target
+
+    try:
+        target = check_target(
+            normalize_database_url(settings.database_direct_url),
+            app_env=settings.app_env,
+            command="data-script",
+        )
+    except UnsafeDatabaseTarget as exc:
+        raise SystemExit(str(exc)) from None
+    print(f"Target: {target.description}")
+
     src = _sqlite_engine(args.source)
     dst = create_engine(
         normalize_database_url(settings.database_direct_url),

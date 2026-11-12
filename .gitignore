@@ -79,3 +79,6 @@ backend/data/exports/
 # Logs
 *.log
 logs/
+
+# Per-environment files (templates are the *.example siblings)
+.env.development

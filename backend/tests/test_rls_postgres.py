@@ -22,6 +22,10 @@ URL = os.getenv("MEETLY_PG_TEST_URL", "")
 SSLMODE = os.getenv("MEETLY_PG_TEST_SSLMODE", "require")  # "disable" for a local CI container
 pytestmark = pytest.mark.skipif(not URL, reason="set MEETLY_PG_TEST_URL to run PostgreSQL RLS tests")
 
+if URL and "supabase" in URL and os.getenv("DATABASE_TARGET_ENV", "").lower() != "development":
+    # These tests create and drop a scratch schema: never against staging or production.
+    pytestmark = pytest.mark.skip(reason="refusing to run RLS tests against a non-development Supabase database")
+
 if URL:  # imports that need the optional driver / configuration
     from app.config import settings
     from app.database import rls

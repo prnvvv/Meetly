@@ -176,6 +176,10 @@ def init_db() -> None:
     from sqlalchemy.orm import Session
 
     if not _is_sqlite:
+        from app.config import settings
+        from app.database.target_guard import check_target
+
+        check_target(_resolved_url, app_env=settings.app_env, command="runtime")
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
         return

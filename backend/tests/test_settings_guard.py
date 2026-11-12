@@ -10,6 +10,8 @@ def _prod(monkeypatch, **env):
         "FRONTEND_URL": "https://meetly.example",
         "DATABASE_URL": "postgresql://u:p@h:6543/d",
         "DATABASE_SSL_MODE": "require",
+        "DATABASE_EXPECTED_REF": "abcdefghijklmnopqrst",
+        "DATABASE_TARGET_ENV": "production",
     }
     base.update(env)
     for key, value in base.items():
