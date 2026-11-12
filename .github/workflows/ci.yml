@@ -130,4 +130,7 @@ jobs:
         run: npm test
 
       - name: Build
+        # CI only verifies the app compiles; the deployment env guard in next.config.ts is for real deploys.
+        env:
+          MEETLY_SKIP_ENV_CHECK: "1"
         run: npm run build
