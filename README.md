@@ -44,7 +44,7 @@
 - **Profiles** (`/profile`, reached from the user menu): username, display name, photo, bio, role, organization, location, website and social links, with **public / friends-only / private** visibility enforced by the API.
 - **Friends** (top-bar icon): find people by username or name, send/accept/reject/cancel requests, remove friends, block and unblock. Simultaneous requests resolve to one friendship.
 - **Notifications** (bell): friend requests, acceptances and meeting invitations, delivered live over a WebSocket hint and kept in the database.
-- **Meeting invitations**: pick friends on *New Meeting* or *Schedule*; they get an invitation they can join or decline.
+- **Meeting invitations**: pick friends on *New Meeting* or *Schedule*, or use **Invite** inside a live meeting (copy the link, search friends, send invitations, see who accepted). Invitations never bypass the password or the waiting room.
 
 **Account**
 - Sign-in and sign-up through [Clerk](https://clerk.com); every non-public route is protected and the API verifies the Clerk token on every request.
@@ -181,6 +181,12 @@ Templates: [`backend/.env.example`](backend/.env.example) and [`frontend/.env.lo
 | `DATABASE_POOL_SIZE`, `DATABASE_MAX_OVERFLOW` | Connection pool sizing | `5`, `5` |
 | `DATABASE_SSL_MODE` | `require` or `verify-full` (production refuses `disable`) | `require` |
 | `DATABASE_RLS_ENFORCE` | Run requests under Row Level Security as `meetly_app` | `false` |
+| `DATABASE_TARGET_ENV`, `DATABASE_EXPECTED_REF` | Bind this environment to one Supabase project; every other database is refused ([`ENVIRONMENTS_AND_MIGRATIONS.md`](docs/database/ENVIRONMENTS_AND_MIGRATIONS.md)) | — |
+| `MEETLY_ENV_FILE`, `MEETLY_CONFIRM_DB` | Pick another env file (`.env.staging`); confirm a staging/production schema or data command | — |
+| `EMAIL_ENCRYPTION_MODE`, `FIELD_BLIND_INDEX_KEYS(_VERSION)` | Encrypt account emails (`off` / `dual` / `encrypted`) with a separate HMAC index key ([`EMAIL_ENCRYPTION.md`](docs/security/EMAIL_ENCRYPTION.md)) | `off` |
+| `RATE_LIMIT_BACKEND` | `memory` or `database` (shared by all instances) | `memory` |
+| `TURN_URLS`, `TURN_SHARED_SECRET`, `TURN_CREDENTIAL_TTL` | Optional TURN relay with short-lived credentials ([`TURN_COTURN.md`](docs/deployment/TURN_COTURN.md)) | not configured |
+| `LOG_FORMAT`, `LOG_LEVEL` | `json`/`text`, level; secrets, tokens and emails are redacted | json in staging/production |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_AVATAR_BUCKET` | Avatar storage. **Server only**, never in the browser | bucket `avatars` |
 | `FIELD_ENCRYPTION_KEYS`, `FIELD_ENCRYPTION_KEY_VERSION` | AES-256-GCM field-encryption keys (`version:key`), see Security | — |
 | `FRONTEND_URL` | Allowed CORS origins and invite-link base (comma separated, https in production) | `http://localhost:3000` |
@@ -257,8 +263,8 @@ Clerk is the only identity provider; the API verifies RS256 tokens (issuer, expi
 ## Testing and CI
 
 ```bash
-cd backend  && python -m pytest                 # 357 tests (15 more run against PostgreSQL, below)
-cd frontend && npm test                          # 347 tests (Vitest, jsdom)
+cd backend  && python -m pytest                 # 492 tests (17 more run against PostgreSQL, below)
+cd frontend && npm test                          # 369 tests (Vitest, jsdom)
 cd frontend && npm run typecheck && npm run lint && npm run build
 python scripts/e2e_probe.py http://localhost:8000   # probe against a running backend
 ```
@@ -291,6 +297,10 @@ Frontend on Vercel, API on Render (Docker, **single instance**: realtime state a
 | [`WAITING_ROOM_ARCHITECTURE.md`](docs/architecture/WAITING_ROOM_ARCHITECTURE.md) | State machine, realtime events |
 | [`MIGRATION_GUIDE.md`](docs/database/MIGRATION_GUIDE.md), [`BACKUP_AND_RECOVERY.md`](docs/database/BACKUP_AND_RECOVERY.md) | Moving data, backups |
 | [`DEPLOYMENT_GUIDE.md`](docs/deployment/DEPLOYMENT_GUIDE.md) | Go-live checklist |
+| [`ENVIRONMENTS_AND_MIGRATIONS.md`](docs/database/ENVIRONMENTS_AND_MIGRATIONS.md), [`INCIDENT_2026-11-12_SUPABASE_DEV_WIPE.md`](docs/database/INCIDENT_2026-11-12_SUPABASE_DEV_WIPE.md) | Environment separation, migration procedure, the data-loss investigation |
+| [`SQLITE_TO_POSTGRES_MAPPING.md`](docs/database/SQLITE_TO_POSTGRES_MAPPING.md), [`LEGACY_INVITATIONS.md`](docs/database/LEGACY_INVITATIONS.md) | Cutover mapping, the unused legacy table |
+| [`EMAIL_ENCRYPTION.md`](docs/security/EMAIL_ENCRYPTION.md), [`RLS_AUDIT.md`](docs/security/RLS_AUDIT.md), [`SECRET_ROTATION.md`](docs/security/SECRET_ROTATION.md) | Email encryption, RLS matrix, secret rotation |
+| [`MULTI_INSTANCE_REALTIME.md`](docs/architecture/MULTI_INSTANCE_REALTIME.md), [`TURN_COTURN.md`](docs/deployment/TURN_COTURN.md), [`E2E_PLAN.md`](docs/testing/E2E_PLAN.md) | Scaling limits, TURN, browser E2E plan |
 | [`design-system.md`](docs/design-system.md) | Tokens and components |
 
 ---
@@ -301,8 +311,9 @@ Frontend on Vercel, API on Render (Docker, **single instance**: realtime state a
 - **Single API instance.** Live connections and rate limits are in memory.
 - **No end-to-end encryption**, chat, recording or captions. Online/offline presence is not implemented.
 - Meeting settings other than the lock and the waiting room (mute on entry, unmuting, screen sharing, chat, host controls, recording) are still stored but not enforced.
-- Row Level Security is installed but opt-in (`DATABASE_RLS_ENFORCE`); field encryption exists but no column uses it yet.
-- In-meeting "invite a friend" is not available; invitations are sent from *New Meeting* and *Schedule*.
+- Row Level Security is installed but opt-in (`DATABASE_RLS_ENFORCE`); email encryption is staged (`dual` on the development database, `off` by default).
+- TURN is **not configured** (STUN only), so calls can fail on strict networks until a TURN server is set up and tested.
+- Real-browser two-user end-to-end tests have not been run yet ([`E2E_PLAN.md`](docs/testing/E2E_PLAN.md)).
 
 ---
 
