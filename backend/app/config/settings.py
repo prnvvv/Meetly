@@ -94,6 +94,8 @@ class Settings:
         self.field_blind_index_key_version: str = _env("FIELD_BLIND_INDEX_KEY_VERSION", "1")
         # off: plaintext only (today). dual: plaintext + ciphertext + blind index.
         # encrypted: the plaintext column holds only a placeholder (after an approved cutover).
+        # Where rate-limit counters live: memory (one process) or database (shared by all instances).
+        self.rate_limit_backend: str = _env("RATE_LIMIT_BACKEND", "memory").lower()
         self.email_encryption_mode: str = _env("EMAIL_ENCRYPTION_MODE", "off").lower()
         self.frontend_url: str = os.getenv(
             "FRONTEND_URL",
@@ -160,6 +162,14 @@ class Settings:
             problems.append("CLERK_PUBLISHABLE_KEY (or CLERK_JWKS_URL) is required")
         if not self.clerk_authorized_parties:
             problems.append("CLERK_AUTHORIZED_PARTIES must list the frontend origin(s)")
+        workers = max(_env_int("WEB_CONCURRENCY", 1), _env_int("UVICORN_WORKERS", 1))
+        if workers > 1:
+            problems.append(
+                "run exactly one API process (WEB_CONCURRENCY/UVICORN_WORKERS > 1): live WebSocket state "
+                "is in process memory and would silently split across workers"
+            )
+        if self.rate_limit_backend not in ("memory", "database"):
+            problems.append("RATE_LIMIT_BACKEND must be memory or database")
         if not self.database_url.startswith("sqlite") and (
             not self.database_expected_ref or self.database_target_env != "production"
         ):

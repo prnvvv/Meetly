@@ -398,3 +398,29 @@ def test_encrypted_email_columns_on_postgres(ctx, data):
     assert [r[0] for r in ctx.sql(a, "SELECT email_ciphertext FROM {S}.users")] == ["enc:v1:1:AAAA"]
     assert ctx.sql(b, "SELECT count(*) FROM {S}.users WHERE email_ciphertext IS NOT NULL")[0][0] == 0
     assert ctx.sql(b, "UPDATE {S}.users SET email_ciphertext = 'x' WHERE id = :o", o=a) == 0
+
+
+def test_shared_rate_limiter_is_atomic_on_postgres(world):
+    """The ON CONFLICT upsert on a real PostgreSQL: concurrent checks from several connections never exceed the limit."""
+    import threading
+
+    from app.security.ratelimit import DatabaseRateLimiter
+
+    _, scoped, _ = world
+    limiter = DatabaseRateLimiter(scoped)
+    allowed: list[bool] = []
+    barrier = threading.Barrier(4)
+    lock = threading.Lock()
+
+    def hit():
+        barrier.wait()
+        for _ in range(5):
+            ok = limiter.check("pg-burst", "u1", 7, 3600) is None
+            with lock:
+                allowed.append(ok)
+
+    threads = [threading.Thread(target=hit) for _ in range(4)]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+    assert len(allowed) == 20 and allowed.count(True) == 7
+    assert limiter.peek("pg-burst", "u1", 7, 3600) is True and limiter.peek("pg-burst", "u2", 7, 3600) is False

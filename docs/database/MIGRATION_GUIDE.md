@@ -7,10 +7,11 @@ Status: the Supabase schema is at revision `0008` (13 Meetly tables, empty of pr
 | --- | --- |
 | Schema | `cd backend && python -m alembic upgrade head` (uses `DATABASE_DIRECT_URL`) |
 | Backup | `python scripts/backup_db.py backup` (online backup API, consistent while the app runs) |
-| Data copy + validation | `python scripts/migrate_sqlite_to_postgres.py --source <backup.db>` |
-| Rehearsal | add `--schema rehearsal --create-schema --drop-schema` (throwaway schema; `public` untouched) |
+| Data copy + validation | `python scripts/migrate_sqlite_to_postgres.py --source <backup.db>` (**dry run by default**: validates, then rolls back; add `--apply` to commit; `--report file.json` for the audit record) |
+| Rehearsal | add `--schema rehearsal --create-schema --drop-schema --apply` (throwaway schema; `public` untouched) |
+| Mapping reference | `SQLITE_TO_POSTGRES_MAPPING.md` |
 
-The copy script opens SQLite read-only, refuses a non-empty target, preserves primary keys, advances sequences, runs in one transaction, and rolls back if validation (row content, FK orphans, per-meeting participant counts) differs.
+The copy script works on a private copy of the backup and proves with SHA-256 that the original is unchanged, stops on source problems (integrity, orphans, rows the target would reject) instead of repairing them, refuses a non-empty or out-of-date target, preserves primary keys and Clerk ids, advances sequences, creates a profile for every user, runs in one transaction, and rolls back unless every validation check passes (row content, foreign keys, participant counts, JSON validity, waiting room OFF). The report holds counts, ids and hashes only.
 
 ## Rehearsal result (2026-11-12, dev database copy)
 Backup `zoom_clone-20261112-153850.db`, 94,208 bytes, `integrity_check` ok. users 2, meetings 4, meeting_history 2, participants 2, activity_events 0, invitations 0: all tables content-identical, 0 orphaned FKs. Rehearsal schema dropped; `public` has 0 rows.

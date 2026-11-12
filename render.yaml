@@ -19,6 +19,8 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     plan: starter
+    # Exactly one instance: live WebSocket state is in process memory (docs/architecture/MULTI_INSTANCE_REALTIME.md).
+    numInstances: 1
     healthCheckPath: /health
     autoDeploy: true
     disk:
