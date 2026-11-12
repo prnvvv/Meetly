@@ -919,7 +919,7 @@ async def _cleanup(
     if not session.joined or session.participant_id is None:
         return
 
-    connection = await manager.disconnect(
+    await manager.disconnect(
         session.meeting_id,
         session.participant_id,
         websocket,
