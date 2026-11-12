@@ -48,6 +48,7 @@ def create_participant(
         display_name=display_name,
         is_host=is_host,
         user_id=user_id,
+        joined_at=datetime.now(timezone.utc),
         # New joiners start mic/camera off; the client's first media_state
         # broadcast refines these within milliseconds.
         is_muted=True,

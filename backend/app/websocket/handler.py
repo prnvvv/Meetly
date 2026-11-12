@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
@@ -452,6 +453,7 @@ async def _resolve_participant(
         if participant is not None:
             if participant.left_at is not None:
                 participant.left_at = None
+                participant.joined_at = datetime.now(timezone.utc)
                 participant.screen_share = False
                 await run_in_threadpool(db.commit)
             is_host = meeting_gateway.is_host_participant(meeting, participant)
@@ -490,6 +492,7 @@ async def _resolve_participant(
                 return None
             if participant.left_at is not None:
                 participant.left_at = None
+                participant.joined_at = datetime.now(timezone.utc)
                 participant.screen_share = False
                 await run_in_threadpool(db.commit)
             is_host = meeting_gateway.is_host_participant(meeting, participant)

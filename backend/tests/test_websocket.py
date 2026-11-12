@@ -403,6 +403,28 @@ def test_connection_and_join(client, db):
 
 
 @requires_bd1
+def test_join_time_is_recorded_and_refreshed_on_return(client, db):
+    from app.services import participant_service
+
+    _seed_meeting(db, MEETING_A)
+    participant = _create_participant(db, MEETING_A, "John")
+    assert participant.joined_at is not None  # stamped when the row is created
+
+    first = participant.joined_at
+    participant_service.mark_participant_left(db, participant.id)
+    db.refresh(participant)
+    assert participant.left_at is not None
+
+    socket, response = _join(client, MEETING_A, participant.id, "John")
+    assert response["type"] == "joined"
+    db.expire_all()
+    db.refresh(participant)
+    assert participant.left_at is None
+    assert participant.joined_at >= first
+    socket.close()
+
+
+@requires_bd1
 def test_invalid_meeting_rejected(client):
     with client.websocket_connect(f"/ws/meetings/{MEETING_B}") as socket:
         response = socket.receive_json()
