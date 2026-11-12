@@ -17,6 +17,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app.auth import AuthError, user_from_token
 from app.database.session import SessionLocal
+from app.security.http import origin_allowed
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -58,6 +59,9 @@ def _authenticate(token: str) -> int:
 @router.websocket("/ws/notifications")
 async def notifications_socket(websocket: WebSocket) -> None:
     global _loop
+    if not origin_allowed(websocket.headers.get("origin")):
+        await websocket.close(code=1008)
+        return
     await websocket.accept()
     _loop = asyncio.get_running_loop()
     user_id: int | None = None

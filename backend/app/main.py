@@ -9,6 +9,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app.config import settings
 from app.database.database import init_db
+from app.security.http import BodySizeLimitMiddleware, SecurityHeadersMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +40,17 @@ def create_app() -> FastAPI:
         lifespan=_lifespan,
     )
 
+    # Bearer tokens, not cookies: no credentialed requests are needed, so none are allowed.
     application.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "Accept"],
+        max_age=600,
     )
+    application.add_middleware(BodySizeLimitMiddleware)
+    application.add_middleware(SecurityHeadersMiddleware)
 
     _include_routers(application)
 

@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database.database import utc_now
+from app.database.rls import bind_session as bind_rls
 from app.database.session import get_db
 from app.models.user import DEMO_USER_EMAIL, DEMO_USER_ID, DEMO_USER_NAME, User
 
@@ -160,7 +161,9 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     try:
-        return user_from_token(db, credentials.credentials)
+        user = user_from_token(db, credentials.credentials)
+        bind_rls(db, user.id)  # from here on this request runs under Row Level Security
+        return user
     except AuthError as exc:
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,

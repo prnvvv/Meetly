@@ -36,6 +36,17 @@ class RateLimiter:
                 self._hits.pop((bucket, key), None)
             return None
 
+    def peek(self, bucket: str, key: str, limit: int, window: float) -> bool:
+        """True if ``key`` has already used up its allowance (does not record a hit)."""
+        now = time.monotonic()
+        with self._lock:
+            hits = self._hits.get((bucket, key))
+            if not hits:
+                return False
+            while hits and now - hits[0] >= window:
+                hits.popleft()
+            return len(hits) >= limit
+
     def reset(self) -> None:
         with self._lock:
             self._hits.clear()

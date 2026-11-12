@@ -142,6 +142,28 @@ if _is_sqlite:
         cursor.close()
 
 
+def _install_rls_hook() -> None:
+    """Start each transaction of an RLS-bound session as the app role with the user id set."""
+    from sqlalchemy.orm import Session as OrmSession
+
+    from app.database.rls import ROLE
+
+    @event.listens_for(OrmSession, "after_begin")
+    def _apply_rls_context(session, _transaction, connection) -> None:
+        user_id = session.info.get("rls_user_id")
+        if user_id is None or connection.dialect.name != "postgresql":
+            return
+        from app.config import settings
+
+        if not settings.database_rls_enforce:
+            return
+        connection.exec_driver_sql("SELECT set_config('app.user_id', %s, true)", (str(int(user_id)),))
+        connection.exec_driver_sql(f"SET LOCAL ROLE {ROLE}")
+
+
+_install_rls_hook()
+
+
 def init_db() -> None:
     """Prepare the database at startup. Safe to repeat.
 

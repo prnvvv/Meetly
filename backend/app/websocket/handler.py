@@ -12,9 +12,11 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
+from app.database.rls import bind_session as bind_rls
 from app.database.session import get_db
 from app.auth import AuthError, user_from_token
 from app.config import settings
@@ -38,6 +40,8 @@ from app.schemas.websocket import (
 from app.services import participant_service
 from app.services import waiting_room_service
 from app.utils.password import verify_password
+from app.security.http import origin_allowed
+from app.security.ratelimit import limiter
 from app.websocket import meeting_gateway, waiting_room_events
 from app.websocket.manager import ConnectionManager, get_manager
 
@@ -87,6 +91,9 @@ async def meeting_socket(
     db: Session = Depends(get_db),
 ) -> None:
     """WS /ws/meetings/{meeting_id} - realtime signaling and state."""
+    if not origin_allowed(websocket.headers.get("origin")):
+        await websocket.close(code=1008)
+        return
     await websocket.accept()
 
     manager = get_manager()
@@ -237,17 +244,8 @@ async def _handle_join(
         await _send_error(websocket, ErrorCode.UNAUTHORIZED_ACTION, "Meeting is not joinable")
         return
 
-    password = (message.password or "").strip() or None
-    if meeting.password_hash is not None and not verify_password(
-        password or "", meeting.password_hash
-    ):
-        await _send_error(
-            websocket,
-            ErrorCode.UNAUTHORIZED_ACTION,
-            "Incorrect meeting password",
-        )
-        return
-
+    # Identity first: password guesses are only accepted from a verified account, and
+    # are limited per account and meeting, so the password cannot be brute-forced.
     user_id: int | None = None
     if settings.auth_mode != "demo":
         try:
@@ -259,6 +257,29 @@ async def _handle_join(
             session.closing = True
             return
         user_id = user.id
+        await run_in_threadpool(bind_rls, db, user_id)
+
+    attempt_key = f"{user_id}:{meeting.id}"
+    if user_id is not None and limiter.check("ws-join", str(user_id), 60, 60) is not None:
+        await _send_error(websocket, ErrorCode.UNAUTHORIZED_ACTION, "Too many join attempts. Wait a moment.")
+        return
+
+    password = (message.password or "").strip() or None
+    if meeting.password_hash is not None:
+        if limiter.peek("ws-password", attempt_key, 10, 600):
+            await _send_error(
+                websocket, ErrorCode.UNAUTHORIZED_ACTION, "Too many wrong passwords. Try again later."
+            )
+            return
+        ok = await run_in_threadpool(verify_password, password or "", meeting.password_hash)
+        if not ok:
+            limiter.check("ws-password", attempt_key, 10, 600)  # count the failure
+            await _send_error(
+                websocket,
+                ErrorCode.UNAUTHORIZED_ACTION,
+                "Incorrect meeting password",
+            )
+            return
 
     if user_id is not None and not await run_in_threadpool(
         _may_enter, db, meeting, user_id
@@ -434,14 +455,25 @@ async def _resolve_participant(
                     participant_service.set_participant_host, db, participant.id, is_host
                 )
             return participant.id, is_host
-        created = await run_in_threadpool(
-            participant_service.create_participant,
-            db,
-            meeting_id=meeting_pk,
-            display_name=display_name,
-            is_host=meeting_gateway.get_host_id(meeting) == user_id,
-            user_id=user_id,
-        )
+        try:
+            created = await run_in_threadpool(
+                participant_service.create_participant,
+                db,
+                meeting_id=meeting_pk,
+                display_name=display_name,
+                is_host=meeting_gateway.get_host_id(meeting) == user_id,
+                user_id=user_id,
+            )
+        except IntegrityError:
+            # Two simultaneous joins by the same account: the unique index let one
+            # win; use that row instead of failing the second connection.
+            await run_in_threadpool(db.rollback)
+            winner = await run_in_threadpool(
+                participant_service.find_user_participant, db, meeting_pk, user_id
+            )
+            if winner is None:
+                raise
+            return winner.id, meeting_gateway.is_host_participant(meeting, winner)
         return created.id, created.is_host
 
     if requested_id is not None:

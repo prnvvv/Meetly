@@ -67,6 +67,9 @@ class Settings:
         self.database_ssl_mode: str = _env("DATABASE_SSL_MODE", "require")
         # "true" for Supabase's transaction pooler (PgBouncer): the driver must
         # not use server-side prepared statements.
+        # Run request transactions as the low-privilege `meetly_app` role under Row Level
+        # Security (PostgreSQL only). Off by default; see app/database/rls.py.
+        self.database_rls_enforce: bool = _env("DATABASE_RLS_ENFORCE", "false").lower() == "true"
         self.database_use_pooler: bool = _env("DATABASE_USE_POOLER", "false").lower() == "true"
 
         # Supabase. The service-role key bypasses RLS: backend only, never the

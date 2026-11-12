@@ -60,3 +60,37 @@ What gets field-encrypted (justified, small by design): `users.email` (never nee
 - Service-role and database credentials are never `NEXT_PUBLIC_*`. The frontend needs no Supabase key.
 - `.gitignore` now also covers `.env.production`, `.env.staging`, `*.pem`, `*.key`, `*.crt`, dumps, and database exports *(done)*.
 - If a secret was ever committed it must be rotated; ignoring does not remove it from history. Audit found none tracked.
+
+---
+
+## Implementation status (Stage 7)
+
+### Hardening now in code
+| Area | What is enforced |
+| --- | --- |
+| Transport / CORS | Explicit origins only (no wildcard), **no credentialed requests** (Bearer tokens, not cookies), only the methods and headers the app uses. `Strict-Transport-Security` in production. Production refuses to boot on non-https origins. |
+| Response headers | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cache-Control: no-store` on `/api`. |
+| Request size | 1 MB for JSON bodies, 2 MB + slack for avatars, enforced by header and while streaming (413). |
+| WebSocket | Browser `Origin` must be an allowed frontend origin (both sockets). Tokens travel in the first message, never the URL. The meeting socket authenticates **before** it looks at the meeting password. |
+| Brute force | Password guesses (REST and WebSocket) are limited to 10 wrong attempts per account and meeting per 10 minutes; REST join 30/min; WebSocket joins 60/min; meeting lookups 120/min; search, friend requests, blocks, invitations, avatar uploads and profile edits all have limits. In-process limiter (single instance). |
+| Information exposure | `GET /api/meetings/{id}` returns title/status to any signed-in user (needed to join by link) but hides description and settings from people who are not part of the meeting. Password hashes are never serialised. 500 responses are generic. Tokens, headers and keys are not logged (tested). |
+| Tokens | RS256 only; `alg=none`, HS256 key confusion, tampered payloads, missing `exp`/`sub`, foreign issuer and (when configured) foreign `azp` are all rejected (tested). |
+| Integrity | One participant row per person per meeting (partial unique index, migration 0007) plus a race-safe join path. |
+| Input | Pydantic models forbid unknown fields on all new write endpoints; meeting/participant creation ignore client-supplied owner, host or status. |
+| Dependencies | `npm audit --omit=dev`: 0 vulnerabilities. A Python audit could not be run on this Windows machine (a pinned wheel does not build here); run `pip-audit` in CI/Linux. |
+
+### Row Level Security (migration 0008)
+Implemented as designed in section 2 (Mode A): role `meetly_app` (NOLOGIN, not superuser, no BYPASSRLS), 33 policies, SECURITY DEFINER helper functions to avoid policy recursion. Switched on per request with `DATABASE_RLS_ENFORCE=true`; **off by default**, so nothing changes for the running app until you enable it. With it on, each request transaction begins with `set_config('app.user_id', <verified id>, true)` and `SET LOCAL ROLE meetly_app`.
+
+Tested on a real PostgreSQL as the real role (`tests/test_rls_postgres.py`, 15 tests, throwaway schema): the role is not privileged; with no identity every table is empty; a user sees only their own `users` row; profile visibility (public / friends-only / private / blocked) matches the app; friend requests, friendships, blocks, notifications, invitations, waiting-room entries and participants are scoped to the right people; forged inserts and cross-user updates are refused; `activity_events` and the legacy `invitations` table are denied. A second test runs the **real application services** (profiles, friends, blocking, notifications, invitations, meetings, waiting room) under enforcement to prove the policies do not break legitimate flows.
+
+Deliberate gaps (the database cannot tell these apart from legitimate app behaviour; the API enforces them):
+- Any signed-in user may *insert* a notification for someone else, and may write meeting history rows.
+- Any signed-in user may update a scheduled/active meeting row (lazy activation on first join, timeout end). Ended/cancelled meetings are frozen for non-hosts.
+- A waiting guest can update their own waiting-room row at the SQL level (admission is a host decision enforced by the API).
+- A compromised backend can set any user id. RLS limits mistakes and injection, not a hostile server.
+
+### Not done / for you to decide
+- `DATABASE_RLS_ENFORCE` should be switched on in staging first, with the full UI exercised, before production.
+- Field encryption (AES-256-GCM) is implemented and tested but no column uses it yet; see the audit note on `users.email`.
+- Rate limits are in memory (single Render instance).
