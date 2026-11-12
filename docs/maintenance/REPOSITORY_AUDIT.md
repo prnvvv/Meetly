@@ -47,7 +47,7 @@ None confirmed in tracked source.
 | H1 | A Clerk admin script lived under `frontend/public/`, so Next.js would have served it at a public URL. It carried a hardcoded default demo-user password. | `frontend/public/images/scripts/create-demo-user.mjs` | **Fixed**: moved to `frontend/scripts/`, default password removed (`DEMO_USER_PASSWORD` now required, 12+ characters). |
 | H2 | `npm run demo-user` pointed at `scripts/create-demo-user.mjs`, which did not exist, so the command was broken. | `frontend/package.json` | **Fixed** by the move in H1. |
 | H3 | The demo password was published in documentation. | `docs/design-system.md` | **Fixed** in the current files. **Action for you:** the string remains in Git history, so treat that password as public and delete or reset the demo user in the Clerk development instance. History was not rewritten. |
-| H4 | No `LICENSE` file. Without one, the code is "all rights reserved" and others cannot legally use it. | repository root | **Decision required**, see below. |
+| H4 | No `LICENSE` file. Without one, the code is "all rights reserved" and others cannot legally use it. | repository root | **Fixed**: MIT `LICENSE` added (see Licensing). Third-party asset provenance is still unconfirmed. |
 
 ### MEDIUM
 
@@ -91,7 +91,7 @@ These areas were listed in the brief but have **not** been reviewed line by line
 
 ## Licensing
 
-No `LICENSE` exists. The choice is yours; it is not selected here.
+MIT was chosen and added as `LICENSE` (copyright holder: the repository owner's GitHub handle; change it if you want a legal name). The alternatives considered:
 
 - **MIT**: very permissive; anyone may use, modify and sell it, including closed-source forks, provided the notice stays. Simplest and most common for portfolio and community projects.
 - **Apache-2.0**: permissive like MIT, plus an explicit patent grant and patent-retaliation clause. Slightly longer, favoured by companies.
@@ -104,6 +104,6 @@ Third-party assets: `frontend/public/images/` contains illustrations and `skiper
 
 Done in this pull request: H1, H2, H3 (files), M4, M6, `.gitignore` narrowing, contributor files (`CONTRIBUTING.md`, `SECURITY.md`, issue and pull request templates).
 
-Needs your approval before I do it: delete M1 (test-only dashboard components, hook and their tests), the M2 demo file and the M3 images; choose a license; decide on the agent files.
+Needs your approval before I do it: delete M1 (test-only dashboard components, hook and their tests), the M2 demo file and the M3 images; decide on the agent files.
 
 Next stages, in order: dependency split and CI hardening (M5, M9), documentation consolidation and README rewrite (M7, M8), deep review of WebSocket auth and the broad exception sites (M10), `docs/deployment/PRODUCTION_DEPLOYMENT.md`, then the cleanup report and public-release checklist.
