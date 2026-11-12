@@ -373,8 +373,9 @@
 .nm-empty {
   display: flex;
   flex: 1 1 auto;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
+  gap: 8px 14px;
   min-width: 0;
 }
 
@@ -388,7 +389,8 @@
 }
 
 .nm-empty__text {
-  flex: 1 1 auto;
+  /* Wraps the actions onto their own row instead of squeezing the text into a narrow column. */
+  flex: 1 1 14rem;
   min-width: 0;
 }
 
@@ -417,15 +419,6 @@
   flex-shrink: 0;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-@media (max-width: 720px) {
-  .nm-empty {
-    flex-wrap: wrap;
-  }
-  .nm-empty__text {
-    flex-basis: 12rem;
-  }
 }
 
 .nm-picture {

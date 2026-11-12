@@ -143,8 +143,7 @@ export function InvitePeopleSection({
             <div className="nm-empty__text">
               <p className="nm-empty__title">No friends yet</p>
               <p className="nm-empty__sub">
-                Find people by username or name and send a friend request. Once they accept, you can
-                invite them here.
+Find people by username or name, then invite them once they accept.
               </p>
               {!onCopyLink && linkHint ? <p className="nm-empty__hint">{linkHint}</p> : null}
             </div>
