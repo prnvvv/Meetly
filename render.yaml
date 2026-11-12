@@ -4,6 +4,12 @@
 # filesystem and every deploy or restart wipes users, meetings and schedules.
 # Persistent disks are only available on paid instance types.
 #
+# Moving to Supabase: follow docs/deployment/DEPLOYMENT_GUIDE.md (cutover section). It adds
+# APP_ENV=production, the DATABASE_* / SUPABASE_* / FIELD_ENCRYPTION_* variables and
+#   preDeployCommand: python -m alembic upgrade head
+# Do NOT add the preDeployCommand while DATABASE_URL is still the SQLite file: that
+# database was not created by Alembic and must be adopted with `alembic stamp 0001` first.
+#
 # Run a SINGLE instance (no numInstances > 1, no --workers): the realtime
 # connection state is held in process memory and SQLite is single-writer.
 services:

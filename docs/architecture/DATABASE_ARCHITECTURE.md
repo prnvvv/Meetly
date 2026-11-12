@@ -1,6 +1,6 @@
 # Database Architecture
 
-Status: **Stage 1 design (implemented foundation, no production connection yet).**
+Status: **implemented through migration 0008.** Production still runs SQLite until the cutover in `docs/deployment/DEPLOYMENT_GUIDE.md`.
 
 ## 1. Layers
 
@@ -24,7 +24,7 @@ Status: **Stage 1 design (implemented foundation, no production connection yet).
 
 TLS: `DATABASE_SSL_MODE=require` by default; `verify-full` is recommended once the Supabase CA certificate is mounted. Production refuses `disable`.
 
-Known prerequisite before cutover (audit V-04): the WebSocket route currently keeps one DB session for the lifetime of each socket. Under a pooler this must become short per-operation sessions. This is scheduled before the Stage 2 cutover, not after.
+The WebSocket route used to hold one pooled connection per live socket (audit V-04). It now returns the connection after every message, so idle sockets pin nothing; rooms of many sockets are safe under the pooler.
 
 ## 3. Types and conventions
 
@@ -42,28 +42,23 @@ Known prerequisite before cutover (audit V-04): the WebSocket route currently ke
 - Commands (from `backend/`): `python -m alembic upgrade head`, `... revision --autogenerate -m "msg"`, `... downgrade -1`, `... check`.
 - Not yet verified against a live PostgreSQL server (none available locally). That happens in Stage 2 against your Supabase project and in a Postgres CI job.
 
-## 5. Planned schema (additive revisions, Stages 3-6)
+## 5. Schema (migrations 0001-0008)
 
-```
-users (existing)            1──1  user_profiles(user_id PK/FK, username UNIQUE lower(), display_name,
-                                   avatar_path, bio, location, designation, organization, website,
-                                   social_links JSONB, visibility, created_at, updated_at)
-users ──< friend_requests(id, sender_id, receiver_id, status, created_at, updated_at, responded_at)
-         partial UNIQUE (least(sender,receiver), greatest(sender,receiver)) WHERE status='PENDING'
-users ──< friendships(id, user_low_id, user_high_id, created_at)  CHECK low<high, UNIQUE(low,high)
-users ──< user_blocks(id, blocker_id, blocked_id, created_at)     UNIQUE(blocker,blocked), CHECK blocker<>blocked
-users ──< notifications(id, recipient_id, type, entity_type, entity_id, payload JSONB,
-                        read_at, expires_at, dedupe_key UNIQUE, created_at)
-meetings ──< meeting_invitations(id, meeting_id, inviter_id, invitee_user_id, status, expires_at, created_at)
-         UNIQUE(meeting_id, invitee_user_id)   (replaces the unused `invitations` table)
-meetings += waiting_room_enabled BOOLEAN NOT NULL DEFAULT false, admission_mode VARCHAR(24) NOT NULL DEFAULT 'host_approval'
-meetings ──< waiting_room_entries(id, meeting_id, user_id, participant_id, state, decided_by, requested_at,
-                                  decided_at, updated_at)  UNIQUE(meeting_id,user_id), CHECK state IN (...)
-participants += UNIQUE(meeting_id, user_id) WHERE user_id IS NOT NULL   (fixes audit V-06)
-```
+| Revision | Content |
+| --- | --- |
+| 0001 | users, meetings, participants, meeting_history, invitations (legacy, unused), activity_events (unused) |
+| 0002 | revoke Supabase `anon`/`authenticated` access |
+| 0003 | `user_profiles` (1:1 with users; unique lowercase username; visibility; backfilled) |
+| 0004 | `friend_requests` (partial unique index: one pending per pair), `friendships` (canonical pair), `user_blocks`, `notifications` (unique `dedupe_key`, expiry) |
+| 0005 | `meeting_invitations` (unique per meeting+invitee) |
+| 0006 | `meetings.waiting_room_enabled` (default false), `meetings.admission_mode`, `waiting_room_entries` (unique per meeting+user, state CHECK) |
+| 0007 | partial unique index: one participant row per user per meeting |
+| 0008 | role `meetly_app`, SECURITY DEFINER helpers, 33 RLS policies |
 
-Identity is independent of friendship, relationships are independent of meetings, and notifications carry a type string plus entity reference, so new features add rows and revisions rather than reshape these tables.
+Conventions: integer `users.id` is the internal key; `clerk_id` is the only link to Clerk; timestamps are `TIMESTAMPTZ`; enumerations are VARCHAR + CHECK so new values need only a migration; flexible data (`social_links`, notification `payload`) is JSONB while relational facts stay relational. Identity does not depend on friendship, relationships do not depend on meetings, and notifications carry a type string plus an entity reference, so new features add rows and revisions rather than reshape these tables. The legacy `invitations` and `activity_events` tables are unused and untouched.
+
+Row Level Security: see `SECURITY_ARCHITECTURE.md` (policies, how the user id reaches the database, tests, deliberate gaps).
 
 ## 6. Backup and recovery
 
-Documented in `docs/database/BACKUP_AND_RECOVERY.md` and `MIGRATION_GUIDE.md` during Stage 2/8. Until cutover, `backend/scripts/backup_db.py` remains the SQLite backup tool.
+See `docs/database/BACKUP_AND_RECOVERY.md` and `MIGRATION_GUIDE.md`. Until cutover, `backend/scripts/backup_db.py` remains the SQLite backup tool.

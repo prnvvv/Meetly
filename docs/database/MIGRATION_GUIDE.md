@@ -1,7 +1,6 @@
 # SQLite -> Supabase migration guide
 
-Status: schema applied to the Supabase project (empty, `alembic` at `0002`).
-Data rehearsal **passed**; the production cutover has **not** been done and needs explicit approval.
+Status: the Supabase schema is at revision `0008` (13 Meetly tables, empty of production data). The data rehearsal **passed** on the development database; the production cutover has **not** been done and needs explicit approval. The full, ordered procedure with environment variables, rollback and smoke tests is in [`docs/deployment/DEPLOYMENT_GUIDE.md`](../deployment/DEPLOYMENT_GUIDE.md) (section 4).
 
 ## What exists
 | Piece | Command / file |
@@ -16,11 +15,11 @@ The copy script opens SQLite read-only, refuses a non-empty target, preserves pr
 ## Rehearsal result (2026-11-12, dev database copy)
 Backup `zoom_clone-20261112-153850.db`, 94,208 bytes, `integrity_check` ok. users 2, meetings 4, meeting_history 2, participants 2, activity_events 0, invitations 0: all tables content-identical, 0 orphaned FKs. Rehearsal schema dropped; `public` has 0 rows.
 
-## Production cutover (manual, requires approval)
-1. Announce a short maintenance window. On Render, take a backup: shell into the service and run `python scripts/backup_db.py backup`, download the file. Record size + SHA-256.
-2. Stop writes (scale to 0 or suspend). Take the final backup again.
-3. Locally: `python scripts/migrate_sqlite_to_postgres.py --source <final-backup.db>`; require `VALIDATION PASSED`.
-4. In Render set `DATABASE_URL` (transaction pooler), `DATABASE_USE_POOLER=true`, `DATABASE_DIRECT_URL`, `APP_ENV=production`, `CLERK_AUTHORIZED_PARTIES`, `FIELD_ENCRYPTION_KEYS`, `SUPABASE_*`. Deploy and check `/health`, sign in, create/join a meeting.
-5. **Rollback:** set `DATABASE_URL` back to `sqlite:////var/data/meetly.db` and redeploy. The SQLite file and backups stay untouched on the disk; do not delete them until the new database is verified and a retention period is agreed.
-
-Note: users created on the old database keep their `clerk_id`, so sign-in maps to the same rows after cutover.
+## Things that matter for the production cutover
+- **The target must be empty.** The copy script refuses a non-empty `public` schema. If Supabase was used for development, its rows must be cleared first (with approval and, if in doubt, a `pg_dump`).
+- **The production file has not been seen.** Rehearse with a fresh backup downloaded from Render before the window, against a scratch schema (`--schema rehearsal --create-schema --drop-schema`).
+- **Newer tables start empty.** Profiles, friendships, notifications, invitations and waiting-room entries do not exist in SQLite. Existing users get a generated profile (`user<id>`) when the migration revisions run, and from then on on first sign-in. Existing meetings get `waiting_room_enabled = false`.
+- **Old accounts keep working** because users are matched by Clerk id; internal ids are preserved by the copy, and the identity sequences are advanced afterwards.
+- **Adopting a SQLite database in place** (not needed for Supabase): `python -m alembic stamp 0001` then `python -m alembic upgrade head`. Verified on a copy of the development database: all rows preserved, integrity check ok.
+- **Rollback** is pointing `DATABASE_URL` back at the untouched SQLite file.
+- **Never run `alembic downgrade` against the configured database**; the tool now refuses unless `ALEMBIC_ALLOW_DOWNGRADE=1`.

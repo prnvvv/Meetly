@@ -204,3 +204,26 @@ Project: `.gitignore` (add key/cert/export patterns), `render.yaml`, `.github/wo
 | Rotate the Clerk test secret key (V-14) | any | Clerk dashboard |
 
 I will not connect to any production database or change any deployed setting without your explicit go-ahead at the Stage 1 and Stage 2 gates.
+
+---
+
+## Appendix: resolution status (updated at the end of Stage 8)
+
+| ID | Sev | Status | How |
+| --- | --- | --- | --- |
+| V-01 | HIGH | **Fixed** | `APP_ENV=production` refuses `AUTH_MODE=demo` (and other unsafe settings) at startup; the WebSocket binds identity to the verified token. Demo mode remains for local/tests only. |
+| V-02 | HIGH | **Fixed** | In-process rate limiter on search, requests, blocks, invitations, avatars, profile edits, joins, meeting lookups; password guesses locked out after 10 failures per account and meeting. Single instance only. |
+| V-03 | HIGH | **Fixed** | Server-enforced waiting room (migration 0006), off by default; legacy unenforced flag deliberately not migrated. |
+| V-04 | HIGH | **Fixed** | A WebSocket no longer pins a pooled DB connection between messages; stale-socket cleanup no longer clobbers reconnects. |
+| V-05 | MED | **Mitigated** | Description and settings hidden from non-members; lookups rate limited. The title is still visible to any signed-in user who has the meeting id (needed to join by link). |
+| V-06 | MED | **Fixed** | Partial unique index (migration 0007) and a race-safe join. The index is skipped with a logged warning if duplicates already exist in production data. |
+| V-07 | MED | **Fixed** | `CLERK_AUTHORIZED_PARTIES` is mandatory in production. |
+| V-08 | MED | **Fixed** | Explicit origins, methods and headers; no credentialed requests; production requires https origins. |
+| V-09 | MED | **Fixed** | WebSocket `Origin` allow-list on both sockets. |
+| V-10 | MED | **Open (decision needed)** | The account email is still stored in plaintext. Encrypting it needs a keyed hash for the unique lookup and a data migration; the cipher is ready. No endpoint returns anyone else's email. |
+| V-11 | LOW | Open | Placeholder `...@users.meetly.invalid` emails are used if `CLERK_SECRET_KEY` is not configured. Set the key to avoid them. |
+| V-12 | LOW | **Fixed** | Body size limits (1 MB JSON, 2 MB avatars). |
+| V-13 | LOW | **Fixed** | Alembic replaces the SQLite-only migrator; chain verified up and down on real PostgreSQL. |
+| V-14 | INFO | **Your action** | Rotate the Clerk test secret key (it appeared in a tool log during the audit). |
+
+Added beyond the audit: Row Level Security with a tested low-privilege role (opt-in), alembic downgrade guard, security headers, and the fix that lets invited or waiting people open the room page (previously a 403 on the participant list).

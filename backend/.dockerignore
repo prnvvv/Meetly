@@ -9,4 +9,7 @@ data/*.db
 data/*.db-*
 data/backups
 tests
-scripts
+data/exports
+.env.*
+__pycache__
+
