@@ -1107,6 +1107,46 @@ def test_host_flag_survives_reconnect(client, db):
 
 
 
+def test_cleanup_marks_left_even_when_a_failed_send_already_dropped_the_socket(db):
+    """The manager drops a socket whose send fails; its later cleanup must still record the leave."""
+    from app.websocket import handler
+
+    _seed_meeting(db, MEETING_A)
+    participant = _create_participant(db, MEETING_A, "Gone")
+
+    async def scenario():
+        manager = ConnectionManager()  # nothing registered: the connection was dropped
+        session = handler.RealtimeSession(MEETING_A)
+        session.participant_id = participant.id
+        session.joined = True
+        await handler._cleanup(session, manager, db, FakeWebSocket())
+
+    asyncio.run(scenario())
+    db.expire_all()
+    db.refresh(participant)
+    assert participant.left_at is not None
+
+
+def test_cleanup_keeps_a_reconnected_participant_present(db):
+    from app.websocket import handler
+
+    _seed_meeting(db, MEETING_A)
+    participant = _create_participant(db, MEETING_A, "Back")
+
+    async def scenario():
+        manager = ConnectionManager()
+        await manager.connect(FakeWebSocket(), meeting_id=MEETING_A, participant_id=participant.id)
+        session = handler.RealtimeSession(MEETING_A)
+        session.participant_id = participant.id
+        session.joined = True
+        await handler._cleanup(session, manager, db, FakeWebSocket())  # stale socket
+
+    asyncio.run(scenario())
+    db.expire_all()
+    db.refresh(participant)
+    assert participant.left_at is None
+
+
 def test_stale_socket_cleanup_does_not_remove_reconnected_connection():
     async def scenario():
         manager = ConnectionManager()

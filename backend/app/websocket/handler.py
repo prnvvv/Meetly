@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from starlette.websockets import WebSocketDisconnected
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
@@ -148,7 +149,7 @@ async def meeting_socket(
             if session.closing:
                 break
 
-    except WebSocketDisconnect:
+    except (WebSocketDisconnect, WebSocketDisconnected):
         logger.info(
             "ws disconnected meeting=%s participant=%s waiting=%s",
             meeting_id, session.participant_id, session.waiting,
@@ -925,9 +926,10 @@ async def _cleanup(
     )
     # A fast reconnect registers a new connection for this participant while
     # this (older) socket is still cleaning up; do not mark them as left then.
-    if connection is not None and not await manager.is_connected(
-        session.meeting_id, session.participant_id
-    ):
+    # ``connection`` can be None because a failed send already dropped this
+    # socket from the manager; the participant must still be marked as left
+    # unless a newer connection is registered.
+    if not await manager.is_connected(session.meeting_id, session.participant_id):
         await run_in_threadpool(
             participant_service.mark_participant_left, db, session.participant_id
         )
