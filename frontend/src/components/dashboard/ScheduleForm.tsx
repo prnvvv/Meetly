@@ -24,6 +24,7 @@ import {
   validateScheduleForm,
   type FieldError,
 } from "@/lib/validators";
+import { browserTimeZone, listTimeZones, zonedWallTimeToIso } from "@/lib/timezone";
 import { scheduleMeeting } from "@/services/scheduleService";
 
 const DEFAULT_TITLE = "Scheduled Meeting";
@@ -48,19 +49,34 @@ function defaultStart(): Date {
 }
 
 /** The nth occurrence of a repeating meeting, keeping the same local clock time. */
-function occurrenceStart(date: string, time: string, repeat: Repeat, index: number): string | null {
+function occurrenceStart(
+  date: string,
+  time: string,
+  repeat: Repeat,
+  index: number,
+  timeZone: string
+): string | null {
   const [year, month, day] = date.split("-").map(Number);
   const [hour, minute] = time.split(":").map(Number);
-  const when = new Date(year, month - 1, day, hour, minute, 0, 0);
-  if (repeat === "daily") when.setDate(when.getDate() + index);
-  else if (repeat === "weekly") when.setDate(when.getDate() + index * 7);
+  // Calendar arithmetic on the wall-clock date (zone independent), then one
+  // conversion to UTC, so a daily meeting keeps its clock time across DST.
+  const when = new Date(Date.UTC(year, month - 1, day));
+  if (repeat === "daily") when.setUTCDate(when.getUTCDate() + index);
+  else if (repeat === "weekly") when.setUTCDate(when.getUTCDate() + index * 7);
   else if (repeat === "monthly") {
     // Clamp to the month's last day so Jan 31 + 1 month is Feb 28/29, not Mar 3.
     const targetMonth = month - 1 + index;
-    const lastDay = new Date(year, targetMonth + 1, 0).getDate();
-    when.setMonth(targetMonth, Math.min(day, lastDay));
+    const lastDay = new Date(Date.UTC(year, targetMonth + 1, 0)).getUTCDate();
+    when.setUTCMonth(targetMonth, Math.min(day, lastDay));
   }
-  return Number.isNaN(when.getTime()) ? null : when.toISOString();
+  return zonedWallTimeToIso(
+    when.getUTCFullYear(),
+    when.getUTCMonth() + 1,
+    when.getUTCDate(),
+    hour,
+    minute,
+    timeZone
+  );
 }
 
 /** Schedule form: details on the left; illustration, invitees and options on the right. */
@@ -90,13 +106,8 @@ export function ScheduleForm() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const timeZone = useMemo(() => {
-    try {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone;
-    } catch {
-      return "";
-    }
-  }, []);
+  const [timeZone, setTimeZone] = useState(browserTimeZone);
+  const timeZones = useMemo(() => listTimeZones(), []);
   const today = useMemo(() => toLocalDateInputValue(new Date()), []);
 
   const errorFor = (field: string) => fieldErrors.find((error) => error.field === field)?.message;
@@ -122,14 +133,14 @@ export function ScheduleForm() {
 
     // The topic is optional: an untitled meeting gets a default name.
     const title = values.title.trim() || DEFAULT_TITLE;
-    const errors = validateScheduleForm({ ...values, title });
+    const errors = validateScheduleForm({ ...values, title, timeZone });
     setFieldErrors(errors);
     if (errors.length > 0) return;
 
     const count = repeat === "none" ? 1 : occurrences;
     const starts: string[] = [];
     for (let i = 0; i < count; i += 1) {
-      const start = occurrenceStart(values.date, values.time, repeat, i);
+      const start = occurrenceStart(values.date, values.time, repeat, i, timeZone);
       if (!start) {
         setFieldErrors([{ field: "date", message: "That date and time is not valid." }]);
         return;
@@ -274,9 +285,25 @@ export function ScheduleForm() {
               <span className="field__error sm-row__error" id="schedule-date-error" role="alert">
                 {errorFor("date") ?? errorFor("time")}
               </span>
-            ) : timeZone ? (
-              <span className="field__hint sm-row__error">Times are in your time zone ({timeZone}).</span>
-            ) : null}
+            ) : (
+              <span className="field__hint sm-row__error">
+                Times are in{" "}
+                <select
+                  id="schedule-timezone"
+                  aria-label="Time zone"
+                  value={timeZone}
+                  disabled={submitting}
+                  onChange={(event) => setTimeZone(event.target.value)}
+                  style={{ font: "inherit", maxWidth: "100%", background: "transparent", border: 0, padding: 0 }}
+                >
+                  {timeZones.map((zone) => (
+                    <option key={zone} value={zone}>
+                      {zone}
+                    </option>
+                  ))}
+                </select>
+              </span>
+            )}
           </div>
 
           <div className="field">

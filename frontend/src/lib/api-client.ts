@@ -74,10 +74,27 @@ export async function apiRequest<T>(
   if (!response.ok) {
     const message =
       detailToMessage(parsed as ApiErrorBody) ?? defaultHttpMessage(response.status);
+    if (response.status === 401) redirectToSignIn();
     throw new ApiError(message, response.status);
   }
 
   return parsed as T;
+}
+
+const PUBLIC_PATHS = ["/", "/sign-in", "/sign-up"];
+
+/**
+ * An expired or missing session: send the browser to Clerk's sign-in page and
+ * come back to the same place afterwards. Never loops (public pages are skipped).
+ */
+export function redirectToSignIn(): void {
+  if (typeof window === "undefined") return;
+  const { pathname, search } = window.location;
+  if (PUBLIC_PATHS.some((p) => (p === "/" ? pathname === "/" : pathname.startsWith(p)))) return;
+  const target = encodeURIComponent(`${pathname}${search}`);
+  // Full navigation on purpose: the sign-in page is served by Clerk's own flow.
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+  window.location.assign(`/sign-in?redirect_url=${target}`);
 }
 
 function defaultHttpMessage(status: number): string {

@@ -1,3 +1,4 @@
+import { zonedWallTimeToIso } from "./timezone";
 import {
   MAX_DESCRIPTION_LENGTH,
   MAX_DISPLAY_NAME_LENGTH,
@@ -94,6 +95,8 @@ export interface ScheduleValues {
   date: string;
   time: string;
   duration: number;
+  /** IANA zone the date and time are in; the browser's zone when omitted. */
+  timeZone?: string;
 }
 
 export function validateScheduleForm(values: ScheduleValues): FieldError[] {
@@ -134,7 +137,7 @@ export function validateScheduleForm(values: ScheduleValues): FieldError[] {
   }
 
   if (errors.length === 0) {
-    const startIso = buildStartTimestamp(values.date, values.time);
+    const startIso = buildStartTimestamp(values.date, values.time, values.timeZone);
     if (startIso) {
       const start = new Date(startIso);
       // Allow a small grace period for clocks and double submits.
@@ -156,7 +159,7 @@ export function validateScheduleForm(values: ScheduleValues): FieldError[] {
  * Combines `<input type=date>` and `<input type=time>` values into a
  * timezone-aware ISO 8601 string (the API rejects naive timestamps).
  */
-export function buildStartTimestamp(date: string, time: string): string | null {
+export function buildStartTimestamp(date: string, time: string, timeZone?: string): string | null {
   if (!date || !time) return null;
   const [year, month, day] = date.split("-").map(Number);
   const [hour, minute] = time.split(":").map(Number);
@@ -169,6 +172,7 @@ export function buildStartTimestamp(date: string, time: string): string | null {
   ) {
     return null;
   }
+  if (timeZone) return zonedWallTimeToIso(year, month, day, hour, minute, timeZone);
   const composed = new Date(year, month - 1, day, hour, minute, 0, 0);
   if (Number.isNaN(composed.getTime())) return null;
   return composed.toISOString();
