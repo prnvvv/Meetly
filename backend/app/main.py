@@ -72,6 +72,7 @@ def _include_routers(application: FastAPI) -> None:
 
     for module_name, attribute, tag in (
         ("app.routers.users", "router", "users"),
+        ("app.routers.profiles", "router", "profiles"),
         ("app.routers.meetings", "router", "meetings"),
         ("app.routers.schedules", "router", "schedules"),
     ):

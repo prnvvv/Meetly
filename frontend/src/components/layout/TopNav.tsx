@@ -12,6 +12,7 @@ import {
   MenuIcon,
   PlusIcon,
   SettingsIcon,
+  UserIcon,
   VideoIcon,
   XIcon,
 } from "@/components/icons";
@@ -96,7 +97,15 @@ export function TopNav({ onMenuToggle, menuOpen, onNavigate }: TopNavProps) {
             >
               <SettingsIcon />
             </Link>
-            <UserButton appearance={clerkAppearance} />
+            <UserButton appearance={clerkAppearance}>
+              <UserButton.MenuItems>
+                <UserButton.Link
+                  label="Profile"
+                  href="/profile"
+                  labelIcon={<UserIcon size={16} />}
+                />
+              </UserButton.MenuItems>
+            </UserButton>
           </Show>
           <button
             type="button"

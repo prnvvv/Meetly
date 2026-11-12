@@ -27,7 +27,10 @@ vi.mock("@clerk/nextjs", () => ({
   SignUpButton: ({ children }: { children: React.ReactNode }) => children,
   Show: ({ when, children }: { when: string; children: React.ReactNode }) =>
     when === "signed-in" ? children : null,
-  UserButton: () => <span data-testid="user-button" />,
+  UserButton: Object.assign(() => <span data-testid="user-button" />, {
+    MenuItems: () => null,
+    Link: () => null,
+  }),
 }));
 
 afterEach(cleanup);

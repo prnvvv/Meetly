@@ -101,6 +101,17 @@ def _profile_from_clerk(clerk_id: str) -> tuple[str, str]:
         return name, email
 
 
+def _ensure_profile_quietly(db: Session, user: User) -> None:
+    """Give a new account its profile; never let this block sign-in."""
+    try:
+        from app.services.profile_service import ensure_profile
+
+        ensure_profile(db, user)
+    except Exception as exc:
+        db.rollback()
+        logger.warning("Could not create profile: %s", type(exc).__name__)
+
+
 def _user_for_clerk_id(db: Session, clerk_id: str) -> User:
     user = db.execute(select(User).where(User.clerk_id == clerk_id)).scalar_one_or_none()
     now = utc_now()
@@ -116,6 +127,7 @@ def _user_for_clerk_id(db: Session, clerk_id: str) -> User:
             user = db.execute(select(User).where(User.clerk_id == clerk_id)).scalar_one()
         else:
             db.refresh(user)
+            _ensure_profile_quietly(db, user)
     elif user.last_login_at is None or now - user.last_login_at > LAST_LOGIN_REFRESH:
         user.last_login_at = now
         db.commit()

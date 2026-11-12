@@ -32,3 +32,4 @@ websockets==17.4
 PyJWT==2.15.1
 cryptography==50.0.2
 alembic==1.20.1
+pillow==13.0.0

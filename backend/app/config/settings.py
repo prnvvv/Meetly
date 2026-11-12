@@ -31,6 +31,14 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
+def _supabase_origin(raw: str) -> str:
+    """Project origin only: tolerates a pasted /rest/v1 (or any) path suffix."""
+    from urllib.parse import urlsplit
+
+    parts = urlsplit(raw)
+    return f"{parts.scheme}://{parts.netloc}" if parts.scheme and parts.netloc else raw.rstrip("/")
+
+
 def _env(name: str, default: str = "") -> str:
     """Environment value; blank and unset both mean "use the default"."""
     return os.getenv(name, "").strip() or default
@@ -63,7 +71,7 @@ class Settings:
 
         # Supabase. The service-role key bypasses RLS: backend only, never the
         # browser, never logged.
-        self.supabase_url: str = _env("SUPABASE_URL").rstrip("/")
+        self.supabase_url: str = _supabase_origin(_env("SUPABASE_URL"))
         self.supabase_service_role_key: str = _env("SUPABASE_SERVICE_ROLE_KEY")
         self.supabase_avatar_bucket: str = _env("SUPABASE_AVATAR_BUCKET", "avatars")
 

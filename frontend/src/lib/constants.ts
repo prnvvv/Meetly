@@ -9,6 +9,10 @@ export const STUN_SERVER =
 
 export const REST = {
   me: "/api/users/me",
+  myProfile: "/api/users/me/profile",
+  myAvatar: "/api/users/me/avatar",
+  usernameAvailable: "/api/users/username-available",
+  userProfile: (userId: number) => `/api/users/${encodeURIComponent(String(userId))}/profile`,
   meetings: "/api/meetings",
   meeting: (meetingId: string) => `/api/meetings/${encodeURIComponent(meetingId)}`,
   meetingJoin: (meetingId: string) =>

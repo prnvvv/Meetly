@@ -3,10 +3,13 @@ from app.models.invitation import Invitation
 from app.models.meeting import Meeting, MeetingStatus
 from app.models.meeting_history import MeetingHistory
 from app.models.participant import Participant
+from app.models.profile import ProfileVisibility, UserProfile
 from app.models.user import User
 
 __all__ = [
     "User",
+    "UserProfile",
+    "ProfileVisibility",
     "Meeting",
     "MeetingStatus",
     "Participant",
