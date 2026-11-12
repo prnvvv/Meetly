@@ -265,8 +265,8 @@ Clerk is the only identity provider; the API verifies RS256 tokens (issuer, expi
 ## Testing and CI
 
 ```bash
-cd backend  && python -m pytest                 # 492 tests (17 more run against PostgreSQL, below)
-cd frontend && npm test                          # 369 tests (Vitest, jsdom)
+cd backend  && python -m pytest                 # SQLite suite; the PostgreSQL suites run separately, below
+cd frontend && npm test                          # Vitest, jsdom
 cd frontend && npm run typecheck && npm run lint && npm run build
 python scripts/e2e_probe.py http://localhost:8000   # probe against a running backend
 ```
