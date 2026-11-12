@@ -399,7 +399,6 @@ export function ScheduleForm() {
             onToggle={toggleFriend}
             onClear={clearFriends}
             onOpenMore={() => setFriendsOpen(true)}
-            linkHint="You can share the meeting link as soon as it is scheduled."
           />
 
           <section className="nm-section" aria-labelledby="sm-options-title">

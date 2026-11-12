@@ -5,12 +5,10 @@ import {
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  LinkIcon,
   MoreHorizontalIcon,
   XIcon,
 } from "@/components/icons";
 import { ParticipantAvatar } from "@/components/meeting/ParticipantAvatar";
-import { openFriendsPanel } from "@/lib/friendsPanel";
 import type { Friend } from "@/lib/friends";
 
 interface InvitePeopleSectionProps {
@@ -26,12 +24,6 @@ interface InvitePeopleSectionProps {
   onToggle: (id: string) => void;
   onClear: () => void;
   onOpenMore: () => void;
-  /**
-   * Offer "Copy invite link" in the empty state. Omit it when no link exists yet
-   * (a meeting that has not been created), and pass `linkHint` instead.
-   */
-  onCopyLink?: () => void;
-  linkHint?: string;
   /** Section copy; defaults are the New Meeting wording. */
   title?: string;
   subtitle?: string;
@@ -52,8 +44,6 @@ export function InvitePeopleSection({
   onToggle,
   onClear,
   onOpenMore,
-  onCopyLink,
-  linkHint,
   title = "Invite People",
   subtitle = "Bring your people into the conversation.",
 }: InvitePeopleSectionProps) {
@@ -135,40 +125,7 @@ export function InvitePeopleSection({
 
       {showEmpty ? (
         <div className="nm-friends nm-friends--state" role="status">
-          <div className="nm-empty">
-            <span className="nm-empty__art" aria-hidden="true">
-              <ParticipantAvatar name="Friends one" variant={3} size={44} accent={false} />
-              <ParticipantAvatar name="Friends two" variant={7} size={44} accent={false} />
-            </span>
-            <div className="nm-empty__text">
-              <p className="nm-empty__title">No friends yet</p>
-              <p className="nm-empty__sub">
-Find people by username or name, then invite them once they accept.
-              </p>
-              {!onCopyLink && linkHint ? <p className="nm-empty__hint">{linkHint}</p> : null}
-            </div>
-            <div className="nm-empty__actions">
-              <button
-                type="button"
-                className="btn btn--primary btn--sm"
-                onClick={() => openFriendsPanel("find")}
-                disabled={disabled}
-              >
-                Find friends
-              </button>
-              {onCopyLink ? (
-                <button
-                  type="button"
-                  className="btn btn--secondary btn--sm"
-                  onClick={onCopyLink}
-                  disabled={disabled}
-                >
-                  <LinkIcon size={14} />
-                  Copy invite link
-                </button>
-              ) : null}
-            </div>
-          </div>
+          <p className="nm-empty__title">No friends yet</p>
         </div>
       ) : showFailure ? (
         <div className="nm-friends nm-friends--state" role="alert">
