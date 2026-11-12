@@ -40,6 +40,13 @@ def test_sqlite_is_always_allowed():
     check_downgrade_allowed(make_url("sqlite:///x.db"), env={})
 
 
+def test_a_local_database_needs_no_project_ref_but_never_in_production():
+    local = make_url("postgresql://postgres:postgres@localhost:5432/postgres")
+    check_target(local, app_env="local", command="alembic", env={})
+    with pytest.raises(UnsafeDatabaseTarget):
+        check_target(local, app_env="production", command="alembic", env={})
+
+
 def test_a_shared_database_without_an_expected_ref_is_refused():
     with pytest.raises(UnsafeDatabaseTarget, match="DATABASE_EXPECTED_REF is not set"):
         check_target(make_url(DEV), app_env="local", env={"DATABASE_TARGET_ENV": "development"})

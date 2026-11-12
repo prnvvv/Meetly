@@ -29,7 +29,9 @@ from sqlalchemy.engine import URL
 
 _REF_FROM_HOST = re.compile(r"^db\.([a-z0-9]{20})\.supabase\.co$")
 
-APP_ENV_TO_TARGET = {"local": "development", "test": "development", "development": "development",
+_LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+APP_ENV_TO_TARGET ={"local": "development", "test": "development", "development": "development",
                      "staging": "staging", "production": "production"}
 
 
@@ -79,6 +81,10 @@ def check_target(
     env = os.environ if env is None else env
     target = describe(url)
     if target.is_sqlite:
+        return target
+    # A database on this machine (a CI service container, a local Docker Postgres) is never
+    # a shared Supabase project, so there is no identity to bind. Not allowed in production.
+    if target.host in _LOOPBACK_HOSTS and app_env.lower() != "production":
         return target
 
     expected_ref = (env.get("DATABASE_EXPECTED_REF") or "").strip()

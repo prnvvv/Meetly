@@ -68,6 +68,7 @@ jobs:
       DATABASE_URL: sqlite:///./ci_test.db
       DATABASE_DIRECT_URL: postgresql://postgres:postgres@localhost:5432/postgres
       DATABASE_SSL_MODE: disable
+      DATABASE_TARGET_ENV: development  # the throwaway service container above
       MEETLY_PG_TEST_URL: postgresql://postgres:postgres@localhost:5432/postgres
       MEETLY_PG_TEST_SSLMODE: disable
       FRONTEND_URL: http://localhost:3000
