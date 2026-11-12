@@ -1,0 +1,49 @@
+name: Bug report
+description: Something in Meetly is not working as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include secrets, tokens or personal data. For security problems, follow SECURITY.md instead of opening a public issue.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you expected and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Meeting room (video / audio / screen share)
+        - Chat / participants
+        - Scheduling / invitations
+        - Authentication
+        - Dashboard / profile / social
+        - Backend API
+        - Deployment / CI
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser and version, operating system, local or deployed.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Browser console or backend log output, with anything sensitive removed.
