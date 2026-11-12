@@ -108,14 +108,17 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog AS $$ {body} $
 
     # -- grants -----------------------------------------------------------------------
     add(f"GRANT USAGE ON SCHEMA {s} TO {ROLE}")
-    for table in TABLES:
-        add(f"GRANT SELECT, INSERT, UPDATE, DELETE ON {s}.{_q(table)} TO {ROLE}")
     add(f"GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA {s} TO {ROLE}")
+    # Table privileges are granted per command and only where a policy exists (below), so the role
+    # never holds a privilege that RLS would have to catch.
+    commands: dict[str, list[str]] = {t: [] for t in TABLES}
 
     for table in TABLES:
         add(f"ALTER TABLE {s}.{_q(table)} ENABLE ROW LEVEL SECURITY")
 
     def policy(table: str, name: str, command: str, using: str | None = None, check: str | None = None) -> None:
+        if command not in commands[table]:
+            commands[table].append(command)
         add(f"DROP POLICY IF EXISTS {_q(name)} ON {s}.{_q(table)}")
         clause = f"CREATE POLICY {_q(name)} ON {s}.{_q(table)} AS PERMISSIVE FOR {command} TO {ROLE}"
         if using:
@@ -181,6 +184,10 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog AS $$ {body} $
     policy("waiting_room_entries", "wr_update", "UPDATE",
            using=f"user_id = {me} OR {s}.app_is_host(meeting_id)",
            check=f"user_id = {me} OR {s}.app_is_host(meeting_id)")
+
+    for table, cmds in commands.items():
+        add(f"REVOKE ALL ON {s}.{_q(table)} FROM {ROLE}")
+        add(f"GRANT {', '.join(cmds)} ON {s}.{_q(table)} TO {ROLE}")
     return statements
 
 

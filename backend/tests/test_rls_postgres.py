@@ -92,6 +92,14 @@ class Ctx:
             s.close()
 
 
+def refused(ctx, user, statement, **params):
+    """A write is refused either by a missing privilege (no policy for that command) or by RLS (0 rows)."""
+    try:
+        return ctx.sql(user, statement, **params) == 0
+    except (ProgrammingError, DBAPIError):
+        return True
+
+
 @pytest.fixture(scope="module")
 def ctx(world):
     _, scoped, schema = world
@@ -184,7 +192,7 @@ def test_cannot_change_or_create_other_peoples_profiles(ctx, data):
     with pytest.raises(DBAPIError):
         ctx.sql(data["e"], "INSERT INTO {S}.user_profiles (user_id, username, display_name, created_at, updated_at) "
                            "VALUES (:o, 'forged', 'F', now(), now())", o=data["a"])
-    assert ctx.sql(data["e"], "DELETE FROM {S}.user_profiles WHERE user_id = :o", o=data["a"]) == 0
+    assert refused(ctx, data["e"], "DELETE FROM {S}.user_profiles WHERE user_id = :o", o=data["a"])
 
 
 # ---- social tables ---------------------------------------------------------------------------------
@@ -263,7 +271,7 @@ def test_meetings_readable_by_signed_in_users_but_not_rewritable_by_strangers(ct
     # an ended meeting is frozen for non-hosts
     assert ctx.sql(data["e"], "UPDATE {S}.meetings SET title = 'pwned' WHERE id = :m", m=data["m2"]) == 0
     assert ctx.sql(data["c"], "UPDATE {S}.meetings SET title = 'C meeting' WHERE id = :m", m=data["m2"]) == 1
-    assert ctx.sql(data["e"], "DELETE FROM {S}.meetings WHERE id = :m", m=data["m"]) == 0  # no DELETE policy at all
+    assert refused(ctx, data["e"], "DELETE FROM {S}.meetings WHERE id = :m", m=data["m"])  # the role has no DELETE privilege at all
 
 
 def test_meeting_history_only_for_people_in_the_meeting(ctx, data):
