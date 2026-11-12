@@ -82,3 +82,8 @@ logs/
 
 # Per-environment files (templates are the *.example siblings)
 .env.development
+
+# e2e
+e2e/.e2e-users.json
+e2e/test-results/
+e2e/playwright-report/

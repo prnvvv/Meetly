@@ -185,6 +185,8 @@ Templates: [`backend/.env.example`](backend/.env.example) and [`frontend/.env.lo
 | `MEETLY_ENV_FILE`, `MEETLY_CONFIRM_DB` | Pick another env file (`.env.staging`); confirm a staging/production schema or data command | — |
 | `EMAIL_ENCRYPTION_MODE`, `FIELD_BLIND_INDEX_KEYS(_VERSION)` | Encrypt account emails (`off` / `dual` / `encrypted`) with a separate HMAC index key ([`EMAIL_ENCRYPTION.md`](docs/security/EMAIL_ENCRYPTION.md)) | `off` |
 | `RATE_LIMIT_BACKEND` | `memory` or `database` (shared by all instances) | `memory` |
+| `EMPTY_MEETING_GRACE_MINUTES` | Minutes an active meeting may stay empty before it is ended automatically (`0` disables) | `10` |
+| `EMPTY_MEETING_SWEEP_SECONDS` | How often the empty-meeting check runs | `60` |
 | `TURN_URLS`, `TURN_SHARED_SECRET`, `TURN_CREDENTIAL_TTL` | Optional TURN relay with short-lived credentials ([`TURN_COTURN.md`](docs/deployment/TURN_COTURN.md)) | not configured |
 | `LOG_FORMAT`, `LOG_LEVEL` | `json`/`text`, level; secrets, tokens and emails are redacted | json in staging/production |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_AVATAR_BUCKET` | Avatar storage. **Server only**, never in the browser | bucket `avatars` |

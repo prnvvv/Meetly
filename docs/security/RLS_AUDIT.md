@@ -45,5 +45,5 @@ The role holds **only the privileges a policy exists for** (migration 0011): for
 | `audit_rls.py` on the development project | **PASSED**: RLS on for all 14 tables, 33 policies, no browser-role grants, grants equal policies |
 | Real-role tests (`test_rls_postgres.py`) | cross-user reads, forged inserts, cross-user updates/deletes all refused; the role is not superuser/BYPASSRLS; no identity means no rows; 17 tests |
 | Real application services under enforcement (profiles, friends, blocking, notifications, invitations, meetings, waiting room) | pass as the low-privilege role |
-| Two independent **browser** sessions with real Clerk accounts | **not done yet** (needs the Clerk test accounts described in `docs/testing/E2E_PLAN.md`) |
+| Two independent **browser** sessions with real Clerk accounts | **Done for backend authorization** (`e2e/`): the second account cannot read, edit, cancel or admit. **Not done for RLS itself**: the API connects as the table owner, so these runs did not exercise the policies |
 | Staging project with `DATABASE_RLS_ENFORCE=true` exercised through the UI | **not done yet** (no staging project exists) |

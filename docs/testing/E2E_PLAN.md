@@ -1,6 +1,19 @@
 # Real-browser, two-user end-to-end plan
 
-**Status: NOT run.** Everything below needs your approval first because it creates and later deletes test accounts in your Clerk **development** instance and installs a browser test runner. Until it is done, anything that depends on real Clerk sessions, real WebRTC media or a browser (the UI of the new Invite friends states, the waiting-room screens, RLS through the UI) is verified only by component tests and API/WebSocket tests, not in a browser.
+**Status: PARTLY RUN (2026-11-12, approved).** The suite in `e2e/` ran against the local app, the Clerk **development** instance and the **development** Supabase project, with two temporary users that were deleted afterwards (Clerk users and their database rows). 6 tests passed:
+
+| Spec | What it proves (real Clerk sessions, real Chromium, real database) |
+| --- | --- |
+| `01-auth` | Two sessions map to two different backend users; the session survives a reload; no token means 401 |
+| `02-room` | Waiting room holds the guest (no participant row, 403 on the roster), the host admits instantly, then inbound audio bytes, video bytes and decoded frames grow on **both** sides (RTCPeerConnection stats, fake camera/mic) |
+| `03-lifecycle` | Reject keeps the guest out (also after a reload); join times recorded; reload reconnects as the same participant; leave is persisted; host end sets `ended`, closes history, and blocks re-entry |
+| `04-schedule-isolation` | Schedule form with the time-zone picker stores the right UTC instants, weekly repeat, unique ids, no password in any response; wrong/missing password refused, right one accepted; the other account cannot see, edit, cancel or admit; edit and cancel persist; bad ids and anonymous calls are refused |
+
+**Not covered:** friends/blocking/notifications through the UI, invitations through the UI, Invite-friends layout at 360/768/1280 px, RLS through browser sessions (the API connects as the table owner), and any TURN or cross-network test. Both browsers ran on one machine, so the selected ICE pairs were `host`/`prflx`: this proves WebRTC and signalling work, not that STUN alone is enough across home or mobile NATs.
+
+How to run: start the backend (8000) and the frontend (3000), then `python e2e/support/clerk_users.py create`, `cd e2e && npm install && npx playwright test`, and afterwards `python e2e/support/clerk_users.py delete` and `PYTHONPATH=. python ../e2e/support/cleanup_db.py --apply` (from `backend/`; it first lists counts without `--apply`). If Playwright cannot unpack its own Chromium, set `E2E_CHROMIUM_PATH` to an installed `chrome.exe`.
+
+The text below is the original plan; it is kept for the parts not yet run.
 
 ## What I need from you (one approval)
 1. Permission to create **two clearly named test users** in the Clerk development instance (`e2e-host`, `e2e-guest`, emails ending `+clerk_test@example.com`, which Clerk treats as test addresses) using the existing development secret key, and to **delete them again** at the end.
