@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   SignInButton,
@@ -21,7 +21,11 @@ import {
 } from "@/components/icons";
 import { FriendsDrawer, type Tab as FriendsTab } from "@/components/social/FriendsDrawer";
 import { NotificationsMenu } from "@/components/social/NotificationsMenu";
+import { useToast } from "@/components/common/ToastProvider";
 import { useNotifications } from "@/hooks/useNotifications";
+import { toUserMessage } from "@/lib/api-client";
+import { acceptInvitation, declineInvitation } from "@/services/socialService";
+import type { AppNotification } from "@/types/social";
 import { APP_NAME } from "@/lib/constants";
 import { clerkAppearance } from "@/lib/clerk-appearance";
 import { cx } from "@/lib/utils";
@@ -46,10 +50,35 @@ interface TopNavProps {
  */
 export function TopNav({ onMenuToggle, menuOpen, onNavigate }: TopNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
   const { isSignedIn } = useAuth();
   const notifications = useNotifications(!!isSignedIn);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [friendsTab, setFriendsTab] = useState<FriendsTab>("friends");
+  const joinInvitation = async (n: AppNotification) => {
+    if (n.entity_id == null) return;
+    try {
+      const result = await acceptInvitation(n.entity_id);
+      void notifications.refresh();
+      // Password-protected meetings need the password typed on the join page first.
+      router.push(
+        result.has_password ? `/join?meeting=${result.meeting_id}` : `/meetings/${result.meeting_id}`
+      );
+    } catch (error) {
+      toast(toUserMessage(error), "error");
+      void notifications.refresh();
+    }
+  };
+  const declineInvite = async (n: AppNotification) => {
+    if (n.entity_id == null) return;
+    try {
+      await declineInvitation(n.entity_id);
+    } catch (error) {
+      toast(toUserMessage(error), "error");
+    }
+    void notifications.refresh();
+  };
   const openFriends = (tab: FriendsTab = "friends") => {
     setFriendsTab(tab);
     setFriendsOpen(true);
@@ -119,6 +148,8 @@ export function TopNav({ onMenuToggle, menuOpen, onNavigate }: TopNavProps) {
               onMarkAllRead={() => void notifications.markAllRead()}
               onLoadMore={() => void notifications.loadMore()}
               onOpenFriends={openFriends}
+              onJoinInvitation={(n) => void joinInvitation(n)}
+              onDeclineInvitation={(n) => void declineInvite(n)}
             />
             <Link
               href="/settings"

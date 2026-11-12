@@ -9,6 +9,7 @@ import { CalendarIcon, EyeIcon, EyeOffIcon } from "@/components/icons";
 import { FriendsDialog } from "@/components/meeting/FriendsDialog";
 import { InvitePeopleSection } from "@/components/meeting/InvitePeopleSection";
 import { useFriends } from "@/hooks/useFriends";
+import { describeInviteOutcome, inviteSelectedFriends } from "@/lib/inviteFriends";
 import { toUserMessage } from "@/lib/api-client";
 import {
   MAX_DESCRIPTION_LENGTH,
@@ -139,6 +140,8 @@ export function ScheduleForm() {
     setSubmitting(true);
     const secret = password.trim();
     let created = 0;
+    let invitedTotal = 0;
+    let inviteProblem: string | null = null;
     try {
       // The API has no recurrence concept, so each occurrence is its own scheduled meeting.
       for (const start_time of starts) {
@@ -157,8 +160,13 @@ export function ScheduleForm() {
           settings: {},
           invitedFriendIds: [...selectedFriends],
         });
+        const outcome = await inviteSelectedFriends(meeting.meeting_id, selectedFriends);
+        if (outcome.error) inviteProblem = outcome.error;
+        invitedTotal = Math.max(invitedTotal, outcome.invited);
       }
       toast(created > 1 ? `${created} meetings scheduled` : "Meeting scheduled", "success");
+      const invited = describeInviteOutcome({ invited: invitedTotal, skipped: 0, error: inviteProblem });
+      if (invited) toast(invited.text, invited.kind);
       router.push("/dashboard");
     } catch (error) {
       const message = toUserMessage(error);
@@ -452,7 +460,7 @@ export function ScheduleForm() {
         onInviteSelected={() => {
           setFriendsOpen(false);
           const n = selectedFriends.size;
-          toast(`${n} ${n === 1 ? "friend" : "friends"} added to this meeting's invite list`, "success");
+          toast(`${n} ${n === 1 ? "friend" : "friends"} will be invited when you schedule the meeting`, "success");
         }}
       />
     </>

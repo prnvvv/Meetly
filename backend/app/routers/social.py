@@ -14,6 +14,11 @@ from app.auth import get_current_user
 from app.database.session import get_db
 from app.models.user import User
 from app.schemas.social import (
+    InvitationAcceptResult,
+    InvitationOut,
+    InviteRequest,
+    InviteResponse,
+    MeetingInvitationOut,
     FriendRequestCreate,
     FriendRequestOut,
     FriendRequestResult,
@@ -24,6 +29,7 @@ from app.security.ratelimit import rate_limit
 from app.services import (
     block_service,
     friend_service,
+    invitation_service,
     notification_service,
     people_service,
 )
@@ -34,6 +40,7 @@ people_router = APIRouter(prefix="/api/users", tags=["people"])
 friends_router = APIRouter(prefix="/api/friends", tags=["friends"])
 blocks_router = APIRouter(prefix="/api", tags=["blocking"])
 notifications_router = APIRouter(prefix="/api/notifications", tags=["notifications"])
+invitations_router = APIRouter(prefix="/api", tags=["invitations"])
 
 
 def _http(exc: SocialError) -> HTTPException:
@@ -223,4 +230,80 @@ def read_one(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-routers = (people_router, friends_router, blocks_router, notifications_router)
+# ---- meeting invitations ----------------------------------------------------------
+
+
+@invitations_router.post(
+    "/meetings/{meeting_id}/invitations",
+    response_model=InviteResponse,
+    dependencies=[Depends(rate_limit("invite", 30, 60))],
+)
+def invite_to_meeting(
+    meeting_id: str,
+    payload: InviteRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> InviteResponse:
+    try:
+        result, touched = invitation_service.invite(db, user.id, meeting_id, payload.user_ids)
+    except SocialError as exc:
+        raise _http(exc) from exc
+    notify_users(touched)
+    return result
+
+
+@invitations_router.get("/meetings/{meeting_id}/invitations", response_model=list[MeetingInvitationOut])
+def list_meeting_invitations(
+    meeting_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> list[MeetingInvitationOut]:
+    try:
+        return invitation_service.list_for_meeting(db, user.id, meeting_id)
+    except SocialError as exc:
+        raise _http(exc) from exc
+
+
+@invitations_router.get("/invitations", response_model=list[InvitationOut])
+def my_invitations(
+    pending_only: bool = True,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[InvitationOut]:
+    return invitation_service.list_received(db, user.id, pending_only=pending_only)
+
+
+def _respond_invitation(action, db: Session, user: User, invitation_id: int) -> InvitationAcceptResult:
+    try:
+        result, touched = action(db, user.id, invitation_id)
+    except SocialError as exc:
+        raise _http(exc) from exc
+    notify_users(touched)
+    return result
+
+
+@invitations_router.post("/invitations/{invitation_id}/accept", response_model=InvitationAcceptResult)
+def accept_invitation(
+    invitation_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> InvitationAcceptResult:
+    return _respond_invitation(invitation_service.accept, db, user, invitation_id)
+
+
+@invitations_router.post("/invitations/{invitation_id}/decline", response_model=InvitationAcceptResult)
+def decline_invitation(
+    invitation_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> InvitationAcceptResult:
+    return _respond_invitation(invitation_service.decline, db, user, invitation_id)
+
+
+@invitations_router.delete("/invitations/{invitation_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
+def cancel_invitation(
+    invitation_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> Response:
+    try:
+        touched = invitation_service.cancel(db, user.id, invitation_id)
+    except SocialError as exc:
+        raise _http(exc) from exc
+    notify_users(touched)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+routers = (people_router, friends_router, blocks_router, notifications_router, invitations_router)

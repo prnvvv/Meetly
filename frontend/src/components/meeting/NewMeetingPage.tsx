@@ -8,6 +8,7 @@ import { useToast } from "@/components/common/ToastProvider";
 import { ArrowLeftIcon } from "@/components/icons";
 import { AppShell } from "@/components/layout/AppShell";
 import { useFriends } from "@/hooks/useFriends";
+import { describeInviteOutcome, inviteSelectedFriends } from "@/lib/inviteFriends";
 import { useMeetingSetup } from "@/hooks/useMeetingSetup";
 import { toUserMessage } from "@/lib/api-client";
 import { STORAGE_KEYS } from "@/lib/constants";
@@ -66,6 +67,13 @@ export function NewMeetingPage() {
     });
   }
 
+  /** Real invitations for the picked friends (the server ignores ones already sent). */
+  async function sendInvites(meetingId: string) {
+    const outcome = await inviteSelectedFriends(meetingId, selectedFriends);
+    const message = describeInviteOutcome(outcome);
+    if (message) toast(message.text, message.kind);
+  }
+
   /** Creates the meeting once per (title, password) pair and returns its id. */
   async function ensureMeeting(): Promise<CreatedMeeting> {
     const title = name.trim() || DEFAULT_TITLE;
@@ -74,6 +82,7 @@ export function NewMeetingPage() {
     if (existing && existing.title === title && existing.password === secret) {
       // Same room: refresh the remembered setup choices, they may have changed.
       persistConfig(existing.meetingId);
+      await sendInvites(existing.meetingId);
       return existing;
     }
     const meeting = await createMeeting({ title, password: secret || undefined, settings: { ...settings } });
@@ -81,6 +90,7 @@ export function NewMeetingPage() {
       window.sessionStorage.setItem(STORAGE_KEYS.meetingPassword(meeting.meeting_id), secret);
     }
     persistConfig(meeting.meeting_id);
+    await sendInvites(meeting.meeting_id);
     const created = { meetingId: meeting.meeting_id, title, password: secret };
     createdRef.current = created;
     return created;
@@ -184,7 +194,7 @@ export function NewMeetingPage() {
         onInviteSelected={() => {
           setFriendsOpen(false);
           const n = selectedFriends.size;
-          toast(`${n} ${n === 1 ? "friend" : "friends"} added to this meeting's invite list`, "success");
+          toast(`${n} ${n === 1 ? "friend" : "friends"} will be invited when you start the meeting`, "success");
         }}
       />
     </AppShell>

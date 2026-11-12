@@ -52,3 +52,31 @@ export const markNotificationRead = (id: number) =>
 
 export const markAllNotificationsRead = () =>
   apiRequest<{ updated: number }>("/api/notifications/read-all", { method: "POST" });
+
+// ---- meeting invitations ----
+
+export interface InviteResponse {
+  meeting_id: string;
+  invited: number;
+  results: { user_id: number; result: "invited" | "reinvited" | "already_invited" | "unavailable" }[];
+}
+
+export interface InvitationAccepted {
+  invitation_id: number;
+  status: string;
+  meeting_id: string;
+  has_password: boolean;
+  joinable_now: boolean;
+}
+
+export const inviteToMeeting = (meetingId: string, userIds: number[]) =>
+  apiRequest<InviteResponse>(`/api/meetings/${enc(meetingId)}/invitations`, {
+    method: "POST",
+    body: { user_ids: userIds },
+  });
+
+export const acceptInvitation = (id: number) =>
+  apiRequest<InvitationAccepted>(`/api/invitations/${id}/accept`, { method: "POST" });
+
+export const declineInvitation = (id: number) =>
+  apiRequest<InvitationAccepted>(`/api/invitations/${id}/decline`, { method: "POST" });

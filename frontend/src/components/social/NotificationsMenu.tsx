@@ -17,7 +17,13 @@ interface NotificationsMenuProps {
   onLoadMore: () => void;
   /** Called when a friend-related notification is clicked. */
   onOpenFriends: (tab: "requests" | "friends") => void;
+  /** Accept a meeting invitation and go to the meeting. */
+  onJoinInvitation: (n: AppNotification) => void;
+  onDeclineInvitation: (n: AppNotification) => void;
 }
+
+const title = (n: AppNotification) =>
+  typeof n.payload?.title === "string" && n.payload.title ? `"${n.payload.title}"` : "a meeting";
 
 function describe(n: AppNotification): { text: string; tab: "requests" | "friends" | null } {
   const who = n.actor?.display_name ?? "Someone";
@@ -26,6 +32,10 @@ function describe(n: AppNotification): { text: string; tab: "requests" | "friend
       return { text: `${who} sent you a friend request`, tab: "requests" };
     case "friend_request_accepted":
       return { text: `${who} accepted your friend request`, tab: "friends" };
+    case "meeting_invitation":
+      return { text: `${who} invited you to ${title(n)}`, tab: null };
+    case "meeting_invitation_accepted":
+      return { text: `${who} accepted your invitation to ${title(n)}`, tab: null };
     default:
       return { text: "You have a new notification", tab: null };
   }
@@ -51,6 +61,8 @@ export function NotificationsMenu({
   onMarkAllRead,
   onLoadMore,
   onOpenFriends,
+  onJoinInvitation,
+  onDeclineInvitation,
 }: NotificationsMenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
@@ -126,6 +138,16 @@ export function NotificationsMenu({
                       </span>
                       {!n.read ? <span className="nt-dot" aria-label="Unread" /> : null}
                     </button>
+                    {n.type === "meeting_invitation" ? (
+                      <div className="nt-actions">
+                        <button type="button" className="btn btn--primary btn--sm" onClick={() => onJoinInvitation(n)}>
+                          Join
+                        </button>
+                        <button type="button" className="btn btn--secondary btn--sm" onClick={() => onDeclineInvitation(n)}>
+                          Decline
+                        </button>
+                      </div>
+                    ) : null}
                   </li>
                 );
               })}

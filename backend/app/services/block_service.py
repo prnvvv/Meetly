@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.models.profile import UserProfile
 from app.models.social import UserBlock
 from app.schemas.social import PersonPage
-from app.services import friend_service, people_service
+from app.services import friend_service, invitation_service, people_service
 from app.services.social_errors import SocialError, SocialNotFound
 
 
@@ -25,6 +25,7 @@ def block(db: Session, blocker_id: int, target_id: int) -> set[int]:
     if db.get(UserProfile, target_id) is None:
         raise SocialNotFound("User not found")
     touched = friend_service.cancel_pending_between(db, blocker_id, target_id)
+    touched |= invitation_service.cancel_pending_between(db, blocker_id, target_id)
     friend_service.delete_friendship_between(db, blocker_id, target_id)
     try:
         with db.begin_nested():

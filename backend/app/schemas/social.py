@@ -69,3 +69,54 @@ class NotificationPage(BaseModel):
     items: list[NotificationOut]
     unread_count: int
     next_before_id: int | None = None
+
+
+class InviteRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    user_ids: list[int] = Field(min_length=1, max_length=50)
+
+
+class InviteResultItem(BaseModel):
+    user_id: int
+    # invited | reinvited | already_invited | unavailable (not a friend, blocked, yourself, host)
+    result: str
+
+
+class InviteResponse(BaseModel):
+    meeting_id: str
+    results: list[InviteResultItem]
+    invited: int
+
+
+class InvitationMeeting(BaseModel):
+    meeting_id: str
+    title: str
+    start_time: datetime
+    status: str
+    has_password: bool
+
+
+class InvitationOut(BaseModel):
+    id: int
+    status: str
+    created_at: datetime
+    expires_at: datetime
+    inviter: PersonOut
+    meeting: InvitationMeeting
+
+
+class MeetingInvitationOut(BaseModel):
+    id: int
+    status: str
+    created_at: datetime
+    responded_at: datetime | None = None
+    person: PersonOut
+
+
+class InvitationAcceptResult(BaseModel):
+    invitation_id: int
+    status: str
+    meeting_id: str
+    has_password: bool
+    joinable_now: bool

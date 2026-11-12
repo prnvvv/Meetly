@@ -44,3 +44,23 @@ Profile views: `public` is full for any signed-in user; `friends` is full for fr
 - Rate limiting is in-process (single instance). Replace the store if the API is scaled out.
 - `discover` suggests people from shared meetings only.
 - Presence (online/offline) is intentionally not implemented; the invite picker shows `@username` instead of a fake status.
+
+## Meeting invitations (migration 0005)
+
+Table `meeting_invitations` (one row per `(meeting, invitee)`, unique), replacing the unused free-text `invitations` table, which is left in place and untouched. States: `PENDING -> ACCEPTED | DECLINED | CANCELLED | EXPIRED`.
+
+| Endpoint | Rule |
+| --- | --- |
+| `POST /api/meetings/{id}/invitations` `{user_ids: [..]}` | Inviter must be the host or someone who has joined. Meeting must be scheduled or active. Invitees must be the inviter's friends and not blocked either way. 1-50 per call. Per-person result: `invited`, `reinvited`, `already_invited`, `unavailable` (not a friend, blocked, yourself, host, unknown; deliberately indistinct). |
+| `GET /api/meetings/{id}/invitations` | Host sees all; a participant sees only the ones they sent; everyone else gets 404. |
+| `GET /api/invitations` | The signed-in user's received invitations (pending by default), with meeting title, time and `has_password`. |
+| `POST /api/invitations/{id}/accept` / `decline` | Invitee only (anyone else gets 404). Idempotent. Accepting returns `meeting_id`, `has_password`, `joinable_now`. Decline is silent. |
+| `DELETE /api/invitations/{id}` | Inviter or host withdraws a pending invitation; the invitee notification disappears. |
+
+Behaviour:
+- **No bypass.** An invitation grants nothing: the invitee still passes the normal join checks (password, lock, and the waiting room once enabled). The password hash is never returned, only `has_password`, and the join page asks for the password.
+- **Expiry** is lazy: a pending invitation is treated as expired once the meeting window has passed (instant meetings: 24 h; scheduled: start + duration, max 7 days). Expired or ended-meeting invitations cannot be accepted (409) and can be re-sent.
+- **Duplicates and retries:** repeated or concurrent invites produce one row and one notification (verified with 4 simultaneous requests on real PostgreSQL). Re-inviting after decline/cancel/expiry resets the row and sends exactly one new notification.
+- **Blocking** withdraws pending invitations in both directions and prevents new ones; already accepted invitations and live meeting participation are not touched.
+- **Notifications:** `meeting_invitation` (to the invitee, with Join/Decline in the bell) and `meeting_invitation_accepted` (to the inviter). Payload carries only the actor id, public meeting id and title.
+- **UI:** New Meeting and Schedule send real invitations for the friends picked in the existing picker. A failed invite never blocks creating the meeting; the user is told.
