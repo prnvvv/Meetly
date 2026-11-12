@@ -112,6 +112,10 @@ def _include_routers(application: FastAPI) -> None:
 
     application.include_router(user_channel_router)
 
+    from app.routers.webrtc import router as webrtc_router
+
+    application.include_router(webrtc_router)
+
     from app.routers.waiting_room import router as waiting_room_router
 
     application.include_router(waiting_room_router)

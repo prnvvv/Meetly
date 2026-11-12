@@ -1,10 +1,23 @@
 import { STUN_SERVER } from "@/lib/constants";
 
-/** RTCConfiguration with the configured STUN server; no hardcoded TURN. */
+/** TURN/STUN entries fetched from the API (short-lived credentials); empty until loaded. */
+let fetchedIceServers: RTCIceServer[] = [];
+
+/** Replace the cached ICE servers (called after `GET /api/webrtc/ice-servers`). */
+export function setFetchedIceServers(servers: RTCIceServer[]): void {
+  fetchedIceServers = servers;
+}
+
+/**
+ * RTCConfiguration: the configured STUN server always, plus whatever the API returned
+ * (including TURN with expiring credentials when the server has TURN configured). If the
+ * API was unreachable this is exactly the previous STUN-only configuration.
+ */
 export function peerConnectionConfig(): RTCConfiguration {
-  return {
-    iceServers: [{ urls: STUN_SERVER }],
-  };
+  const base: RTCIceServer = { urls: STUN_SERVER };
+  const list = (urls: string | string[]) => (Array.isArray(urls) ? urls : [urls]);
+  const extra = fetchedIceServers.filter((s) => !(list(s.urls).length === 1 && list(s.urls)[0] === STUN_SERVER));
+  return { iceServers: [base, ...extra] };
 }
 
 /**

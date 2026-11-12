@@ -9,6 +9,7 @@ import { useMediaDevices } from "@/hooks/useMediaDevices";
 import { useWebRTC } from "@/hooks/useWebRTC";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { getAuthToken } from "@/lib/auth-token";
+import { loadIceServers } from "@/services/iceService";
 import type { Meeting } from "@/types/meeting";
 import type { ParticipantSummary } from "@/types/participant";
 import type { ClientMessage, ServerMessage, WaitingEntry } from "@/types/realtime";
@@ -412,6 +413,7 @@ export function useMeeting({
         setPhase(status === 404 || status === 409 ? "rejected" : "failed");
         return;
       }
+      void loadIceServers(); // TURN credentials expire, so fetch them for every join; failure keeps STUN-only
       await acquireMedia();
       if (!active) return;
       setPhase("joining");

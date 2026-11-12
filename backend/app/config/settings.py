@@ -95,6 +95,11 @@ class Settings:
         # off: plaintext only (today). dual: plaintext + ciphertext + blind index.
         # encrypted: the plaintext column holds only a placeholder (after an approved cutover).
         # Where rate-limit counters live: memory (one process) or database (shared by all instances).
+        # TURN relay (optional). TURN_URLS: comma separated turn:/turns: URLs; the shared secret is the
+        # coturn static-auth-secret. Credentials sent to browsers are derived and expire.
+        self.turn_urls: str = _env("TURN_URLS")
+        self.turn_shared_secret: str = _env("TURN_SHARED_SECRET")
+        self.turn_credential_ttl: int = max(60, _env_int("TURN_CREDENTIAL_TTL", 3600))
         self.rate_limit_backend: str = _env("RATE_LIMIT_BACKEND", "memory").lower()
         self.email_encryption_mode: str = _env("EMAIL_ENCRYPTION_MODE", "off").lower()
         self.frontend_url: str = os.getenv(

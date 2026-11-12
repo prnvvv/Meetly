@@ -187,3 +187,34 @@ def test_the_legacy_invitations_model_has_no_users_so_meeting_invitations_stay_t
         if re.search(r"from app\.models\.invitation import|models\.invitation\b|import Invitation\b|\bInvitation\(|select\(Invitation\)", text_):
             offenders.append(str(path.relative_to(APP)))
     assert not offenders, f"legacy Invitation model is referenced by: {offenders}; use MeetingInvitation"
+
+
+# ---- every table has an explicit row-level-security decision ---------------------------------------------------
+
+# Tables the application role may use (policies in app/database/rls.py) ...
+# ... and tables deliberately closed to it: they are only reached by the owner login.
+RLS_DENIED = {"activity_events", "invitations", "rate_limit_counters"}
+
+
+def test_every_table_is_either_covered_by_rls_policies_or_explicitly_denied():
+    from app.database import rls
+    from app.database.database import Base
+    import app.models  # noqa: F401  (registers every table)
+
+    tables = set(Base.metadata.tables)
+    covered, denied = set(rls.TABLES), RLS_DENIED
+    assert not (covered & denied), "a table cannot be both granted and denied"
+    unclassified = tables - covered - denied
+    assert not unclassified, (
+        f"new table(s) {sorted(unclassified)} have no RLS decision: add them to rls.TABLES with policies "
+        "(new revision), or to RLS_DENIED here if the app role must never touch them"
+    )
+    assert covered <= tables and denied <= tables  # no stale names
+
+
+def test_the_application_role_is_never_granted_the_denied_tables():
+    from app.database import rls
+
+    statements = "\n".join(rls.policy_statements("public"))
+    for table in RLS_DENIED:
+        assert f'"{table}"' not in statements, f"{table} must not appear in the app-role grants or policies"
