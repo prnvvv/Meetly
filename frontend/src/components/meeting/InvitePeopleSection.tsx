@@ -101,6 +101,11 @@ export function InvitePeopleSection({
 
       <div className="nm-friends">
         <ul className="nm-friends__scroll" ref={scroller} onScroll={measure} aria-label="Friends">
+          {!loading && friends.length === 0 ? (
+            <li className="nm-friend nm-friend--empty">
+              No friends yet. Use the Friends icon in the top bar to add people.
+            </li>
+          ) : null}
           {loading
             ? Array.from({ length: 6 }, (_, i) => (
                 <li key={i} className="nm-friend nm-friend--skeleton" aria-hidden="true">
@@ -116,7 +121,7 @@ export function InvitePeopleSection({
                       type="button"
                       role="checkbox"
                       aria-checked={selected}
-                      aria-label={`${friend.name}, ${friend.online ? "online" : "offline"}`}
+                      aria-label={`${friend.name}, @${friend.username}`}
                       className="nm-friend__btn"
                       disabled={disabled}
                       onClick={() => onToggle(friend.id)}

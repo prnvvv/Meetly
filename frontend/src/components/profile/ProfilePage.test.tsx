@@ -29,6 +29,7 @@ vi.mock("@clerk/nextjs", () => ({
   SignUpButton: ({ children }: { children: React.ReactNode }) => children,
   Show: () => null,
   UserButton: Object.assign(() => null, { MenuItems: () => null, Link: () => null }),
+  useAuth: () => ({ isSignedIn: false }),
   useUser: () => ({ user: null, isLoaded: true }),
 }));
 

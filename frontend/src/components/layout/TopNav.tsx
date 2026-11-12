@@ -2,20 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import {
   SignInButton,
   SignUpButton,
   Show,
   UserButton,
+  useAuth,
 } from "@clerk/nextjs";
 import {
   MenuIcon,
   PlusIcon,
   SettingsIcon,
   UserIcon,
+  UsersIcon,
   VideoIcon,
   XIcon,
 } from "@/components/icons";
+import { FriendsDrawer, type Tab as FriendsTab } from "@/components/social/FriendsDrawer";
+import { NotificationsMenu } from "@/components/social/NotificationsMenu";
+import { useNotifications } from "@/hooks/useNotifications";
 import { APP_NAME } from "@/lib/constants";
 import { clerkAppearance } from "@/lib/clerk-appearance";
 import { cx } from "@/lib/utils";
@@ -40,6 +46,14 @@ interface TopNavProps {
  */
 export function TopNav({ onMenuToggle, menuOpen, onNavigate }: TopNavProps) {
   const pathname = usePathname();
+  const { isSignedIn } = useAuth();
+  const notifications = useNotifications(!!isSignedIn);
+  const [friendsOpen, setFriendsOpen] = useState(false);
+  const [friendsTab, setFriendsTab] = useState<FriendsTab>("friends");
+  const openFriends = (tab: FriendsTab = "friends") => {
+    setFriendsTab(tab);
+    setFriendsOpen(true);
+  };
   const isActive = (href: string) =>
     href === "/dashboard"
       ? pathname === "/dashboard" || pathname === "/"
@@ -87,6 +101,25 @@ export function TopNav({ onMenuToggle, menuOpen, onNavigate }: TopNavProps) {
               <PlusIcon size={16} />
               New Meeting
             </Link>
+            <button
+              type="button"
+              className={cx("icon-button", friendsOpen && "icon-button--active")}
+              aria-label="Friends"
+              aria-haspopup="dialog"
+              onClick={() => openFriends("friends")}
+            >
+              <UsersIcon />
+            </button>
+            <NotificationsMenu
+              items={notifications.items}
+              unread={notifications.unread}
+              loading={notifications.loading}
+              hasMore={notifications.hasMore}
+              onMarkRead={(id) => void notifications.markRead(id)}
+              onMarkAllRead={() => void notifications.markAllRead()}
+              onLoadMore={() => void notifications.loadMore()}
+              onOpenFriends={openFriends}
+            />
             <Link
               href="/settings"
               className={cx(
@@ -119,6 +152,15 @@ export function TopNav({ onMenuToggle, menuOpen, onNavigate }: TopNavProps) {
           </button>
         </div>
       </div>
+
+      <Show when="signed-in">
+        <FriendsDrawer
+          open={friendsOpen}
+          onClose={() => setFriendsOpen(false)}
+          changeTick={notifications.changeTick}
+          initialTab={friendsTab}
+        />
+      </Show>
 
       <div
         id="app-menu"

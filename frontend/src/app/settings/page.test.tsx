@@ -36,6 +36,7 @@ vi.mock("@clerk/nextjs", () => ({
   Show: ({ when, children }: { when: string; children: React.ReactNode }) =>
     when === "signed-out" ? children : null,
   UserButton: Object.assign(() => null, { MenuItems: () => null, Link: () => null }),
+  useAuth: () => ({ isSignedIn: false }),
   useUser: () => ({ user: null, isLoaded: true }),
 }));
 

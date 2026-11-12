@@ -70,6 +70,15 @@ def _include_routers(application: FastAPI) -> None:
 
     application.include_router(websocket_router)
 
+    from app.websocket.user_channel import router as user_channel_router
+
+    application.include_router(user_channel_router)
+
+    from app.routers.social import routers as social_routers
+
+    for social_router in social_routers:
+        application.include_router(social_router)
+
     for module_name, attribute, tag in (
         ("app.routers.users", "router", "users"),
         ("app.routers.profiles", "router", "profiles"),

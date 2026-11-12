@@ -46,6 +46,7 @@ vi.mock("@clerk/nextjs", () => ({
   Show: ({ when, children }: { when: string; children: React.ReactNode }) =>
     when === "signed-in" ? children : null,
   UserButton: Object.assign(() => null, { MenuItems: () => null, Link: () => null }),
+  useAuth: () => ({ isSignedIn: false }),
 }));
 
 function meetings(count: number, upcoming: boolean): Meeting[] {

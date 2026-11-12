@@ -133,7 +133,7 @@ def meeting_stats(db: Session, user_id: int) -> MeetingStats:
     )
 
 
-def _avatar_urls(profiles: list[UserProfile]) -> dict[str, str]:
+def sign_avatars(profiles: list[UserProfile]) -> dict[str, str]:
     paths = [p.avatar_path for p in profiles if p.avatar_path]
     return get_storage().sign_many(paths) if paths else {}
 
@@ -156,7 +156,7 @@ def build_view(
             profile.visibility == "friends" and rel.is_friend
         )
 
-    urls = avatar_urls if avatar_urls is not None else _avatar_urls([profile])
+    urls = avatar_urls if avatar_urls is not None else sign_avatars([profile])
     out = ProfileOut(
         user_id=profile.user_id,
         username=profile.username,
