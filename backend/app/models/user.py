@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Text
+from sqlalchemy import Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.database import Base, UTCDateTime, utc_now
@@ -18,6 +18,8 @@ DEMO_USER_EMAIL = "demo@example.com"
 
 class User(Base):
     __tablename__ = "users"
+    # Same name the additive SQLite migration creates, so both paths agree.
+    __table_args__ = (Index("uq_users_clerk_id", "clerk_id", unique=True),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100))

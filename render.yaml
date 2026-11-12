@@ -37,5 +37,16 @@ services:
       # Optional: lets the API read a new user's name and email from Clerk.
       - key: CLERK_SECRET_KEY
         sync: false
+      # Supabase migration (set only at cutover; see docs/database/MIGRATION_GUIDE.md).
+      # Until DATABASE_URL is switched the API keeps using SQLite on the disk.
+      # At cutover also set APP_ENV=production and DATABASE_* / SUPABASE_* / FIELD_ENCRYPTION_*.
+      - key: DATABASE_DIRECT_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: FIELD_ENCRYPTION_KEYS
+        sync: false
       - key: STUN_SERVER
         value: stun:stun.l.google.com:19302
