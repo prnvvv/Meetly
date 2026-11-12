@@ -69,6 +69,10 @@ const NO_MIC = "No microphone was found. Check your input device and try again."
 
 const NO_CAMERA = "No camera was found. Check your device and try again.";
 
+const CAMERA_UNPLUGGED = "Your camera was disconnected. Reconnect it, then turn the camera on again.";
+
+const MIC_UNPLUGGED = "Your microphone was disconnected. Reconnect it, then join audio again.";
+
 /** Plugging in one device can emit a burst of `devicechange` events. */
 const DEVICE_CHANGE_DEBOUNCE_MS = 300;
 
@@ -147,8 +151,8 @@ function kindError(kind: "audio" | "video", cause: unknown): string {
  * A successful action clears only its own blocking messages; notices from
  * the other kind (and the "switched to the default device" notice) survive.
  */
-const AUDIO_BLOCKING_ERRORS = [MIC_BLOCKED, NO_MIC, DEVICE_BUSY, MEDIA_ERROR];
-const VIDEO_BLOCKING_ERRORS = [CAMERA_BLOCKED, NO_CAMERA, DEVICE_BUSY, MEDIA_ERROR];
+const AUDIO_BLOCKING_ERRORS = [MIC_BLOCKED, NO_MIC, MIC_UNPLUGGED, DEVICE_BUSY, MEDIA_ERROR];
+const VIDEO_BLOCKING_ERRORS = [CAMERA_BLOCKED, NO_CAMERA, CAMERA_UNPLUGGED, DEVICE_BUSY, MEDIA_ERROR];
 
 function clearOwnedError(kind: "audio" | "video") {
   const owned = kind === "audio" ? AUDIO_BLOCKING_ERRORS : VIDEO_BLOCKING_ERRORS;
@@ -370,8 +374,29 @@ export function useMediaDevices(options: MediaDevicesOptions = {}): MediaDevices
     const next = new MediaStream([...carried, track]);
     streamRef.current = next;
     setStream(next);
+    // A device unplugged (or taken away) mid-meeting ends its track without any user action. Without
+    // this the UI would keep saying "camera on" and others would keep a frozen tile.
+    track.addEventListener?.("ended", () => {
+      const current = streamRef.current;
+      if (!current || !current.getTracks().includes(track)) return; // swapped for another device, or stopped on purpose
+      const remaining = new MediaStream(current.getTracks().filter((t) => t !== track));
+      streamRef.current = remaining;
+      setStream(remaining);
+      if (track.kind === "video") {
+        videoOnRef.current = false;
+        setIsVideoOn(false);
+        setError(CAMERA_UNPLUGGED);
+      } else {
+        audioJoinedRef.current = false;
+        mutedRef.current = true;
+        setAudioJoined(false);
+        setIsMuted(true);
+        setError(MIC_UNPLUGGED);
+      }
+      void refreshDevices();
+    });
     return next;
-  }, []);
+  }, [refreshDevices]);
 
   // Device lists only — media capture happens on explicit user action.
   const acquire = useCallback(() => refreshDevices(), [refreshDevices]);
