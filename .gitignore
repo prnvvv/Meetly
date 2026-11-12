@@ -53,7 +53,7 @@ TODO.md
 # Local tool state
 .opencode/
 
-main.py
+/main.py
 .python-version
 # Secrets, keys and certificates
 .env.production
