@@ -335,7 +335,8 @@ The Render blueprints are [`render.yaml`](render.yaml) and [`render.staging.yaml
 
 ## Known limitations
 
-- **Peer-to-peer mesh with STUN only.** Suits small meetings. Strict networks need a TURN server, which is **not configured** yet, and large rooms would need an SFU.
+- **TURN relay is not implemented yet.** Calls are peer-to-peer with a public STUN server only. They work for participants on the same Wi-Fi/router or on networks that allow direct connections, but may fail (one-way or no audio/video) between participants on different Wi-Fi routers or strict NATs and firewalls. The backend already supports TURN and a ready-to-use coturn setup is in [`deploy/coturn`](deploy/coturn); it just needs a TURN server to be hosted and configured. See [`TURN_COTURN.md`](docs/deployment/TURN_COTURN.md).
+- **Peer-to-peer mesh.** Suits small meetings; large rooms would need an SFU.
 - **Single API instance.** Live connections and rate limits are in memory.
 - **No end-to-end encryption**, chat, recording or captions. Online and offline presence is not implemented.
 - Meeting settings other than the lock and the waiting room (mute on entry, unmuting, screen sharing, chat, host controls, recording) are stored but not enforced.
