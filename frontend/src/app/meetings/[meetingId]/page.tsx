@@ -28,6 +28,7 @@ import { MeetingSettingsDialog } from "@/components/meeting/MeetingSettingsDialo
 import { ParticipantAvatar } from "@/components/meeting/ParticipantAvatar";
 import { MeetingTopBar } from "@/components/meeting/MeetingTopBar";
 import { ParticipantGrid, type StageTile } from "@/components/meeting/ParticipantGrid";
+import { RemoteAudio } from "@/components/meeting/RemoteAudio";
 import { InvitePeopleDialog } from "@/components/meeting/InvitePeopleDialog";
 import { ParticipantsPanel } from "@/components/meeting/ParticipantsPanel";
 import { WaitingRoomScreen } from "@/components/meeting/WaitingRoomScreen";
@@ -616,6 +617,8 @@ export default function MeetingRoomPage() {
           </div>
         ) : null}
       </div>
+
+      <RemoteAudio streams={session.remoteStreams} />
 
       <main className="room__stage">
         <ParticipantGrid
