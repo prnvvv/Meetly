@@ -130,7 +130,7 @@ export function ParticipantGrid({
       speaking={tile.id === activeSpeakerId}
       stream={tile.stream}
       isVideoOn={tile.isVideoOn}
-      videoMuted={tile.isSelf}
+      videoMuted // audio is played by <RemoteAudio/>; the tile video is picture-only
       mirrored={tile.isSelf && mirroredSelf}
       isPinned={tile.id === pinnedId}
       reactions={tile.reactions}

@@ -17,6 +17,8 @@ interface UseWebRtcOptions {
 interface PeerEntry {
   pc: RTCPeerConnection;
   pendingCandidates: RTCIceCandidateInit[];
+  /** Remote tracks that arrived without a stream id (see `ontrack`). */
+  looseTracks: MediaStreamTrack[];
 }
 
 /**
@@ -88,13 +90,35 @@ export function useWebRTC({
     });
   }, []);
 
+  /** Offerer-only: renegotiate with fresh ICE credentials after a failed path. */
+  const restartIce = useCallback(
+    async (peerId: number, pc: RTCPeerConnection): Promise<void> => {
+      const me = selfIdRef.current;
+      if (me === null || !shouldCreateOffer(me, peerId)) return;
+      if (pc.signalingState !== "stable") return;
+      try {
+        const offer = await pc.createOffer({ iceRestart: true });
+        await pc.setLocalDescription(offer);
+        sendRef.current({
+          type: "offer",
+          sender_id: me,
+          target_id: peerId,
+          payload: descriptionToPayload(pc.localDescription ?? offer),
+        });
+      } catch {
+        // The peer was closed meanwhile; nothing to recover.
+      }
+    },
+    []
+  );
+
   const ensurePeer = useCallback(
     (peerId: number): RTCPeerConnection => {
       const existing = peersRef.current.get(peerId);
       if (existing) return existing.pc;
 
       const pc = createPeerConnection();
-      const entry: PeerEntry = { pc, pendingCandidates: [] };
+      const entry: PeerEntry = { pc, pendingCandidates: [], looseTracks: [] };
       peersRef.current.set(peerId, entry);
 
       if (localStream) {
@@ -121,21 +145,32 @@ export function useWebRTC({
       };
 
       pc.ontrack = (event) => {
-        const stream = event.streams[0] ?? new MediaStream([event.track]);
+        // Tracks sent without a stream id arrive with `streams` empty. Wrapping
+        // each in its own MediaStream made the audio and video tracks overwrite
+        // one another, so collect every received track into one stream per peer.
+        const stream =
+          event.streams[0] ??
+          new MediaStream([
+            ...entry.looseTracks.filter((track) => track.readyState === "live"),
+            event.track,
+          ]);
+        if (!event.streams[0]) {
+          entry.looseTracks = stream.getTracks();
+        }
         setRemoteStreams((current) => ({ ...current, [peerId]: stream }));
       };
 
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "failed") {
-          // Drop the dead peer; the next syncPeers() rebuilds it if the
-          // participant is still connected.
-          removePeer(peerId);
+          // Try to recover the path (the offerer drives it) instead of
+          // silently dropping a peer that is still in the meeting.
+          void restartIce(peerId, pc);
         }
       };
 
       return pc;
     },
-    [localStream, removePeer]
+    [localStream, restartIce]
   );
 
   const sendOffer = useCallback(
@@ -207,7 +242,9 @@ export function useWebRTC({
 
       // answer
       const answer = payload as unknown as RTCSessionDescriptionInit;
-      if (!pc.remoteDescription) {
+      // Also accepts the answer to an ICE-restart offer (remoteDescription is
+      // already set then, but we are waiting on our own offer).
+      if (pc.signalingState === "have-local-offer") {
         await pc.setRemoteDescription(answer);
         const entry = peersRef.current.get(peerId);
         for (const candidate of entry?.pendingCandidates ?? []) {
