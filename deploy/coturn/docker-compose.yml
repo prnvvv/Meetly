@@ -1,0 +1,10 @@
+# Run on any host with a public IP:  docker compose up -d
+# host networking is required: TURN needs the real UDP port range.
+services:
+  coturn:
+    image: coturn/coturn:latest
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ./turnserver.conf:/etc/coturn/turnserver.conf:ro
+    command: ["-c", "/etc/coturn/turnserver.conf"]
